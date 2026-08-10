@@ -132,6 +132,7 @@ export const Header: React.FC<{ onToggleMobileSidebar?: () => void }> = ({ onTog
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                              </svg>
                           </button>
+                          <img src="/logoposnesia.png" alt="PosNesia" className="h-8 w-auto object-contain md:hidden" />
                           <h1 className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-white truncate">{currentPage}</h1>
                     </div>
 

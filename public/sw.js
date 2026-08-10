@@ -1,10 +1,13 @@
-const CACHE_NAME = 'posnesia-v1';
+const CACHE_NAME = 'posnesia-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/index.tsx',
   '/index.css',
-  '/vite.svg'
+  '/favicon.png',
+  '/pwa-icon.png',
+  '/logoposnesia.png',
+  '/manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
@@ -36,7 +39,6 @@ self.addEventListener('fetch', (event) => {
       return fetch(event.request).then((response) => {
         return response;
       }).catch(() => {
-        // Fallback for navigation requests when offline
         if (event.request.mode === 'navigate') {
           return caches.match('/');
         }

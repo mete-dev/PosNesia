@@ -171,6 +171,7 @@ export enum Page {
   FinancialInventoryReport = 'FinancialInventoryReport', // New
   // --- Settings Pages ---
   CompanyInformationSettings = 'CompanyInformationSettings',
+  BackupRestore = 'BackupRestore',
   DisplaySettings = 'DisplaySettings',
   ReportSizesSettings = 'ReportSizesSettings',
   // --- Document Pages (New) ---

@@ -5,7 +5,7 @@ import { Dashboard } from './Dashboard';
 import { ProductListPage, SetPricingPage } from './components/Products';
 import { CustomerListPage } from './components/Customers';
 import { SalesListPage, OrderFulfillmentPage, CreateManualSalePage } from './components/Sales';
-import { CompanyInformationSettingsPage, DisplaySettingsPage, ReportSizesSettingsPage } from './components/Settings';
+import { CompanyInformationSettingsPage, DisplaySettingsPage, ReportSizesSettingsPage, BackupRestorePage } from './components/Settings';
 import { Page, Theme } from './types';
 import { Vendors } from './components/Vendors';
 import { PurchaseListPage, AddPurchasePage } from './components/Purchases';
@@ -116,6 +116,7 @@ export const App: React.FC = () => {
             case Page.CreateManualSale: return <CreateManualSalePage />;
             case Page.OrderFulfillment: return <OrderFulfillmentPage />;
             case Page.CompanyInformationSettings: return <CompanyInformationSettingsPage />;
+            case Page.BackupRestore: return <BackupRestorePage />;
             case Page.DisplaySettings: return <DisplaySettingsPage />;
             case Page.ReportSizesSettings: return <ReportSizesSettingsPage />;
             case Page.Vendors: return <Vendors />;
@@ -240,9 +241,7 @@ export const App: React.FC = () => {
     }
     
     if (!currentUser) {
-        return isLoginPageVisible
-            ? <LoginPage onBack={() => dispatch({ type: 'ui/showLoginPage', payload: false })} />
-            : <WebsiteLandingPage onLoginClick={() => dispatch({ type: 'ui/showLoginPage', payload: true })} />;
+        return <LoginPage />;
     }
 
     return (

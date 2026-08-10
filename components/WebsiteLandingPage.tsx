@@ -35,7 +35,7 @@ const DownloadModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
                     clearInterval(interval);
                     setTimeout(() => {
                         setDownloading(null);
-                        alert(`Unduhan ${platform} berhasil dimulai! Terima kasih telah menggunakan ${companyInfo.name || 'Mete Corp'}.`);
+                        alert(`Unduhan ${platform} berhasil dimulai! Terima kasih telah menggunakan ${companyInfo.name || 'Pos Nesia'}.`);
                         onClose();
                     }, 600);
                     return 100;
@@ -46,12 +46,12 @@ const DownloadModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Download Aplikasi ${companyInfo.name || 'Mete Corp'}`}>
+        <Modal isOpen={isOpen} onClose={onClose} title={`Download Aplikasi ${companyInfo.name || 'Pos Nesia'}`}>
             <div className="space-y-6 py-4">
                 <div className="text-center space-y-2">
-                    <img src="/logo.png" alt={`${companyInfo.name || 'Mete Corp'} Logo`} className="h-12 mx-auto object-contain" />
+                    <img src="/logo.png" alt={`${companyInfo.name || 'Pos Nesia'} Logo`} className="h-12 mx-auto object-contain" />
                     <p className="text-gray-600 dark:text-gray-300 text-sm">
-                        Pilih platform perangkat Anda untuk mengunduh aplikasi kasir pintar {companyInfo.name || 'Mete Corp'} secara gratis &amp; aman.
+                        Pilih platform perangkat Anda untuk mengunduh aplikasi kasir pintar {companyInfo.name || 'Pos Nesia'} secara gratis &amp; aman.
                     </p>
                 </div>
 
@@ -138,10 +138,10 @@ const LandingHeader: React.FC<{
                         className="flex items-center space-x-3 focus:outline-none group"
                     >
                         <div className="p-2 bg-gradient-to-tr from-blue-500/10 to-emerald-500/10 dark:from-blue-400/20 dark:to-emerald-400/20 rounded-xl group-hover:scale-105 transition-transform">
-                            <img src={companyInfo.logoUrl || '/logo.png'} alt={`${companyInfo.name || 'Mete Corp'} Logo`} className="h-8 w-auto object-contain" />
+                            <img src={companyInfo.logoUrl || '/logo.png'} alt={`${companyInfo.name || 'Pos Nesia'} Logo`} className="h-8 w-auto object-contain" />
                         </div>
                         <span className="text-xl font-black bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-emerald-400 tracking-tight">
-                            {companyInfo.name || 'Mete Corp'}
+                            {companyInfo.name || 'Pos Nesia'}
                         </span>
                     </button>
 
@@ -274,7 +274,7 @@ const LandingFooter: React.FC = () => {
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
                     <div className="space-y-4">
-                        <img src="/logo.png" alt={companyInfo.name || 'Mete Corp'} className="h-10 w-auto object-contain bg-white p-1.5 rounded-xl" />
+                        <img src="/logo.png" alt={companyInfo.name || 'Pos Nesia'} className="h-10 w-auto object-contain bg-white p-1.5 rounded-xl" />
                         <p className="text-gray-400 text-sm leading-relaxed">
                             Aplikasi Kasir Gratis &amp; Manajemen Bisnis All-in-One terpercaya untuk kemajuan UMKM Indonesia.
                         </p>
@@ -304,7 +304,7 @@ const LandingFooter: React.FC = () => {
                     </div>
                 </div>
                 <div className="border-t border-gray-800/80 pt-8 text-center text-sm text-gray-500">
-                    <p>&copy; {new Date().getFullYear()} {companyInfo.name || 'Mete Corp'}. All Rights Reserved. 100% Gratis untuk UMKM.</p>
+                    <p>&copy; {new Date().getFullYear()} {companyInfo.name || 'Pos Nesia'}. All Rights Reserved. 100% Gratis untuk UMKM.</p>
                 </div>
             </div>
         </footer>
@@ -346,7 +346,7 @@ const HomePage: React.FC<{ onNavigate: (page: Page) => void; onDownloadClick: ()
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 max-w-4xl text-center">
                     <div className="space-y-8">
                         <h1 className="text-4xl sm:text-6xl font-black text-gray-900 dark:text-white tracking-tight leading-[1.15]">
-                            {companyInfo.name || 'Mete Corp'} - Aplikasi Kasir Gratis
+                            {companyInfo.name || 'Pos Nesia'} - Aplikasi Kasir Gratis
                         </h1>
                         
                         <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed font-normal">
@@ -380,7 +380,7 @@ const HomePage: React.FC<{ onNavigate: (page: Page) => void; onDownloadClick: ()
             {/* CTA Download Banner */}
             <section className="py-20 bg-blue-600 dark:bg-blue-900 text-white relative overflow-hidden">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center max-w-4xl space-y-6 relative z-10">
-                    <h2 className="text-3xl sm:text-5xl font-black tracking-tight">Siap Kembangkan Bisnis Anda Bersama {companyInfo.name || 'Mete Corp'}?</h2>
+                    <h2 className="text-3xl sm:text-5xl font-black tracking-tight">Siap Kembangkan Bisnis Anda Bersama {companyInfo.name || 'Pos Nesia'}?</h2>
                     <p className="text-lg text-blue-100 max-w-2xl mx-auto leading-relaxed">
                         Bergabunglah dengan pelaku UMKM Indonesia yang telah sukses mendigitalisasi usahanya secara gratis.
                     </p>
@@ -389,7 +389,7 @@ const HomePage: React.FC<{ onNavigate: (page: Page) => void; onDownloadClick: ()
                             onClick={onDownloadClick}
                             className="bg-white text-blue-700 hover:bg-blue-50 font-black px-8 py-4 rounded-2xl shadow-xl transition transform hover:scale-105 text-lg"
                         >
-                            📥 Download {companyInfo.name || 'Mete Corp'} Sekarang
+                            📥 Download {companyInfo.name || 'Pos Nesia'} Sekarang
                         </button>
                     </div>
                 </div>

@@ -184,6 +184,12 @@ export const POSPage: React.FC = () => {
     const [activeBusinessMode, setActiveBusinessMode] = useState<'retail' | 'production_retail' | 'qsr' | 'fsr' | 'service_job' | 'appointment_commission'>(
       (companyInfo.businessType as any) || 'retail'
     );
+
+    useEffect(() => {
+        if (companyInfo.businessType) {
+            setActiveBusinessMode(companyInfo.businessType as any);
+        }
+    }, [companyInfo.businessType]);
     const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
     const [searchQuery, setSearchQuery] = useState('');
     
@@ -888,33 +894,23 @@ export const POSPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 6 Versions Segmented Scrollable Switcher for MSMEs */}
-                <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-2xl border border-zinc-200/50 dark:border-zinc-700 overflow-x-auto scrollbar-none w-full lg:w-auto max-w-2xl self-center">
-                  {[
-                    { mode: 'retail', label: 'Ritel & Toko', icon: ShoppingBag, color: 'bg-blue-600 text-white shadow-sm' },
-                    { mode: 'production_retail', label: 'Produksi & Ritel', icon: ChefHat, color: 'bg-amber-600 text-white shadow-sm' },
-                    { mode: 'qsr', label: 'Saji Cepat (QSR)', icon: Coffee, color: 'bg-orange-600 text-white shadow-sm' },
-                    { mode: 'fsr', label: 'Resto (FSR)', icon: Utensils, color: 'bg-emerald-600 text-white shadow-sm' },
-                    { mode: 'service_job', label: 'Jasa & Laundry', icon: Wrench, color: 'bg-purple-600 text-white shadow-sm' },
-                    { mode: 'appointment_commission', label: 'Salon & Komisi', icon: Scissors, color: 'bg-rose-600 text-white shadow-sm' }
-                  ].map((item) => {
-                    const IconComp = item.icon;
-                    const isActive = activeBusinessMode === item.mode;
-                    return (
-                      <button 
-                        key={item.mode}
-                        onClick={() => setActiveBusinessMode(item.mode as any)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-xl transition-all whitespace-nowrap ${
-                          isActive 
-                            ? item.color 
-                            : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
-                        }`}
-                      >
-                        <IconComp className="w-3.5 h-3.5" />
-                        <span>{item.label}</span>
-                      </button>
-                    );
-                  })}
+                {/* Active Mode Indicator Badge (Synced with Pengaturan & Registrasi) */}
+                <div className="flex items-center gap-2 bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-3.5 py-1.5 rounded-xl border border-blue-200/80 dark:border-blue-800 text-xs font-bold shadow-2xs">
+                  <Tag className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>Mode Kasir: {
+                    activeBusinessMode === 'retail' ? 'Ritel & Toko' :
+                    activeBusinessMode === 'production_retail' ? 'Produksi & Ritel' :
+                    activeBusinessMode === 'qsr' ? 'Saji Cepat (QSR)' :
+                    activeBusinessMode === 'fsr' ? 'Resto (FSR)' :
+                    activeBusinessMode === 'service_job' ? 'Jasa & Laundry' : 'Salon & Komisi'
+                  }</span>
+                  <button 
+                    onClick={() => dispatch({ type: 'ui/setPage', payload: Page.CompanyInformationSettings })}
+                    className="ml-1.5 text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+                    title="Ubah di Pengaturan"
+                  >
+                    (Ubah di Pengaturan)
+                  </button>
                 </div>
 
                 {/* Action Items */}
