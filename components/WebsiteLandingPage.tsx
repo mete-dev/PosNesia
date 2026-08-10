@@ -49,7 +49,7 @@ const DownloadModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
         <Modal isOpen={isOpen} onClose={onClose} title={`Download Aplikasi ${companyInfo.name || 'Mete Corp'}`}>
             <div className="space-y-6 py-4">
                 <div className="text-center space-y-2">
-                    <img src="/logo.svg" alt={`${companyInfo.name || 'Mete Corp'} Logo`} className="h-12 mx-auto object-contain" />
+                    <img src="/logo.png" alt={`${companyInfo.name || 'Mete Corp'} Logo`} className="h-12 mx-auto object-contain" />
                     <p className="text-gray-600 dark:text-gray-300 text-sm">
                         Pilih platform perangkat Anda untuk mengunduh aplikasi kasir pintar {companyInfo.name || 'Mete Corp'} secara gratis &amp; aman.
                     </p>
@@ -138,7 +138,7 @@ const LandingHeader: React.FC<{
                         className="flex items-center space-x-3 focus:outline-none group"
                     >
                         <div className="p-2 bg-gradient-to-tr from-blue-500/10 to-emerald-500/10 dark:from-blue-400/20 dark:to-emerald-400/20 rounded-xl group-hover:scale-105 transition-transform">
-                            <img src={companyInfo.logoUrl || '/logo.svg'} alt={`${companyInfo.name || 'Mete Corp'} Logo`} className="h-8 w-auto object-contain" />
+                            <img src={companyInfo.logoUrl || '/logo.png'} alt={`${companyInfo.name || 'Mete Corp'} Logo`} className="h-8 w-auto object-contain" />
                         </div>
                         <span className="text-xl font-black bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-emerald-400 tracking-tight">
                             {companyInfo.name || 'Mete Corp'}
@@ -274,7 +274,7 @@ const LandingFooter: React.FC = () => {
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
                     <div className="space-y-4">
-                        <img src="/logo.svg" alt={companyInfo.name || 'Mete Corp'} className="h-10 w-auto object-contain bg-white p-1.5 rounded-xl" />
+                        <img src="/logo.png" alt={companyInfo.name || 'Mete Corp'} className="h-10 w-auto object-contain bg-white p-1.5 rounded-xl" />
                         <p className="text-gray-400 text-sm leading-relaxed">
                             Aplikasi Kasir Gratis &amp; Manajemen Bisnis All-in-One terpercaya untuk kemajuan UMKM Indonesia.
                         </p>

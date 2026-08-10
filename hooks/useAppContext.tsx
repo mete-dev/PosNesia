@@ -437,7 +437,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 const address = rawCompanyInfo.address === 'Jl. Raya No. 123, Jakarta' || !rawCompanyInfo.address ? 'Lumajang, Jawa Timur, Indonesia' : rawCompanyInfo.address;
                 const phone = rawCompanyInfo.phone === '081234567890' || !rawCompanyInfo.phone ? '085852488293' : rawCompanyInfo.phone;
                 const email = rawCompanyInfo.email === 'support@posnesia.com' || !rawCompanyInfo.email ? 'support@posnesia.com' : rawCompanyInfo.email;
-                const logoUrl = rawCompanyInfo.logoUrl || '/logo.svg';
+                const logoUrl = rawCompanyInfo.logoUrl || '/logo.png';
 
                 const companyInfo = {
                     ...defaultState.companyInfo,

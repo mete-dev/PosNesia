@@ -74,7 +74,7 @@ export const LoginPage: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
 
         const companyInfoPayload = {
             name: regBusinessName,
-            logoUrl: regLogo || '/logo.svg',
+            logoUrl: regLogo || '/logo.png',
             address: regBusinessAddress,
             email: regBusinessEmail,
             phone: regBusinessPhone,
