@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 90" width="100%" height="100%">
+  <!-- Clean white background -->
+  <rect width="100%" height="100%" fill="#FFFFFF" />
+
+  <!-- PosNesia Corporate Logo Vector (No tagline, single text element with tspans for zero gap) -->
+  <g transform="translate(10, 8)">
+    <text x="0" y="70" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="76" letter-spacing="-1">
+      <tspan fill="#0066FF">Pos</tspan><tspan fill="#FF7A00">N</tspan><tspan fill="#0A1128">esia</tspan>
+    </text>
+  </g>
+</svg>

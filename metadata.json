@@ -1,0 +1,9 @@
+{
+  "name": "PosNesia",
+  "description": "Aplikasi Kasir, Purchase, Inventori, dan Laporan Keuangan",
+  "requestFramePermissions": [],
+  "prompt": "",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
