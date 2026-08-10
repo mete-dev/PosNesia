@@ -415,60 +415,56 @@ export const ProductListPage: React.FC = () => {
                     </Select>
                 </div>
             </div>
-            <div className="flex-grow bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-x-auto">
-                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                        <tr>
-                            <th className="p-4">
-                                <input
-                                    type="checkbox"
-                                    onChange={e => handleSelectAll(e.target.checked)}
-                                    checked={filteredProducts.length > 0 && selectedProductIds.size === filteredProducts.length}
-                                />
-                            </th>
-                            <th className="px-6 py-3">Produk</th>
-                            <th className="px-6 py-3">Merk</th>
-                            <th className="px-6 py-3">Harga Jual</th>
-                            <th className="px-6 py-3">Stok</th>
-                            <th className="px-6 py-3">Status</th>
-                            <th className="px-6 py-3">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredProducts.map(product => (
-                            <tr key={product.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                <td className="p-4">
+            {/* PRODUCT CARD GRID BLOCKS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto pb-4">
+                {filteredProducts.map(product => {
+                    const stock = productStockMap.get(product.id) || 0;
+                    return (
+                        <div key={product.id} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-slate-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative group">
+                            <div className="flex items-start justify-between gap-2 mb-3">
+                                <div className="flex items-center gap-2">
                                     <input
                                         type="checkbox"
                                         checked={selectedProductIds.has(product.id)}
                                         onChange={e => handleSelectProduct(product.id, e.target.checked)}
+                                        className="rounded text-primary-600 w-4 h-4 mt-0.5"
                                     />
-                                </td>
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{product.name}</td>
-                                <td className="px-6 py-4">{product.brandId ? brandMap.get(product.brandId) : '-'}</td>
-                                <td className="px-6 py-4">Rp{product.price.toLocaleString('id-ID')}</td>
-                                <td className="px-6 py-4 font-bold">{productStockMap.get(product.id) || 0}</td>
-                                <td className="px-6 py-4"><Badge variant={product.status === 'active' ? 'success' : 'neutral'}>{product.status}</Badge></td>
-                                <td className="px-6 py-4">
-                                    <ActionsDropdown>
-                                        <DropdownItem onClick={() => handleOpenDetailsModal(product)}>Lihat Detail</DropdownItem>
-                                        <DropdownItem onClick={() => handleOpenModal(product)}>Ubah</DropdownItem>
-                                        {product.status !== 'archived' && (
-                                            <DropdownItem onClick={() => handleSetStatus(product.id, product.status === 'active' ? 'inactive' : 'active')}>
-                                                {product.status === 'active' ? 'Non-aktifkan' : 'Aktifkan'}
-                                            </DropdownItem>
-                                        )}
-                                        {product.status !== 'archived' && (
-                                            <DropdownItem onClick={() => handleSetStatus(product.id, 'archived')} className="text-red-600 dark:text-red-500">
-                                                Arsipkan
-                                            </DropdownItem>
-                                        )}
-                                    </ActionsDropdown>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                                    <Badge variant={product.status === 'active' ? 'success' : 'neutral'}>{product.status}</Badge>
+                                </div>
+                                <ActionsDropdown>
+                                    <DropdownItem onClick={() => handleOpenDetailsModal(product)}>Lihat Detail</DropdownItem>
+                                    <DropdownItem onClick={() => handleOpenModal(product)}>Ubah</DropdownItem>
+                                    {product.status !== 'archived' && (
+                                        <DropdownItem onClick={() => handleSetStatus(product.id, product.status === 'active' ? 'inactive' : 'active')}>
+                                            {product.status === 'active' ? 'Non-aktifkan' : 'Aktifkan'}
+                                        </DropdownItem>
+                                    )}
+                                </ActionsDropdown>
+                            </div>
+
+                            <div className="space-y-1 mb-4">
+                                <h3 className="font-bold text-gray-900 dark:text-white text-base leading-snug line-clamp-2">{product.name}</h3>
+                                {product.brandId && (
+                                    <p className="text-xs font-medium text-slate-500 dark:text-gray-400">Merk: {brandMap.get(product.brandId)}</p>
+                                )}
+                                {product.barcode && (
+                                    <p className="text-[11px] font-mono text-slate-400 dark:text-gray-500">📷 {product.barcode}</p>
+                                )}
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-100 dark:border-gray-700/60 flex items-center justify-between mt-auto">
+                                <div>
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Harga Jual</span>
+                                    <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">Rp{product.price.toLocaleString('id-ID')}</p>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Stok</span>
+                                    <p className={`text-base font-black ${stock > 5 ? 'text-slate-800 dark:text-white' : stock > 0 ? 'text-amber-500' : 'text-red-500'}`}>{stock}</p>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
             <ProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} existingProduct={editingProduct} />
             <ProductDetailsModal isOpen={isDetailsModalOpen} onClose={() => setDetailsModalOpen(false)} product={editingProduct} />

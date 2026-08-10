@@ -5,7 +5,7 @@ import { Input, Label, Button, ActionsDropdown, DropdownItem, Modal, Select, Bad
 
 // --- Shared Components ---
 
-const CustomerModal: React.FC<{
+export const CustomerModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   existingCustomer: Customer | null;
@@ -310,53 +310,58 @@ export const CustomerListPage: React.FC = () => {
             </Select>
         </div>
       </div>
-      <div className="flex-grow bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-x-auto">
-        <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-          <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
-            <tr>
-              <th scope="col" className="px-6 py-3">Nama</th>
-              <th scope="col" className="px-6 py-3">Kontak</th>
-              <th scope="col" className="px-6 py-3">Tipe</th>
-              <th scope="col" className="px-6 py-3">Saldo Deposit</th>
-              <th scope="col" className="px-6 py-3">Poin</th>
-              <th scope="col" className="px-6 py-3">Status</th>
-              <th scope="col" className="px-6 py-3">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredCustomers.map((customer) => (
-              <tr key={customer.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                  {customer.customerType === 'Perusahaan' ? customer.companyDetails?.companyName : customer.name}
-                </td>
-                <td className="px-6 py-4">{customer.email}<br/><span className="text-xs text-gray-500">{customer.phone}</span></td>
-                <td className="px-6 py-4">{customer.customerType}</td>
-                <td className="px-6 py-4">Rp{customer.depositBalance.toLocaleString('id-ID')}</td>
-                <td className="px-6 py-4">{customer.points}</td>
-                <td className="px-6 py-4">
-                    <Badge variant={customer.status === 'active' ? 'success' : customer.status === 'inactive' ? 'warning' : 'neutral'}>{customer.status}</Badge>
-                </td>
-                <td className="px-6 py-4 space-x-2">
-                   <ActionsDropdown>
-                        <DropdownItem onClick={() => handleOpenDetailsModal(customer)}>Lihat Detail</DropdownItem>
-                        <DropdownItem onClick={() => handleOpenCustomerModal(customer)}>Ubah</DropdownItem>
-                        <DropdownItem onClick={() => handleOpenDepositModal(customer)} className="text-green-600 dark:text-green-500">Deposit</DropdownItem>
-                        {customer.status !== 'archived' && (
-                            <DropdownItem onClick={() => handleSetStatus(customer.id, customer.status === 'active' ? 'inactive' : 'active')}>
-                                {customer.status === 'active' ? 'Non-aktifkan' : 'Aktifkan'}
-                            </DropdownItem>
-                        )}
-                        {customer.status !== 'archived' && (
-                            <DropdownItem onClick={() => handleSetStatus(customer.id, 'archived')} className="text-red-600 dark:text-red-500">
-                                Arsipkan
-                            </DropdownItem>
-                        )}
-                    </ActionsDropdown>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* CUSTOMER CARD GRID BLOCKS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto pb-4">
+        {filteredCustomers.map((customer) => {
+          const displayName = customer.customerType === 'Perusahaan' ? customer.companyDetails?.companyName || customer.name : customer.name;
+          return (
+            <div key={customer.id} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-slate-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative group">
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-rose-600 text-white font-black flex items-center justify-center text-sm shadow-md">
+                    {displayName.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white text-base leading-snug truncate max-w-[150px]">{displayName}</h3>
+                    <span className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full bg-pink-50 dark:bg-pink-950/50 text-pink-600 dark:text-pink-400">
+                      {customer.customerType}
+                    </span>
+                  </div>
+                </div>
+                <ActionsDropdown>
+                  <DropdownItem onClick={() => handleOpenDetailsModal(customer)}>Lihat Detail</DropdownItem>
+                  <DropdownItem onClick={() => handleOpenCustomerModal(customer)}>Ubah</DropdownItem>
+                  <DropdownItem onClick={() => handleOpenDepositModal(customer)}>Tambah Deposit</DropdownItem>
+                  {customer.status !== 'archived' && (
+                    <DropdownItem onClick={() => handleSetStatus(customer.id, customer.status === 'active' ? 'inactive' : 'active')}>
+                      {customer.status === 'active' ? 'Non-aktifkan' : 'Aktifkan'}
+                    </DropdownItem>
+                  )}
+                </ActionsDropdown>
+              </div>
+
+              <div className="space-y-1.5 py-3 border-t border-slate-100 dark:border-gray-700/60 text-xs text-slate-600 dark:text-gray-300">
+                <p className="flex items-center gap-2 truncate">
+                  <span className="opacity-60">✉️</span> {customer.email || '-'}
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="opacity-60">📞</span> {customer.phone || '-'}
+                </p>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 dark:border-gray-700/60 flex items-center justify-between mt-auto">
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Deposit</span>
+                  <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">Rp{customer.depositBalance.toLocaleString('id-ID')}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Poin</span>
+                  <p className="text-sm font-black text-indigo-600 dark:text-indigo-400">⭐ {customer.points}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
       <DepositModal 
         isOpen={isDepositModalOpen} 

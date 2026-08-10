@@ -15,6 +15,7 @@ import {
     BranchType,
     WarehouseType
 } from '../types';
+import { getPageFromUrl } from '../utils/router';
 import {
     initialProducts, initialCustomers, initialSales, initialVendors, initialPurchases,
     initialStaff, initialAssets, initialPromotions,
@@ -55,7 +56,7 @@ import { applyPromotionsToCart } from '../utils/promotionUtils';
 const initialState: AppState = {
     theme: Theme.Light,
     themeConfig: { mode: 'single', color: 'sky' },
-    currentPage: Page.Dashboard,
+    currentPage: getPageFromUrl(),
     currentUser: null, // Start with no user logged in
     currentCustomer: null, // New for customer portal
     currentMentee: null, // New for mentee portal
@@ -184,6 +185,7 @@ const initialState: AppState = {
     lastWithdrawalToken: null,
     lastWithdrawalReceipt: null,
     rentalOrders: initialRentalOrders,
+    mobileMenuCategory: null,
 };
 
 type ProductTypeLocationData = {
@@ -215,6 +217,7 @@ type Action =
   | { type: 'ui/setSidebarCollapsed'; payload: boolean }
   | { type: 'ui/setPrintSelection'; payload: { type: 'products' | 'promo', ids: string[] } }
   | { type: 'ui/clearPrintSelection' }
+  | { type: 'ui/setMobileMenu'; payload: string | null }
   // Company actions
   | { type: 'company/updateInfo'; payload: CompanyInfo }
   | { type: 'company/addBranch'; payload: Omit<Branch, 'id' | 'safeAccountId'> }
@@ -274,7 +277,7 @@ type Action =
   | { type: 'staff/paySalaries' }
   | { type: 'staff/addDeposit'; payload: { staffId: string; amount: number; posSessionId?: string } }
   | { type: 'staff/withdrawDeposit'; payload: { staffId: string; amount: number; posSessionId?: string } }
-  | { type: 'staff/addRole'; payload: Omit<Role, 'id' | 'permissions'> }
+  | { type: 'staff/addRole'; payload: Omit<Role, 'id'> }
   | { type: 'staff/updateRole'; payload: Role }
   | { type: 'staff/deleteRole'; payload: string }
   | { type: 'staff/updateRolePermissions'; payload: { roleId: string; permissions: Page[] } }
@@ -449,9 +452,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     logoUrl
                 };
 
+                // Ensure admin role always has ALL current page permissions (handles new pages added after saved state)
+                const allPages = Object.values(Page);
+                const mergedRoles = (parsed.roles || defaultState.roles).map((r: any) =>
+                    r.id === 'admin' ? { ...r, permissions: allPages } : r
+                );
+
                 return { 
                     ...defaultState, 
                     ...parsed,
+                    roles: mergedRoles,
                     companyInfo,
                     websiteSettings: { ...defaultState.websiteSettings, ...(parsed.websiteSettings || {}) }
                 };
@@ -587,6 +597,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
         case 'ui/setSidebarCollapsed': return { ...state, isSidebarCollapsed: action.payload };
         case 'ui/setPrintSelection': return { ...state, printSelection: action.payload };
         case 'ui/clearPrintSelection': return { ...state, printSelection: null };
+        case 'ui/setMobileMenu': return { ...state, mobileMenuCategory: action.payload };
         // --- COMPANY ---
         case 'company/updateInfo': return { ...state, companyInfo: action.payload };
         case 'company/addBranchType': {
@@ -1163,7 +1174,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
             return state;
         }
         case 'staff/addRole': {
-            const newRole: Role = { ...action.payload, id: generateId('role', state.roles.length), permissions: [] };
+            const newRole: Role = { permissions: [], featurePermissions: {}, ...action.payload, id: generateId('role', state.roles.length) };
             return { ...state, roles: [...state.roles, newRole] };
         }
         case 'staff/updateRole': return { ...state, roles: state.roles.map(r => r.id === action.payload.id ? action.payload : r) };

@@ -174,42 +174,48 @@ export const Vendors: React.FC = () => {
           Tambah Vendor
         </Button>
       </div>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-x-auto">
-        <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-          <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-            <tr>
-              <th scope="col" className="px-6 py-3">Nama Vendor</th>
-              <th scope="col" className="px-6 py-3">Narahubung</th>
-              <th scope="col" className="px-6 py-3">Kontak</th>
-              <th scope="col" className="px-6 py-3">Tempo Pembayaran</th>
-              <th scope="col" className="px-6 py-3">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredVendors.map((vendor) => (
-              <tr key={vendor.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{vendor.name}</td>
-                <td className="px-6 py-4">{vendor.contactPerson}</td>
-                <td className="px-6 py-4">
-                    <div>{vendor.email}</div>
-                    <div>{vendor.phone}</div>
-                </td>
-                <td className="px-6 py-4">{vendor.paymentTerm} hari</td>
-                <td className="px-6 py-4">
-                   <ActionsDropdown>
-                        <DropdownItem onClick={() => handleOpenDetailsModal(vendor)}>Lihat Detail</DropdownItem>
-                        <DropdownItem onClick={() => handleOpenModal(vendor)}>Ubah</DropdownItem>
-                        {vendor.status === 'active' ? (
-                            <DropdownItem onClick={() => handleSetStatus(vendor.id, 'archived')} className="text-red-500">Arsipkan</DropdownItem>
-                        ) : (
-                            <DropdownItem onClick={() => handleSetStatus(vendor.id, 'active')} className="text-green-500">Aktifkan</DropdownItem>
-                        )}
-                    </ActionsDropdown>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* VENDORS CARD GRID BLOCKS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto pb-4">
+        {filteredVendors.map((vendor) => (
+          <div key={vendor.id} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-slate-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative group">
+            <div className="flex items-start justify-between gap-2 mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white font-black flex items-center justify-center text-sm shadow-md">
+                  🏢
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 dark:text-white text-base leading-snug">{vendor.name}</h3>
+                  <p className="text-xs text-slate-500 dark:text-gray-400 font-medium">Pic: {vendor.contactPerson}</p>
+                </div>
+              </div>
+              <ActionsDropdown>
+                <DropdownItem onClick={() => handleOpenDetailsModal(vendor)}>Lihat Detail</DropdownItem>
+                <DropdownItem onClick={() => handleOpenModal(vendor)}>Ubah</DropdownItem>
+                {vendor.status === 'active' ? (
+                  <DropdownItem onClick={() => handleSetStatus(vendor.id, 'archived')} className="text-red-500">Arsipkan</DropdownItem>
+                ) : (
+                  <DropdownItem onClick={() => handleSetStatus(vendor.id, 'active')} className="text-green-500">Aktifkan</DropdownItem>
+                )}
+              </ActionsDropdown>
+            </div>
+
+            <div className="space-y-1.5 py-3 border-t border-slate-100 dark:border-gray-700/60 text-xs text-slate-600 dark:text-gray-300">
+              <p className="flex items-center gap-2 truncate">
+                <span className="opacity-60">✉️</span> {vendor.email || '-'}
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="opacity-60">📞</span> {vendor.phone || '-'}
+              </p>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 dark:border-gray-700/60 flex items-center justify-between mt-auto">
+              <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Tempo Bayar</span>
+              <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-md">
+                {vendor.paymentTerm} hari
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
       <VendorModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveVendor} existingVendor={selectedVendor}/>
        <VendorDetailsModal isOpen={isDetailsModalOpen} onClose={() => setDetailsModalOpen(false)} vendor={selectedVendor} />

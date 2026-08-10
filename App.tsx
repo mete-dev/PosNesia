@@ -61,6 +61,8 @@ import { CustomerPortal } from './components/CustomerPortal';
 import { MenteePortal } from './components/StudentPortal';
 import { RoomAssetListPage, RoomOrderListPage, CreateRoomOrderPage } from './components/Room';
 import { RentalAssetListPage, RentalOrderListPage, CreateRentalOrderPage } from './components/Rental';
+import { MobileMenuPage } from './components/MobileMenuPage';
+import { navigateToPath, getPageFromUrl } from './utils/router';
 
 export const App: React.FC = () => {
     const { state, dispatch } = useAppContext();
@@ -96,6 +98,24 @@ export const App: React.FC = () => {
             }
         }
     }, [theme, themeConfig]);
+
+    // Sync currentPage changes to window URL (/pos/<slug>)
+    useEffect(() => {
+        if (currentUser) {
+            navigateToPath(currentPage);
+        }
+    }, [currentPage, currentUser]);
+
+    // Listen to browser Back/Forward navigation (popstate)
+    useEffect(() => {
+        const handlePopState = () => {
+            const pageFromUrl = getPageFromUrl();
+            dispatch({ type: 'ui/setPage', payload: pageFromUrl });
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [dispatch]);
 
     const renderPage = () => {
         if (!currentUser) return <AccessDenied />;
@@ -249,13 +269,14 @@ export const App: React.FC = () => {
             {/* Mobile Sidebar Overlay */}
             {isMobileSidebarOpen && (
                 <div 
-                    className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-xs transition-opacity" 
+                    className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm transition-opacity" 
                     onClick={() => setMobileSidebarOpen(false)}
                 />
             )}
             
+            {/* Sidebar — slides in from left on mobile, static on desktop */}
             <div className={`
-                fixed inset-y-0 left-0 z-50 md:static md:z-auto transition-transform duration-300 transform shadow-2xl md:shadow-none
+                fixed inset-y-0 left-0 z-50 md:static md:z-auto h-screen max-h-screen transition-transform duration-300 transform shadow-2xl md:shadow-none shrink-0 overflow-hidden
                 ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
             `}>
                 <Sidebar 
@@ -268,11 +289,75 @@ export const App: React.FC = () => {
                 />
             </div>
 
-            <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-                <Header onToggleMobileSidebar={() => setMobileSidebarOpen(!isMobileSidebarOpen)} />
-                <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8">
-                    {renderPage()}
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative">
+                <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 pb-20 md:pb-6">
+                    {state.mobileMenuCategory ? (
+                        <MobileMenuPage 
+                            category={state.mobileMenuCategory} 
+                            onBack={() => dispatch({ type: 'ui/setMobileMenu', payload: null })} 
+                        />
+                    ) : (
+                        renderPage()
+                    )}
                 </main>
+
+                {/* Mobile Bottom Navigation Bar */}
+                <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white dark:bg-gray-900 border-t border-slate-200 dark:border-gray-700 flex items-stretch shadow-2xl safe-area-bottom">
+                    <button
+                        onClick={() => dispatch({ type: 'ui/setPage', payload: Page.Dashboard })}
+                        className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 text-[10px] font-bold transition-colors ${
+                            currentPage === Page.Dashboard
+                                ? 'text-primary-600 dark:text-primary-400'
+                                : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                        <span>Dashboard</span>
+                    </button>
+                    <button
+                        onClick={() => dispatch({ type: 'ui/setPage', payload: Page.ProductList })}
+                        className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 text-[10px] font-bold transition-colors ${
+                            currentPage === Page.ProductList
+                                ? 'text-primary-600 dark:text-primary-400'
+                                : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                        <span>Produk</span>
+                    </button>
+                    <button
+                        onClick={() => dispatch({ type: 'pos/toggleMode', payload: { start: true } })}
+                        className="flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 text-[10px] font-black text-emerald-600 dark:text-emerald-400 transition-colors"
+                    >
+                        <div className="w-7 h-7 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/30">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 7H6a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-3m-7-4l4 4m0 0l7-7m-7 7V3" /></svg>
+                        </div>
+                        <span>Kasir</span>
+                    </button>
+                    <button
+                        onClick={() => dispatch({ type: 'ui/setPage', payload: Page.SalesList })}
+                        className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 text-[10px] font-bold transition-colors ${
+                            currentPage === Page.SalesList
+                                ? 'text-primary-600 dark:text-primary-400'
+                                : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <span>Riwayat</span>
+                    </button>
+                    <button
+                        onClick={() => dispatch({ type: 'ui/setPage', payload: Page.CompanyInformationSettings })}
+                        className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 text-[10px] font-bold transition-colors ${
+                            currentPage === Page.CompanyInformationSettings || currentPage === Page.BackupRestore || currentPage === Page.ReportSizesSettings
+                                ? 'text-primary-600 dark:text-primary-400'
+                                : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <span>Pengaturan</span>
+                    </button>
+                </nav>
             </div>
         </div>
     );

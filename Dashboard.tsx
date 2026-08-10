@@ -17,6 +17,7 @@ import { useAppContext } from './hooks/useAppContext';
 import { getChartColors } from './utils/colors';
 import { Card } from './components/ui';
 import { AccountType, JournalEntry, Sale, PurchaseOrder, Customer, Page } from './types';
+import { MOBILE_MENU_CATEGORIES } from './components/MobileMenuPage';
 import { 
     SalesIcon, 
     PurchaseListIcon, 
@@ -209,16 +210,7 @@ export const Dashboard: React.FC = () => {
 
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                     <div className="space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center space-x-1.5 bg-white/15 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold">
-                                <Building2 className="w-3.5 h-3.5" />
-                                <span>{currentBranchName}</span>
-                            </span>
-                            <span className="inline-flex items-center space-x-1.5 bg-emerald-500/20 backdrop-blur-md text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-semibold">
-                                <Sparkles className="w-3.5 h-3.5" />
-                                <span>Pos Nesia Online</span>
-                            </span>
-                        </div>
+
                         <h1 className="text-2xl sm:text-4xl font-black tracking-tight">
                             Selamat Datang, {currentUser?.name || 'Admin'}! 👋
                         </h1>
@@ -247,6 +239,28 @@ export const Dashboard: React.FC = () => {
                         </button>
                     </div>
                 </div>
+            </div>
+
+            {/* MOBILE QUICK MENU GRID — visible on HP only */}
+            <div className="grid grid-cols-4 gap-3 sm:hidden">
+                {MOBILE_MENU_CATEGORIES.map((cat) => (
+                    <button
+                        key={cat.label}
+                        onClick={() => {
+                            if (cat.label === 'Point of Sales') {
+                                dispatch({ type: 'pos/toggleMode', payload: { start: true } });
+                            } else {
+                                dispatch({ type: 'ui/setMobileMenu', payload: cat.label });
+                            }
+                        }}
+                        className="flex flex-col items-center gap-2 py-3 px-1 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:scale-105 active:scale-95 transition-all shadow-sm"
+                    >
+                        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${cat.color} text-white flex items-center justify-center shadow-lg`}>
+                            {cat.icon}
+                        </div>
+                        <span className="text-[10px] font-bold text-zinc-700 dark:text-zinc-300 text-center leading-tight">{cat.label}</span>
+                    </button>
+                ))}
             </div>
 
             {/* KPI STAT CARDS GRID */}

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { PurchaseOrder, Vendor, Product, PurchaseOrderItem } from '../types';
+import { PurchaseOrder, Vendor, Product, PurchaseOrderItem, Page } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
 import { ActionsDropdown, DropdownItem, Modal, Button, Input } from './ui';
 import { VendorBillModal } from './Bills';
@@ -191,13 +191,23 @@ export const AddPurchasePage: React.FC = () => {
         dispatch({ type: 'purchases/add', payload: purchaseData });
         alert('Purchase Order berhasil dibuat!');
         resetForm();
+        dispatch({ type: 'ui/setPage', payload: Page.PurchaseList });
     };
 
     return (
         <>
-            <div className="p-8 h-full overflow-y-auto">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Buat Pembelian Baru</h1>
-                <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-5xl mx-auto space-y-6">
+            <div className="p-4 sm:p-6 w-full h-full overflow-y-auto space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Buat Pembelian Baru</h1>
+                    <Button 
+                        variant="secondary"
+                        onClick={() => dispatch({ type: 'ui/setPage', payload: Page.PurchaseList })}
+                        className="self-start sm:self-auto"
+                    >
+                        ← Kembali ke Pesanan Pembelian
+                    </Button>
+                </div>
+                <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8 w-full space-y-6">
                     {/* Header Fields */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                          <div>
@@ -370,7 +380,15 @@ export const PurchaseListPage: React.FC = () => {
 
   return (
     <div className="p-8 h-full flex flex-col">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Data Pesanan Pembelian</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Pesanan Pembelian</h1>
+        <Button 
+          onClick={() => dispatch({ type: 'ui/setPage', payload: Page.AddPurchase })}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-xl shadow-md transition-all shrink-0"
+        >
+          <span className="text-lg font-bold">+</span> Buat Pembelian
+        </Button>
+      </div>
       <div className="flex-grow bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-y-auto">
         <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">

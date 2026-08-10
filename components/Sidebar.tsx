@@ -40,7 +40,8 @@ import {
     FileSpreadsheet,
     ArrowDownLeft,
     ArrowUpRight,
-    Database
+    Database,
+    LogOut
 } from 'lucide-react';
 
 const NavItem: React.FC<{
@@ -278,19 +279,18 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
 
     // Modern Lucide Icons for Menubar
     const navItems = [
-        { icon: <LayoutDashboard />, label: 'Dashboard', page: Page.Dashboard },
         { icon: <ShoppingCart />, label: 'Point of Sales', page: Page.POS },
         {
             isDropdown: true, icon: <TrendingUp />, label: 'Sales & Pelanggan', subItems: [
                 { label: 'Penjualan', page: Page.SalesList, icon: <Receipt /> },
                 { label: 'Data Pelanggan', page: Page.CustomerList, icon: <Users /> },
                 { label: 'Data Produk', page: Page.ProductList, icon: <Package /> },
+                { label: 'Promosi', page: Page.Promotions, icon: <Megaphone /> },
             ]
         },
         {
             isDropdown: true, icon: <ShoppingBag />, label: 'Purchase', subItems: [
                 { label: 'Pesanan Pembelian', page: Page.PurchaseList, icon: <FileSpreadsheet /> },
-                { label: 'Buat Pembelian', page: Page.AddPurchase, icon: <PlusCircle /> },
                 { label: 'Vendor', page: Page.Vendors, icon: <Building /> },
                 { label: 'Data Produk', page: Page.ProductList, icon: <Package /> },
             ]
@@ -330,19 +330,8 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
                 },
             ]
         },
-        {
-            isDropdown: true, icon: <UserCheck />, label: 'SDM (HRM)', subItems: [
-                 { label: 'Daftar Staf', page: Page.StaffList, icon: <UserCheck /> },
-                 { label: 'Jabatan & Gaji', page: Page.RoleManagement, icon: <ShieldCheck /> },
-            ]
-        },
-        {
-            isDropdown: true, icon: <Megaphone />, label: 'Pemasaran', subItems: [
-                { label: 'Promosi', page: Page.Promotions, icon: <Megaphone /> },
-                { label: 'Voucher', page: Page.PromotionsVoucher, icon: <Ticket /> },
-                { label: 'Poin', page: Page.PromotionsPoints, icon: <Star /> },
-            ]
-        },
+        { icon: <UserCheck />, label: 'Karyawan', page: Page.StaffList },
+
         {
             isDropdown: true, icon: <BarChart3 />, label: 'Laporan', subItems: [
                 { label: 'Penjualan', page: Page.SalesReport, icon: <Receipt /> },
@@ -357,59 +346,108 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
         {
             isDropdown: true, icon: <Settings />, label: 'Pengaturan', subItems: [
                 { label: 'Informasi Perusahaan', page: Page.CompanyInformationSettings, icon: <Building2 /> },
-                { label: 'Backup & Restore', page: Page.BackupRestore, icon: <Database /> },
-                { label: 'Tampilan', page: Page.DisplaySettings, icon: <Palette /> },
+                { label: 'Database', page: Page.BackupRestore, icon: <Database /> },
                 { label: 'Ukuran Report', page: Page.ReportSizesSettings, icon: <Printer /> },
             ]
         }
     ];
 
-    const displayLogo = companyInfo.logoUrl && !imgError;
+    const [isHovered, setIsHovered] = useState(false);
+    const effectiveCollapsed = isSidebarCollapsed && !isHovered;
 
     return (
-        <aside className={`flex-shrink-0 transition-all duration-300 bg-white dark:bg-gray-900 border-r border-slate-200/80 dark:border-gray-800 ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
-            <div className="flex flex-col h-full">
+        <aside 
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => {
+                setIsHovered(false);
+                setOpenDropdowns({});
+            }}
+            className={`flex-shrink-0 h-full max-h-screen transition-all duration-300 bg-white dark:bg-gray-900 border-r border-slate-200/80 dark:border-gray-800 flex flex-col overflow-hidden ${effectiveCollapsed ? 'w-20' : 'w-64'}`}
+        >
+            <div className="flex flex-col h-full overflow-hidden">
                 
                 {/* BRAND HEADER */}
-                <div className={`flex items-center h-16 border-b border-slate-100 dark:border-gray-800/80 px-4 ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-between'}`}>
-                    <div className="flex items-center space-x-3 truncate">
+                <div className={`flex items-center h-16 border-b border-slate-100 dark:border-gray-800/80 px-4 shrink-0 ${effectiveCollapsed ? 'justify-center px-2' : 'justify-between'}`}>
+                    <div 
+                        onClick={() => wrappedSetPage(Page.Dashboard)}
+                        className="flex items-center space-x-3 truncate cursor-pointer hover:opacity-85 transition-opacity"
+                        title="Kembali ke Dashboard"
+                    >
                         <img 
                             src="/logoposnesia.png" 
                             alt={companyInfo.name || 'Pos Nesia'} 
-                            className={isSidebarCollapsed ? 'h-8 w-8 object-contain' : 'h-10 max-w-[180px] object-contain'} 
+                            className={effectiveCollapsed ? 'h-8 w-8 object-contain' : 'h-10 max-w-[200px] object-contain'} 
                         />
-                        
-                        {!isSidebarCollapsed && (
-                            <span className="font-black text-xl bg-gradient-to-r from-slate-900 via-slate-800 to-blue-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent tracking-tight truncate">
-                                {companyInfo.name || 'Pos Nesia'}
-                            </span>
-                        )}
                     </div>
                 </div>
 
                 {/* NAVIGATION ITEMS */}
-                <nav className="flex-grow px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
+                <nav className="flex-1 overflow-y-auto custom-scrollbar px-3 py-4 space-y-1 min-h-0 pb-12">
                     <ul className="space-y-1">
                         {navItems.map(item => {
                             if (item.isDropdown) {
-                                return <DropdownNavItem key={item.label} {...item} currentPage={currentPage} setPage={wrappedSetPage} userPermissions={userPermissions} isCollapsed={isSidebarCollapsed} handlePosClick={handlePosClick} openDropdowns={openDropdowns} toggleDropdown={toggleDropdown} openFlyouts={openFlyouts} toggleFlyout={toggleFlyout} />;
+                                return <DropdownNavItem key={item.label} {...item} currentPage={currentPage} setPage={wrappedSetPage} userPermissions={userPermissions} isCollapsed={effectiveCollapsed} handlePosClick={handlePosClick} openDropdowns={openDropdowns} toggleDropdown={toggleDropdown} openFlyouts={openFlyouts} toggleFlyout={toggleFlyout} />;
                             }
                             const hasPermission = userPermissions.includes(item.page);
                             if (!hasPermission) return null;
-                            return <NavItem key={item.label} {...item} isActive={currentPage === item.page} onClick={() => item.page === Page.POS ? handlePosClick() : wrappedSetPage(item.page)} isCollapsed={isSidebarCollapsed} />;
+                            return <NavItem key={item.label} {...item} isActive={currentPage === item.page} onClick={() => item.page === Page.POS ? handlePosClick() : wrappedSetPage(item.page)} isCollapsed={effectiveCollapsed} />;
                         })}
                     </ul>
                 </nav>
 
-                {/* FOOTER & COLLAPSE TOGGLE */}
-                <div className="p-3 border-t border-slate-100 dark:border-gray-800/80 bg-slate-50/50 dark:bg-gray-900/50">
-                    <button 
-                        onClick={() => dispatch({ type: 'ui/setSidebarCollapsed', payload: !isSidebarCollapsed })} 
-                        className="w-full flex items-center justify-center p-2.5 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 border border-transparent hover:border-slate-200 dark:hover:border-gray-700 transition-all shadow-2xs"
-                        title={isSidebarCollapsed ? 'Buka Sidebar' : 'Tutup Sidebar'}
-                    >
-                        {isSidebarCollapsed ? <PanelLeftOpen className="w-5 h-5"/> : <PanelLeftClose className="w-5 h-5"/>}
-                    </button>
+                {/* FOOTER USER PROFILE & LOGOUT */}
+                <div className="p-2.5 border-t border-slate-200/80 dark:border-gray-800 bg-slate-50/80 dark:bg-gray-900/80 shrink-0">
+                    {effectiveCollapsed ? (
+                        <div className="flex flex-col items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => dispatch({ type: 'auth/logout' })}
+                                className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/80 transition-colors shadow-2xs"
+                                title={`Keluar / Logout (${currentUser?.name})`}
+                            >
+                                <LogOut className="w-5 h-5" />
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={() => dispatch({ type: 'ui/setSidebarCollapsed', payload: !isSidebarCollapsed })} 
+                                className="p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                                title="Buka Sidebar"
+                            >
+                                <PanelLeftOpen className="w-5 h-5"/>
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-between gap-2 bg-white dark:bg-gray-800 p-2.5 rounded-xl border border-slate-200/60 dark:border-gray-700/60 shadow-2xs">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs">
+                                    {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                                </div>
+                                <div className="truncate min-w-0">
+                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{currentUser?.name}</p>
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{userRole?.name || 'Staf'}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => dispatch({ type: 'auth/logout' })}
+                                    className="p-2 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors"
+                                    title="Keluar / Logout"
+                                >
+                                    <LogOut className="w-4 h-4" />
+                                </button>
+                                <button 
+                                    type="button"
+                                    onClick={() => dispatch({ type: 'ui/setSidebarCollapsed', payload: !isSidebarCollapsed })} 
+                                    className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-gray-700 transition-colors"
+                                    title={effectiveCollapsed ? 'Buka Sidebar' : 'Tutup Sidebar'}
+                                >
+                                    <PanelLeftClose className="w-4 h-4"/>
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
             </div>

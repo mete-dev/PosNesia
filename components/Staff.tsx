@@ -204,53 +204,71 @@ export const StaffListPage: React.FC = () => {
 
   return (
     <div className="p-8 h-full flex flex-col">
-        <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Daftar Staf</h1>
-            <button onClick={() => handleOpenModal()} className="bg-primary-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-primary-700 transition-colors">
-                Tambah Staf
-            </button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Data Karyawan</h1>
+            <div className="flex items-center gap-3">
+                <Button 
+                    variant="secondary"
+                    onClick={() => dispatch({ type: 'ui/setPage', payload: Page.RoleManagement })}
+                    className="flex items-center gap-2 font-semibold"
+                >
+                    🛡️ Kelola Jabatan
+                </Button>
+                <Button 
+                    onClick={() => handleOpenModal()} 
+                    className="bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-colors"
+                >
+                    + Tambah Staf
+                </Button>
+            </div>
         </div>
-      
-      <div className="flex-grow bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-y-auto">
-        <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-        <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
-            <tr>
-            <th scope="col" className="px-6 py-3">Nama</th>
-            <th scope="col" className="px-6 py-3">Jabatan</th>
-            <th scope="col" className="px-6 py-3">Kontak</th>
-            <th scope="col" className="px-6 py-3">Status</th>
-            <th scope="col" className="px-6 py-3">Aksi</th>
-            </tr>
-        </thead>
-        <tbody>
-            {staff.map((member) => {
-                const role = roles.find(r => r.id === member.roleId);
-                return (
-                    <tr key={member.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{member.name}</td>
-                        <td className="px-6 py-4">{role?.name || 'N/A'}</td>
-                        <td className="px-6 py-4">{member.email}<br/>{member.phone}</td>
-                        <td className="px-6 py-4">{member.status}</td>
-                        <td className="px-6 py-4">
-                             <ActionsDropdown>
-                                <DropdownItem onClick={() => handleOpenModal(member)}>Ubah</DropdownItem>
-                                {member.status !== 'archived' && (
-                                    <DropdownItem onClick={() => handleSetStatus(member.id, member.status === 'active' ? 'inactive' : 'active')}>
-                                        {member.status === 'active' ? 'Non-aktifkan' : 'Aktifkan'}
-                                    </DropdownItem>
-                                )}
-                                {member.status !== 'archived' && (
-                                    <DropdownItem onClick={() => handleSetStatus(member.id, 'archived')} className="text-red-600 dark:text-red-500">
-                                        Arsipkan
-                                    </DropdownItem>
-                                )}
-                            </ActionsDropdown>
-                        </td>
-                    </tr>
-                )
-            })}
-        </tbody>
-        </table>
+      {/* STAFF CARD GRID BLOCKS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto pb-4">
+        {staff.map((member) => {
+          const role = roles.find(r => r.id === member.roleId);
+          return (
+            <div key={member.id} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-slate-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative group">
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-md">
+                    {member.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white text-base leading-snug">{member.name}</h3>
+                    <span className="inline-block text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                      {role?.name || 'Staf'}
+                    </span>
+                  </div>
+                </div>
+                <ActionsDropdown>
+                  <DropdownItem onClick={() => handleOpenModal(member)}>Ubah</DropdownItem>
+                  {member.status !== 'archived' && (
+                    <DropdownItem onClick={() => handleSetStatus(member.id, member.status === 'active' ? 'inactive' : 'active')}>
+                      {member.status === 'active' ? 'Non-aktifkan' : 'Aktifkan'}
+                    </DropdownItem>
+                  )}
+                </ActionsDropdown>
+              </div>
+
+              <div className="space-y-1.5 py-3 border-t border-slate-100 dark:border-gray-700/60 mt-2 text-xs text-slate-600 dark:text-gray-300">
+                <p className="flex items-center gap-2 truncate">
+                  <span className="opacity-60">✉️</span> {member.email || '-'}
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="opacity-60">📞</span> {member.phone || '-'}
+                </p>
+              </div>
+
+              <div className="pt-2 flex items-center justify-between mt-auto">
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                  member.status === 'active' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  ● {member.status}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
       <StaffModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveStaff} existingStaff={editingStaff}/>
     </div>
@@ -485,6 +503,45 @@ const PermissionModal: React.FC<{
     );
 };
 
+const APP_ACTIVE_FEATURES: { page: Page; label: string; category: string }[] = [
+    { page: Page.POS, label: 'Point of Sales (Kasir)', category: 'Kasir' },
+    { page: Page.SalesList, label: 'Penjualan', category: 'Sales & Pelanggan' },
+    { page: Page.CustomerList, label: 'Data Pelanggan', category: 'Sales & Pelanggan' },
+    { page: Page.ProductList, label: 'Data Produk', category: 'Produk & Inventori' },
+    { page: Page.PurchaseList, label: 'Pesanan Pembelian', category: 'Pembelian' },
+    { page: Page.Vendors, label: 'Vendor', category: 'Pembelian' },
+    { page: Page.InventoryAdjustment, label: 'Penyesuaian Stok', category: 'Produk & Inventori' },
+    { page: Page.GoodsReceipt, label: 'Penerimaan Barang', category: 'Produk & Inventori' },
+    { page: Page.ReturnManagement, label: 'Manajemen Retur', category: 'Produk & Inventori' },
+    { page: Page.ProductCategories, label: 'Kategori Produk', category: 'Produk & Inventori' },
+    { page: Page.PrintPriceLabels, label: 'Cetak Label Harga', category: 'Produk & Inventori' },
+    { page: Page.ChartOfAccounts, label: 'Bagan Akun (CoA)', category: 'Keuangan' },
+    { page: Page.CashAccountList, label: 'Daftar Rekening Kas', category: 'Keuangan' },
+    { page: Page.CashTransaction, label: 'Transaksi Kas', category: 'Keuangan' },
+    { page: Page.CashTransfer, label: 'Transfer Kas', category: 'Keuangan' },
+    { page: Page.VendorBillList, label: 'Tagihan Vendor', category: 'Keuangan' },
+    { page: Page.CustomerBillList, label: 'Tagihan Pelanggan', category: 'Keuangan' },
+    { page: Page.Capital, label: 'Modal & Investor', category: 'Keuangan' },
+    { page: Page.PaymentMethods, label: 'Metode Bayar', category: 'Keuangan' },
+    { page: Page.PaymentTerms, label: 'Tempo Bayar', category: 'Keuangan' },
+    { page: Page.StaffList, label: 'Data Karyawan', category: 'Karyawan' },
+    { page: Page.RoleManagement, label: 'Jabatan & Hak Akses', category: 'Karyawan' },
+    { page: Page.Promotions, label: 'Promosi', category: 'Pemasaran' },
+    { page: Page.PromotionsVoucher, label: 'Voucher', category: 'Pemasaran' },
+    { page: Page.PromotionsPoints, label: 'Poin Pelanggan', category: 'Pemasaran' },
+    { page: Page.SalesReport, label: 'Laporan Penjualan', category: 'Laporan' },
+    { page: Page.PurchaseReport, label: 'Laporan Pembelian', category: 'Laporan' },
+    { page: Page.GoodsReport, label: 'Laporan Barang', category: 'Laporan' },
+    { page: Page.FinancialInventoryReport, label: 'Keuangan Inventaris', category: 'Laporan' },
+    { page: Page.CashierDepositReport, label: 'Setoran Kasir', category: 'Laporan' },
+    { page: Page.IncomeStatementReport, label: 'Laporan Laba Rugi', category: 'Laporan' },
+    { page: Page.FinancialPositionReport, label: 'Posisi Keuangan', category: 'Laporan' },
+    { page: Page.CompanyInformationSettings, label: 'Informasi Perusahaan', category: 'Pengaturan' },
+    { page: Page.BackupRestore, label: 'Backup & Restore', category: 'Pengaturan' },
+    { page: Page.DisplaySettings, label: 'Pengaturan Tampilan', category: 'Pengaturan' },
+    { page: Page.ReportSizesSettings, label: 'Ukuran Report / Cetak', category: 'Pengaturan' },
+];
+
 const RoleModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
@@ -492,33 +549,180 @@ const RoleModal: React.FC<{
 }> = ({ isOpen, onClose, existingRole }) => {
     const { dispatch } = useAppContext();
     const [name, setName] = useState('');
-    const [baseSalary, setBaseSalary] = useState<number | string>('');
+    const [permissions, setPermissions] = useState<Page[]>([]);
+    const [featurePermissions, setFeaturePermissions] = useState<Record<string, { create: boolean; read: boolean; update: boolean; delete: boolean }>>({});
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         if(isOpen) {
             setName(existingRole?.name || '');
-            setBaseSalary(existingRole?.baseSalary || '');
+            setPermissions(existingRole?.permissions || []);
+            setFeaturePermissions(existingRole?.featurePermissions || {});
+            setSearchTerm('');
         }
     }, [isOpen, existingRole]);
+
+    const handleToggleCrud = (page: Page, action: 'create' | 'read' | 'update' | 'delete', checked: boolean) => {
+        const current = featurePermissions[page] || { 
+            create: true, 
+            read: permissions.includes(page), 
+            update: true, 
+            delete: true 
+        };
+        const updated = { ...current, [action]: checked };
+        const newFP = { ...featurePermissions, [page]: updated };
+        setFeaturePermissions(newFP);
+        
+        let newPermissions = [...permissions];
+        if (action === 'read') {
+            if (checked && !newPermissions.includes(page)) {
+                newPermissions.push(page);
+            } else if (!checked) {
+                newPermissions = newPermissions.filter(p => p !== page);
+            }
+        }
+        setPermissions(newPermissions);
+    };
+
+    const handleSelectAllRead = (selectAll: boolean) => {
+        const activePages = APP_ACTIVE_FEATURES.map(f => f.page);
+        if (selectAll) {
+            setPermissions([...activePages]);
+            const newFP = { ...featurePermissions };
+            activePages.forEach(p => {
+                const prev = newFP[p] || { create: true, read: false, update: true, delete: true };
+                newFP[p] = { ...prev, read: true };
+            });
+            setFeaturePermissions(newFP);
+        } else {
+            setPermissions([]);
+            const newFP = { ...featurePermissions };
+            activePages.forEach(p => {
+                const prev = newFP[p] || { create: true, read: true, update: true, delete: true };
+                newFP[p] = { ...prev, read: false };
+            });
+            setFeaturePermissions(newFP);
+        }
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (existingRole) {
-            dispatch({ type: 'staff/updateRole', payload: { ...existingRole, name, baseSalary: Number(baseSalary) } });
+            dispatch({ type: 'staff/updateRole', payload: { ...existingRole, name, permissions, featurePermissions } });
         } else {
-            dispatch({ type: 'staff/addRole', payload: { name, baseSalary: Number(baseSalary) } });
+            dispatch({ type: 'staff/addRole', payload: { name, permissions, featurePermissions } });
         }
         onClose();
     };
 
+    const filteredFeatures = useMemo(() => {
+        return APP_ACTIVE_FEATURES.filter(item => 
+            item.label.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            item.category.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [searchTerm]);
+
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`${existingRole ? 'Ubah' : 'Tambah'} Jabatan`}>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Nama Jabatan" required />
-                <Input type="number" value={baseSalary} onChange={e => setBaseSalary(e.target.value)} placeholder="Gaji Pokok (Opsional)" />
-                <div className="flex justify-end gap-2 pt-4">
+        <Modal isOpen={isOpen} onClose={onClose} title={`${existingRole ? 'Ubah' : 'Tambah'} Jabatan & Hak Akses Fitur`} maxWidth="max-w-4xl">
+            <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Nama Jabatan*</label>
+                    <Input value={name} onChange={e => setName(e.target.value)} placeholder="Contoh: Manager, Kasir, Admin" required />
+                </div>
+
+                <div className="border-t dark:border-gray-700 pt-4 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h3 className="font-bold text-gray-900 dark:text-white text-base">Hak Akses & Pembatasan Fitur (CRUD)</h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Pilih fitur aktif dan atur batasan operasi Create (C), Read (R), Update (U), Delete (D) untuk jabatan ini.</p>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                            <button type="button" onClick={() => handleSelectAllRead(true)} className="px-2.5 py-1.5 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-semibold hover:bg-blue-200">
+                                Pilih Semua Fitur
+                            </button>
+                            <button type="button" onClick={() => handleSelectAllRead(false)} className="px-2.5 py-1.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-200">
+                                Hapus Semua
+                            </button>
+                        </div>
+                    </div>
+
+                    <Input 
+                        value={searchTerm} 
+                        onChange={e => setSearchTerm(e.target.value)} 
+                        placeholder="🔍 Cari nama fitur atau kategori..." 
+                        className="w-full text-sm"
+                    />
+
+                    <div className="max-h-[45vh] overflow-y-auto border rounded-lg dark:border-gray-700">
+                        <Table>
+                            <Thead>
+                                <Tr className="bg-gray-50 dark:bg-gray-800 sticky top-0">
+                                    <Th>Fitur Aplikasi</Th>
+                                    <Th className="text-center">Create (C)</Th>
+                                    <Th className="text-center">Read (R)</Th>
+                                    <Th className="text-center">Update (U)</Th>
+                                    <Th className="text-center">Delete (D)</Th>
+                                </Tr>
+                            </Thead>
+                            <Tbody>
+                                {filteredFeatures.map(item => {
+                                    const fp = featurePermissions[item.page] || { 
+                                        create: true, 
+                                        read: permissions.includes(item.page), 
+                                        update: true, 
+                                        delete: true 
+                                    };
+                                    return (
+                                        <Tr key={item.page} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                            <Td>
+                                                <div className="font-medium text-sm text-gray-900 dark:text-white">{item.label}</div>
+                                                <span className="inline-block mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-gray-300">
+                                                    {item.category}
+                                                </span>
+                                            </Td>
+                                            <Td className="text-center">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={fp.create} 
+                                                    onChange={e => handleToggleCrud(item.page, 'create', e.target.checked)}
+                                                    className="rounded text-primary-600 w-4 h-4 cursor-pointer"
+                                                />
+                                            </Td>
+                                            <Td className="text-center">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={fp.read} 
+                                                    onChange={e => handleToggleCrud(item.page, 'read', e.target.checked)}
+                                                    className="rounded text-primary-600 w-4 h-4 cursor-pointer"
+                                                />
+                                            </Td>
+                                            <Td className="text-center">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={fp.update} 
+                                                    onChange={e => handleToggleCrud(item.page, 'update', e.target.checked)}
+                                                    className="rounded text-primary-600 w-4 h-4 cursor-pointer"
+                                                />
+                                            </Td>
+                                            <Td className="text-center">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={fp.delete} 
+                                                    onChange={e => handleToggleCrud(item.page, 'delete', e.target.checked)}
+                                                    className="rounded text-primary-600 w-4 h-4 cursor-pointer"
+                                                />
+                                            </Td>
+                                        </Tr>
+                                    );
+                                })}
+                            </Tbody>
+                        </Table>
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4 border-t dark:border-gray-700">
                     <Button variant="secondary" onClick={onClose}>Batal</Button>
-                    <Button type="submit">Simpan</Button>
+                    <Button type="submit">Simpan Jabatan & Hak Akses</Button>
                 </div>
             </form>
         </Modal>
@@ -558,12 +762,20 @@ export const RoleManagementPage: React.FC = () => {
   
     return (
         <div className="p-8 h-full flex flex-col">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Jabatan & Kelola Akses</h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Kelola struktur jabatan dan hak akses pembatasan CRU tiap fitur staf.</p>
                 </div>
-                <Button onClick={() => handleOpenRoleModal(null)}>Tambah Jabatan</Button>
+                <div className="flex items-center gap-3">
+                    <Button 
+                        variant="secondary"
+                        onClick={() => dispatch({ type: 'ui/setPage', payload: Page.StaffList })}
+                    >
+                        ← Kembali ke Data Karyawan
+                    </Button>
+                    <Button onClick={() => handleOpenRoleModal(null)}>+ Tambah Jabatan</Button>
+                </div>
             </div>
 
             {message && <div className="p-4 mb-4 text-green-800 bg-green-100 dark:bg-green-900/50 dark:text-green-200 rounded-lg">{message}</div>}
@@ -573,7 +785,6 @@ export const RoleManagementPage: React.FC = () => {
                     <Thead>
                         <Tr>
                             <Th>Nama Jabatan</Th>
-                            <Th>Gaji Pokok</Th>
                             <Th>Jumlah Staf</Th>
                             <Th>Aksi</Th>
                         </Tr>
@@ -582,12 +793,10 @@ export const RoleManagementPage: React.FC = () => {
                         {staffCountByRole.map(role => (
                             <Tr key={role.id}>
                                 <Td className="font-medium">{role.name}</Td>
-                                <Td>Rp{(role.baseSalary || 0).toLocaleString('id-ID')}</Td>
                                 <Td>{role.staffCount}</Td>
                                 <Td>
                                     <ActionsDropdown>
-                                        <DropdownItem onClick={() => handleOpenRoleModal(role)}>Ubah</DropdownItem>
-                                        <DropdownItem onClick={() => handleManagePermissions(role)}>Kelola Akses</DropdownItem>
+                                        <DropdownItem onClick={() => handleOpenRoleModal(role)}>Ubah & Hak Akses</DropdownItem>
                                         <DropdownItem onClick={() => handleDeleteRole(role.id)} className="text-red-600 dark:text-red-500">Hapus</DropdownItem>
                                     </ActionsDropdown>
                                 </Td>

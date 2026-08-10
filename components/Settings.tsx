@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Theme, CompanyInfo, ReportLayoutSettings, AccentColor, PaperSize, ThemeConfig, GradientTheme, SingleColorTheme } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
 import { gradientThemes } from '../utils/colors';
-import { Database, Download, Upload, ShieldCheck } from 'lucide-react';
+import { Database, Download, Upload, ShieldCheck, RefreshCw, AlertTriangle } from 'lucide-react';
 
 // --- Shared Components ---
 const Label: React.FC<{ htmlFor?: string, children: React.ReactNode, className?: string }> = ({ htmlFor, children, className }) => (
@@ -87,10 +87,10 @@ export const CompanyInformationSettingsPage: React.FC = () => {
     };
     
     return (
-        <div className="p-8 h-full overflow-y-auto space-y-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Informasi Perusahaan</h1>
+        <div className="p-4 sm:p-6 w-full h-full overflow-y-auto space-y-6">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Informasi Perusahaan</h1>
             
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 max-w-4xl mx-auto">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 sm:p-8 w-full">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="flex items-center space-x-6">
                         <div className="shrink-0">
@@ -438,7 +438,7 @@ export const BackupRestorePage: React.FC = () => {
     };
 
     return (
-        <div className="p-4 sm:p-8 h-full overflow-y-auto space-y-8 font-sans max-w-5xl mx-auto">
+        <div className="p-4 sm:p-6 w-full h-full overflow-y-auto space-y-6 font-sans">
             <div>
                 <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                     Backup &amp; Restore Database Lokal (PWA)
@@ -481,51 +481,87 @@ export const BackupRestorePage: React.FC = () => {
             </div>
 
             {/* Actions Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
                 {/* Export Backup Card */}
-                <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-7 border border-slate-200/80 dark:border-gray-700 shadow-sm space-y-4 flex flex-col justify-between">
+                <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-slate-200/80 dark:border-gray-700 shadow-sm space-y-4 flex flex-col justify-between">
                     <div className="space-y-3">
                         <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-2xl w-fit">
                             <Download className="w-6 h-6" />
                         </div>
-                        <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                            📥 Ekspor Cadangan Data (Backup JSON)
+                        <h2 className="text-base font-black text-slate-900 dark:text-white">
+                            📥 Ekspor Cadangan (Backup JSON)
                         </h2>
                         <p className="text-xs text-slate-500 dark:text-gray-400 leading-relaxed font-medium">
-                            Unduh seluruh database (produk, stok, transaksi kasir, pelanggan, laporan keuangan &amp; pengaturan) sebagai file cadangan JSON ke perangkat Anda.
+                            Unduh seluruh database (produk, stok, transaksi, pelanggan, laporan keuangan) sebagai file cadangan JSON.
                         </p>
                     </div>
 
                     <button 
                         type="button" 
                         onClick={handleExportData}
-                        className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2"
+                        className="w-full py-3 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2"
                     >
                         <Download className="w-4 h-4" />
-                        <span>Unduh Backup Data (.json)</span>
+                        <span>Unduh Backup (.json)</span>
                     </button>
                 </div>
 
                 {/* Import Restore Card */}
-                <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-7 border border-slate-200/80 dark:border-gray-700 shadow-sm space-y-4 flex flex-col justify-between">
+                <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-slate-200/80 dark:border-gray-700 shadow-sm space-y-4 flex flex-col justify-between">
                     <div className="space-y-3">
                         <div className="p-3 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-2xl w-fit">
                             <Upload className="w-6 h-6" />
                         </div>
-                        <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                            📤 Pulihkan / Impor Data (Restore JSON)
+                        <h2 className="text-base font-black text-slate-900 dark:text-white">
+                            📤 Pulihkan Data (Restore JSON)
                         </h2>
                         <p className="text-xs text-slate-500 dark:text-gray-400 leading-relaxed font-medium">
-                            Upload file cadangan JSON dari perangkat lain atau backup sebelumnya untuk memulihkan seluruh data transaksi dan produk.
+                            Upload file cadangan JSON untuk memulihkan seluruh data transaksi, produk, dan laporan keuangan.
                         </p>
                     </div>
 
-                    <label className="w-full py-3.5 px-4 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-md shadow-amber-500/20 transition-all flex items-center justify-center space-x-2 cursor-pointer">
+                    <label className="w-full py-3 px-4 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md shadow-amber-500/20 transition-all flex items-center justify-center space-x-2 cursor-pointer">
                         <Upload className="w-4 h-4" />
-                        <span>Pilih &amp; Pulihkan File Backup</span>
+                        <span>Pulihkan File Backup</span>
                         <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
                     </label>
+                </div>
+
+                {/* Reset Database Card */}
+                <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-rose-200 dark:border-rose-950/50 shadow-sm space-y-4 flex flex-col justify-between">
+                    <div className="space-y-3">
+                        <div className="p-3 bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-2xl w-fit">
+                            <RefreshCw className="w-6 h-6" />
+                        </div>
+                        <h2 className="text-base font-black text-rose-900 dark:text-rose-300">
+                            🔄 Reset / Setel Ulang Database
+                        </h2>
+                        <p className="text-xs text-slate-500 dark:text-gray-400 leading-relaxed font-medium">
+                            Menghapus seluruh data lokal dan mengembalikan sistem ke kondisi bawaan awal. Data yang terhapus tidak dapat dikembalikan.
+                        </p>
+                    </div>
+
+                    <button 
+                        type="button" 
+                        onClick={() => {
+                            const confirmFirst = window.confirm("⚠️ PERINGATAN BERSYARAT:\nApakah Anda yakin ingin MENGHAPUS SEMUA DATA bisnis Anda dan me-reset ke kondisi awal?");
+                            if (confirmFirst) {
+                                const confirmSecond = window.prompt("Ketik 'RESET' untuk mengonfirmasi penghapusan permanen seluruh database:");
+                                if (confirmSecond === 'RESET') {
+                                    localStorage.clear();
+                                    alert('Database berhasil di-reset ke kondisi awal bawaan. Aplikasi akan dimuat ulang.');
+                                    window.location.reload();
+                                } else if (confirmSecond !== null) {
+                                    alert('Konfirmasi batal. Kata kunci yang dimasukkan tidak sesuai.');
+                                }
+                            }
+                        }}
+                        className="w-full py-3 px-4 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-500/20 transition-all flex items-center justify-center space-x-2"
+                    >
+                        <AlertTriangle className="w-4 h-4" />
+                        <span>Reset Database Awal</span>
+                    </button>
                 </div>
 
             </div>

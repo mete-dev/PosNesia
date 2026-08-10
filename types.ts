@@ -501,4 +501,5 @@ export interface AppState {
     lastWithdrawalToken: DepositWithdrawalToken | null;
     lastWithdrawalReceipt: { customerName: string; amount: number } | null;
     rentalOrders: RentalOrder[];
+    mobileMenuCategory: string | null;
 }
