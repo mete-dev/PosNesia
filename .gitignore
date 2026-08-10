@@ -10,7 +10,19 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-electron
+dist-desktop
+output-exe
+release
+android
+.vite
 *.local
+*.exe
+*.apk
+*.pak
+*.dll
+*.bin
+*.tmp
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +34,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+

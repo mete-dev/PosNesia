@@ -63,6 +63,7 @@ import { RoomAssetListPage, RoomOrderListPage, CreateRoomOrderPage } from './com
 import { RentalAssetListPage, RentalOrderListPage, CreateRentalOrderPage } from './components/Rental';
 import { MobileMenuPage } from './components/MobileMenuPage';
 import { navigateToPath, getPageFromUrl } from './utils/router';
+import { AutoUpdateModal } from './components/AutoUpdateModal';
 
 export const App: React.FC = () => {
     const { state, dispatch } = useAppContext();
@@ -266,6 +267,7 @@ export const App: React.FC = () => {
 
     return (
         <div className={`flex h-screen bg-slate-50 dark:bg-gray-900 font-sans text-slate-800 dark:text-slate-200 relative overflow-hidden`}>
+            <AutoUpdateModal />
             {/* Mobile Sidebar Overlay */}
             {isMobileSidebarOpen && (
                 <div 

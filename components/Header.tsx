@@ -145,6 +145,16 @@ export const Header: React.FC<{ onToggleMobileSidebar?: () => void }> = ({ onTog
 
                     {/* Right side */}
                     <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                        {/* Quick Update Button */}
+                        <button
+                            onClick={() => dispatch({ type: 'ui/setPage', payload: Page.CompanyInformationSettings })}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-100 font-semibold text-xs transition-all active:scale-95 border border-blue-200 dark:border-blue-800"
+                            title="Cek Pembaruan Aplikasi"
+                        >
+                            <span>🔄</span>
+                            <span className="hidden md:inline">Cek Update</span>
+                        </button>
+
                         {/* Settings Dropdown — hide on mobile, use sidebar instead */}
                         <div className="relative hidden sm:block" ref={settingsRef}>
                             <button onClick={() => setSettingsOpen(!isSettingsOpen)} className="flex items-center space-x-1.5 p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none transition-colors">

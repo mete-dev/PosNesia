@@ -1,0 +1,31 @@
+appId: com.posnesia.desktop
+productName: PosNesia
+copyright: Copyright © 2026 PosNesia
+
+directories:
+  output: aplikasi
+
+files:
+  - dist/**/*
+  - electron/**/*
+  - package.json
+  - "!android/**/*"
+  - "!dist-desktop/**/*"
+  - "!release/**/*"
+
+win:
+  target: nsis
+  icon: public/pwa-icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: PosNesia
+
+publish:
+  provider: github
+  owner: mete-dev
+  repo: PosNesia
+

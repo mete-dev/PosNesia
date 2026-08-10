@@ -27,6 +27,18 @@ const DownloadModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isO
     const [progress, setProgress] = useState(0);
 
     const handleDownload = (platform: string) => {
+        if (platform.includes('Windows')) {
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.href = '/PosNesia-Setup-1.0.0.exe';
+            downloadAnchor.download = 'PosNesia-Setup-1.0.0.exe';
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            alert(`File installer PosNesia-Setup-1.0.0.exe sedang diunduh!`);
+            onClose();
+            return;
+        }
+
         setDownloading(platform);
         setProgress(0);
         const interval = setInterval(() => {

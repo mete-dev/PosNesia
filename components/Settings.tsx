@@ -166,9 +166,105 @@ export const CompanyInformationSettingsPage: React.FC = () => {
                     </div>
                 </form>
             </div>
+
+            {/* Section Pembaruan Sistem Aplikasi */}
+            <AppUpdateCard />
         </div>
     )
 }
+
+const AppUpdateCard: React.FC = () => {
+    const [updateStatus, setUpdateStatus] = useState<string>('idle');
+    const [downloadPercent, setDownloadPercent] = useState<number>(0);
+    const [versionInfo, setVersionInfo] = useState<string>('');
+
+    useEffect(() => {
+        const api = (window as any).electronAPI;
+        if (api) {
+            api.getVersion?.().then((v: string) => setVersionInfo(`v${v}`));
+
+            api.onUpdateStatus?.((data: any) => {
+                setUpdateStatus(data.status);
+                if (data.status === 'downloading') {
+                    setDownloadPercent(data.percent || 0);
+                }
+            });
+        }
+    }, []);
+
+    const handleCheckUpdate = () => {
+        const api = (window as any).electronAPI;
+        if (api && api.checkForUpdates) {
+            setUpdateStatus('checking');
+            api.checkForUpdates();
+        } else {
+            alert('Fitur pembaruan otomatis aktif pada aplikasi desktop PosNesia.');
+        }
+    };
+
+    return (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 sm:p-8 w-full border border-blue-100 dark:border-gray-700">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xl">🔄</span>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Pembaruan Sistem Aplikasi</h2>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        PosNesia Desktop {versionInfo || 'v1.0.0'} — Periksa dan unduh versi terbaru secara otomatis tanpa perlu install ulang manual.
+                    </p>
+                    
+                    {/* Status Feedback */}
+                    {updateStatus === 'checking' && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-2 animate-pulse">
+                            ⏳ Memeriksa ketersediaan pembaruan...
+                        </p>
+                    )}
+                    {updateStatus === 'not-available' && (
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-2">
+                            ✅ Versi aplikasi Anda sudah yang terbaru.
+                        </p>
+                    )}
+                    {updateStatus === 'available' && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-2">
+                            🚀 Versi baru ditemukan! Mengunduh secara otomatis di latar belakang...
+                        </p>
+                    )}
+                    {updateStatus === 'downloading' && (
+                        <div className="mt-2 space-y-1">
+                            <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">
+                                📥 Mengunduh pembaruan: {downloadPercent}%
+                            </p>
+                            <div className="w-full max-w-xs bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                                <div className="bg-blue-600 h-full transition-all duration-300" style={{ width: `${downloadPercent}%` }}></div>
+                            </div>
+                        </div>
+                    )}
+                    {updateStatus === 'downloaded' && (
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-2">
+                            🎉 Pembaruan selesai diunduh! Aplikasi akan diperbarui otomatis saat ditutup.
+                        </p>
+                    )}
+                    {updateStatus === 'error' && (
+                        <p className="text-xs text-red-500 font-semibold mt-2">
+                            ⚠️ Gagal memeriksa pembaruan. Pastikan koneksi internet terhubung.
+                        </p>
+                    )}
+                </div>
+
+                <button
+                    type="button"
+                    onClick={handleCheckUpdate}
+                    disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 active:scale-95 text-white font-bold text-sm shadow-md transition-all shrink-0 cursor-pointer"
+                >
+                    <span>🌐</span>
+                    <span>{updateStatus === 'checking' ? 'Memeriksa...' : 'Cek Pembaruan'}</span>
+                </button>
+            </div>
+        </div>
+    );
+};
 
 // --- 2. Application Display Settings Page ---
 
