@@ -11,11 +11,14 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
         watch: {
           ignored: [
+            '**/aplikasi/**',
+            '**/build-config/**',
             '**/dist-electron/**',
             '**/dist-desktop/**',
             '**/output-exe/**',
-            '**/android/**',
+            '**/release/**',
             '**/*.exe',
+            '**/*.apk',
             '**/*.~tmp',
             '**/node_modules/**',
             '**/.vite/**',
