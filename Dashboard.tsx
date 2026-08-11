@@ -22,6 +22,7 @@ import {
 } from './components/icons';
 import { 
     TrendingUp, 
+    TrendingDown,
     ShoppingCart, 
     Package, 
     Users, 
@@ -37,7 +38,11 @@ import {
     Layers,
     UserCheck,
     ClipboardList,
-    Box
+    Box,
+    Wallet,
+    FileWarning,
+    PackageX,
+    BarChart3
 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
@@ -256,78 +261,90 @@ export const Dashboard: React.FC = () => {
             </div>
 
             {/* KPI STAT CARDS GRID */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+
                 {/* 1. Pendapatan */}
-                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-blue-500/10 transition-colors"></div>
-                    <div className="flex items-center justify-between mb-3 relative z-10">
-                        <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">
-                            PENDAPATAN (30 HARI)
-                        </span>
-                        <div className="w-10 h-10 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                            <IncomeStatementIcon className="w-5 h-5" />
+                <div className="relative rounded-2xl overflow-hidden group cursor-default">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600"></div>
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.2)_0%,_transparent_55%)]"></div>
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full blur-2xl -mb-10 -ml-10 pointer-events-none"></div>
+                    <div className="relative z-10 p-4 sm:p-5">
+                        <div className="flex items-start justify-between mb-5">
+                            <div className="relative">
+                                <div className="w-12 h-12 rounded-2xl bg-white/15 ring-2 ring-white/25 flex items-center justify-center group-hover:scale-110 group-hover:bg-white/25 transition-all duration-300 shadow-lg">
+                                    <Wallet strokeWidth={1.75} className="w-6 h-6 text-white drop-shadow" />
+                                </div>
+                            </div>
+                            <span className="text-white/60 text-[10px] font-bold tracking-widest uppercase mt-1 bg-white/10 px-2 py-0.5 rounded-full">30 Hari</span>
                         </div>
-                    </div>
-                    <div className="relative z-10">
-                        <div className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
+                        <div className="text-white/75 text-[11px] font-extrabold tracking-widest uppercase mb-1.5">Pendapatan</div>
+                        <div className="text-white text-xl sm:text-2xl font-black tracking-tight leading-none drop-shadow-sm">
                             Rp{financialStats.totalRevenue.toLocaleString('id-ID')}
                         </div>
                     </div>
                 </div>
 
                 {/* 2. Laba Bersih */}
-                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-emerald-500/10 transition-colors"></div>
-                    <div className="flex items-center justify-between mb-3 relative z-10">
-                        <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">
-                            LABA BERSIH (30 HARI)
-                        </span>
-                        <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                            <FinancialPositionIcon className="w-5 h-5" />
+                <div className="relative rounded-2xl overflow-hidden group cursor-default">
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600"></div>
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.2)_0%,_transparent_55%)]"></div>
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full blur-2xl -mb-10 -ml-10 pointer-events-none"></div>
+                    <div className="relative z-10 p-4 sm:p-5">
+                        <div className="flex items-start justify-between mb-5">
+                            <div className="relative">
+                                <div className="w-12 h-12 rounded-2xl bg-white/15 ring-2 ring-white/25 flex items-center justify-center group-hover:scale-110 group-hover:bg-white/25 transition-all duration-300 shadow-lg">
+                                    <TrendingUp strokeWidth={1.75} className="w-6 h-6 text-white drop-shadow" />
+                                </div>
+                            </div>
+                            <span className="text-white/60 text-[10px] font-bold tracking-widest uppercase mt-1 bg-white/10 px-2 py-0.5 rounded-full">30 Hari</span>
                         </div>
-                    </div>
-                    <div className="relative z-10">
-                        <div className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
+                        <div className="text-white/75 text-[11px] font-extrabold tracking-widest uppercase mb-1.5">Laba Bersih</div>
+                        <div className="text-white text-xl sm:text-2xl font-black tracking-tight leading-none drop-shadow-sm">
                             Rp{financialStats.netIncome.toLocaleString('id-ID')}
                         </div>
                     </div>
                 </div>
 
                 {/* 3. Tagihan Belum Lunas */}
-                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-amber-500/10 transition-colors"></div>
-                    <div className="flex items-center justify-between mb-3 relative z-10">
-                        <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">
-                            TAGIHAN BELUM LUNAS
-                        </span>
-                        <div className="w-10 h-10 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                            <BillIcon className="w-5 h-5" />
+                <div className="relative rounded-2xl overflow-hidden group cursor-default">
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-orange-500"></div>
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.2)_0%,_transparent_55%)]"></div>
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full blur-2xl -mb-10 -ml-10 pointer-events-none"></div>
+                    <div className="relative z-10 p-4 sm:p-5">
+                        <div className="flex items-start justify-between mb-5">
+                            <div className="relative">
+                                <div className="w-12 h-12 rounded-2xl bg-white/15 ring-2 ring-white/25 flex items-center justify-center group-hover:scale-110 group-hover:bg-white/25 transition-all duration-300 shadow-lg">
+                                    <FileWarning strokeWidth={1.75} className="w-6 h-6 text-white drop-shadow" />
+                                </div>
+                            </div>
+                            <span className="text-white/60 text-[10px] font-bold tracking-widest uppercase mt-1 bg-white/10 px-2 py-0.5 rounded-full">Faktur</span>
                         </div>
-                    </div>
-                    <div className="relative z-10">
-                        <div className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight flex items-baseline gap-1.5">
+                        <div className="text-white/75 text-[11px] font-extrabold tracking-widest uppercase mb-1.5">Tagihan Belum Lunas</div>
+                        <div className="text-white text-xl sm:text-2xl font-black tracking-tight leading-none drop-shadow-sm flex items-baseline gap-1.5">
                             {operationalStats.unpaidInvoices}
-                            <span className="text-xs font-semibold text-zinc-400">faktur</span>
+                            <span className="text-sm font-semibold text-white/65">faktur</span>
                         </div>
                     </div>
                 </div>
 
                 {/* 4. Stok Rendah */}
-                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-rose-500/10 transition-colors"></div>
-                    <div className="flex items-center justify-between mb-3 relative z-10">
-                        <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">
-                            STOK RENDAH
-                        </span>
-                        <div className="w-10 h-10 bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 rounded-xl flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                            <ProductStockIcon className="w-5 h-5" />
+                <div className="relative rounded-2xl overflow-hidden group cursor-default">
+                    <div className="absolute inset-0 bg-gradient-to-br from-rose-500 to-pink-600"></div>
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(255,255,255,0.2)_0%,_transparent_55%)]"></div>
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full blur-2xl -mb-10 -ml-10 pointer-events-none"></div>
+                    <div className="relative z-10 p-4 sm:p-5">
+                        <div className="flex items-start justify-between mb-5">
+                            <div className="relative">
+                                <div className="w-12 h-12 rounded-2xl bg-white/15 ring-2 ring-white/25 flex items-center justify-center group-hover:scale-110 group-hover:bg-white/25 transition-all duration-300 shadow-lg">
+                                    <PackageX strokeWidth={1.75} className="w-6 h-6 text-white drop-shadow" />
+                                </div>
+                            </div>
+                            <span className="text-white/60 text-[10px] font-bold tracking-widest uppercase mt-1 bg-white/10 px-2 py-0.5 rounded-full">Produk</span>
                         </div>
-                    </div>
-                    <div className="relative z-10">
-                        <div className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight flex items-baseline gap-1.5">
+                        <div className="text-white/75 text-[11px] font-extrabold tracking-widest uppercase mb-1.5">Stok Rendah</div>
+                        <div className="text-white text-xl sm:text-2xl font-black tracking-tight leading-none drop-shadow-sm flex items-baseline gap-1.5">
                             {operationalStats.lowStockItems}
-                            <span className="text-xs font-semibold text-zinc-400">produk</span>
+                            <span className="text-sm font-semibold text-white/65">produk</span>
                         </div>
                     </div>
                 </div>
