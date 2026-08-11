@@ -184,7 +184,21 @@ export const initialPaymentMethods: PaymentMethod[] = [
 ];
 export const initialPaymentTerms: PaymentTerm[] = [{ id: 'pt1', name: 'Langsung', days: 0 }];
 export const initialEcommerceSettings: EcommerceSettings = { deliveryFeeStandard: 10000, deliveryFeeExpress: 25000, minTransactionForDelivery: 50000, maxDeliveryDistanceKm: 15 };
-export const initialReportLayoutSettings: ReportLayoutSettings = { posReceiptSize: '80mm', salesInvoiceSize: 'A4', purchaseOrderSize: 'A4' };
+export const initialReportLayoutSettings: ReportLayoutSettings = { 
+    posReceiptSize: '80mm', 
+    salesInvoiceSize: 'A4', 
+    purchaseOrderSize: 'A4',
+    printerConnectionType: 'browser',
+    bluetoothDeviceName: '',
+    bluetoothMacAddress: '',
+    usbVendorId: '',
+    usbProductId: '',
+    networkPrinterIp: '',
+    networkPrinterPort: 9100,
+    autoPrintOnCheckout: true,
+    cutPaperAfterPrint: true,
+    printCopies: 1
+};
 export const initialPosSessionSummaries: PosSessionSummary[] = [];
 export const initialBranches: Branch[] = [{ id: 'CAB-JPSTNH01', name: 'Toko Pusat Tanah Abang', branchTypeId: 'bt1', provinceId: 'prov1', cityId: 'city1', districtId: 'dist2', villageId: 'vill1', detail: 'Blok A Lt. 1 No. 1', safeAccountId: '1030' }];
 export const initialCashierStations: CashierStation[] = [

@@ -217,6 +217,17 @@ export interface ReportLayoutSettings {
     posReceiptSize: PaperSize;
     salesInvoiceSize: PaperSize;
     purchaseOrderSize: PaperSize;
+    // --- Connection & Hardware Printer Settings ---
+    printerConnectionType?: PrinterConnectionType;
+    bluetoothDeviceName?: string;
+    bluetoothMacAddress?: string;
+    usbVendorId?: string;
+    usbProductId?: string;
+    networkPrinterIp?: string;
+    networkPrinterPort?: number;
+    autoPrintOnCheckout?: boolean;
+    cutPaperAfterPrint?: boolean;
+    printCopies?: number;
 }
 
 // --- NEW AREA MANAGEMENT TYPES ---

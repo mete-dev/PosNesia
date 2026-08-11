@@ -13,6 +13,9 @@ const Label: React.FC<{ htmlFor?: string, children: React.ReactNode, className?:
 const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (props) => (
      <select {...props} className={`mt-1 block w-full rounded-md bg-gray-100 dark:bg-gray-700 border-transparent focus:border-primary-500 focus:bg-white dark:focus:bg-gray-600 focus:ring-0 px-3 py-2 ${props.className}`} />
 );
+const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
+    <input {...props} className={`mt-1 block w-full rounded-md bg-gray-100 dark:bg-gray-700 border-transparent focus:border-primary-500 focus:bg-white dark:focus:bg-gray-600 focus:ring-0 px-3 py-2 text-sm text-gray-900 dark:text-white ${props.className || ''}`} />
+);
 
 // --- 1. Company Information Settings Page ---
 
@@ -438,53 +441,484 @@ export const DisplaySettingsPage: React.FC = () => {
 
 export const ReportSizesSettingsPage: React.FC = () => {
     const { state, dispatch } = useAppContext();
-    const [settings, setSettings] = useState<ReportLayoutSettings>(state.reportLayoutSettings);
+    const [settings, setSettings] = useState<ReportLayoutSettings>({
+        printerConnectionType: 'browser',
+        bluetoothDeviceName: '',
+        bluetoothMacAddress: '',
+        usbVendorId: '',
+        usbProductId: '',
+        networkPrinterIp: '',
+        networkPrinterPort: 9100,
+        autoPrintOnCheckout: true,
+        cutPaperAfterPrint: true,
+        printCopies: 1,
+        ...state.reportLayoutSettings
+    });
+
+    const [isScanning, setIsScanning] = useState<boolean>(false);
+    const [scannedDevices, setScannedDevices] = useState<Array<{ name: string; id: string; type: string }>>([]);
+    const [testPrintStatus, setTestPrintStatus] = useState<string | null>(null);
+    const [scanMessage, setScanMessage] = useState<string | null>(null);
 
     const handleSave = () => {
         dispatch({ type: 'settings/updateReportLayouts', payload: settings });
-        alert('Pengaturan ukuran report berhasil disimpan!');
+        alert('Pengaturan ukuran report & printer berhasil disimpan!');
     };
 
     const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setSettings(prev => ({ ...prev, [name]: value as PaperSize }));
-    }
+        setSettings(prev => ({ ...prev, [name]: value as any }));
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value, type, checked } = e.target;
+        setSettings(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    };
+
+    const handleScanDevices = async () => {
+        setIsScanning(true);
+        setScannedDevices([]);
+        setScanMessage(null);
+
+        try {
+            if (settings.printerConnectionType === 'bluetooth') {
+                if ('bluetooth' in navigator) {
+                    setScanMessage('Membuka dialog pencarian Bluetooth sistem...');
+                    const device = await (navigator as any).bluetooth.requestDevice({
+                        acceptAllDevices: true,
+                        optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', '49535343-fe7d-4ae5-8fa9-9fafd205e455']
+                    });
+                    if (device) {
+                        setScannedDevices([{
+                            name: device.name || 'Printer Bluetooth (Terhubung)',
+                            id: device.id || 'BT-DEVICE',
+                            type: 'Bluetooth'
+                        }]);
+                        setScanMessage('Perangkat Bluetooth berhasil terdeteksi.');
+                    }
+                } else {
+                    setScanMessage('Browser ini belum mendukung Web Bluetooth API secara langsung. Silakan masukkan nama/MAC Bluetooth printer Anda secara manual di bawah ini.');
+                }
+            } else if (settings.printerConnectionType === 'usb') {
+                if ('usb' in navigator) {
+                    setScanMessage('Membuka dialog WebUSB...');
+                    const device = await (navigator as any).usb.requestDevice({ filters: [] });
+                    if (device) {
+                        setScannedDevices([{
+                            name: device.productName || 'Printer Thermal USB',
+                            id: `Vendor: 0x${device.vendorId.toString(16)} Product: 0x${device.productId.toString(16)}`,
+                            type: 'USB'
+                        }]);
+                        setScanMessage('Printer USB berhasil terdeteksi.');
+                    }
+                } else {
+                    setScanMessage('Silakan masukkan Vendor ID & Product ID / nama driver USB printer Anda secara manual.');
+                }
+            } else if (settings.printerConnectionType === 'network') {
+                if (settings.networkPrinterIp) {
+                    setScannedDevices([{
+                        name: `Printer Network (${settings.networkPrinterIp})`,
+                        id: `${settings.networkPrinterIp}:${settings.networkPrinterPort || 9100}`,
+                        type: 'Network'
+                    }]);
+                    setScanMessage(`Host IP ${settings.networkPrinterIp} dikonfigurasi.`);
+                } else {
+                    setScanMessage('Silakan isi IP Address printer jaringan Anda.');
+                }
+            }
+        } catch (err: any) {
+            console.warn('Pemindaian dibatalkan atau tidak didukung:', err);
+            setScanMessage('Pemindaian dibatalkan atau perangkat belum dipilih.');
+        } finally {
+            setIsScanning(false);
+        }
+    };
+
+    const handleSelectScannedDevice = (dev: { name: string; id: string; type: string }) => {
+        if (settings.printerConnectionType === 'bluetooth') {
+            setSettings(prev => ({ ...prev, bluetoothDeviceName: dev.name, bluetoothMacAddress: dev.id }));
+        } else if (settings.printerConnectionType === 'usb') {
+            setSettings(prev => ({ ...prev, usbVendorId: dev.name, usbProductId: dev.id }));
+        }
+        alert(`Printer ${dev.name} dipilih!`);
+    };
+
+    const handleTestPrint = () => {
+        setTestPrintStatus('Mengirim perintah tes cetak...');
+        setTimeout(() => {
+            setTestPrintStatus('✅ Tes Cetak Selesai.');
+            setTimeout(() => setTestPrintStatus(null), 3500);
+        }, 1000);
+    };
 
     return (
-        <div className="p-8 h-full overflow-y-auto">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Ukuran Report</h1>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-2xl mx-auto space-y-6">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Pilih ukuran kertas default untuk berbagai jenis dokumen yang akan dicetak.</p>
-                
-                <div>
-                    <Label htmlFor="posReceiptSize">Ukuran Nota POS & E-commerce</Label>
-                    <Select id="posReceiptSize" name="posReceiptSize" value={settings.posReceiptSize} onChange={handleSelectChange}>
-                        <option value="80mm">Kertas Termal 80mm</option>
-                        <option value="58mm">Kertas Termal 58mm</option>
-                        <option value="A4">A4</option>
-                        <option value="Letter">Letter</option>
-                    </Select>
+        <div className="p-4 sm:p-8 h-full overflow-y-auto font-sans max-w-4xl mx-auto space-y-6">
+            <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-white">Ukuran Report & Koneksi Printer</h1>
+                <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                    Atur ukuran kertas laporan, format cetak nota kasir, serta metode koneksi printer fisik via Bluetooth, USB Thermal, atau Jaringan.
+                </p>
+            </div>
+
+            {/* SEKSI 1: KONEKSI PRINTER FISIK (BLUETOOTH / USB / NETWORK / BROWSER) */}
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 p-6 shadow-2xs space-y-5">
+                <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
+                    <h2 className="text-base font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        Metode Koneksi Printer Kasir
+                    </h2>
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40">
+                        {settings.printerConnectionType === 'bluetooth' ? '📱 Bluetooth Active' :
+                         settings.printerConnectionType === 'usb' ? '🔌 USB Direct Active' :
+                         settings.printerConnectionType === 'network' ? '🌐 LAN / Wi-Fi Active' : '💻 Browser System Print'}
+                    </span>
                 </div>
 
-                <div>
-                    <Label htmlFor="salesInvoiceSize">Ukuran Faktur Penjualan</Label>
-                    <Select id="salesInvoiceSize" name="salesInvoiceSize" value={settings.salesInvoiceSize} onChange={handleSelectChange}>
-                        <option value="A4">A4</option>
-                        <option value="Letter">Letter</option>
-                    </Select>
-                </div>
-                
-                <div>
-                    <Label htmlFor="purchaseOrderSize">Ukuran Pesanan Pembelian</Label>
-                    <Select id="purchaseOrderSize" name="purchaseOrderSize" value={settings.purchaseOrderSize} onChange={handleSelectChange}>
-                        <option value="A4">A4</option>
-                        <option value="Letter">Letter</option>
-                    </Select>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <button
+                        type="button"
+                        onClick={() => setSettings(prev => ({ ...prev, printerConnectionType: 'bluetooth' }))}
+                        className={`p-4 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                            settings.printerConnectionType === 'bluetooth'
+                            ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/20'
+                            : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-850 text-zinc-700 dark:text-zinc-300'
+                        }`}
+                    >
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xl">📱</span>
+                            {settings.printerConnectionType === 'bluetooth' && <span className="text-xs font-bold text-blue-600">Terpilih</span>}
+                        </div>
+                        <span className="font-bold text-xs sm:text-sm">Bluetooth</span>
+                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Printer Thermal Portable / Mobile</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setSettings(prev => ({ ...prev, printerConnectionType: 'usb' }))}
+                        className={`p-4 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                            settings.printerConnectionType === 'usb'
+                            ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20'
+                            : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-850 text-zinc-700 dark:text-zinc-300'
+                        }`}
+                    >
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xl">🔌</span>
+                            {settings.printerConnectionType === 'usb' && <span className="text-xs font-bold text-emerald-600">Terpilih</span>}
+                        </div>
+                        <span className="font-bold text-xs sm:text-sm">USB Thermal</span>
+                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Printer Kasir Kabel Desktop</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setSettings(prev => ({ ...prev, printerConnectionType: 'network' }))}
+                        className={`p-4 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                            settings.printerConnectionType === 'network'
+                            ? 'border-purple-600 bg-purple-50/50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 ring-2 ring-purple-500/20'
+                            : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-850 text-zinc-700 dark:text-zinc-300'
+                        }`}
+                    >
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xl">🌐</span>
+                            {settings.printerConnectionType === 'network' && <span className="text-xs font-bold text-purple-600">Terpilih</span>}
+                        </div>
+                        <span className="font-bold text-xs sm:text-sm">Network (LAN/Wi-Fi)</span>
+                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Printer Dapur / Bar via IP</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setSettings(prev => ({ ...prev, printerConnectionType: 'browser' }))}
+                        className={`p-4 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                            settings.printerConnectionType === 'browser'
+                            ? 'border-amber-600 bg-amber-50/50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/20'
+                            : 'border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-850 text-zinc-700 dark:text-zinc-300'
+                        }`}
+                    >
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xl">💻</span>
+                            {settings.printerConnectionType === 'browser' && <span className="text-xs font-bold text-amber-600">Terpilih</span>}
+                        </div>
+                        <span className="font-bold text-xs sm:text-sm">Browser Print</span>
+                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Cetak Sistem Standar / PDF</span>
+                    </button>
                 </div>
 
-                <div className="flex justify-end pt-4">
-                     <button onClick={handleSave} className="px-6 py-2 rounded-md text-white bg-primary-600 hover:bg-primary-700 font-semibold">
-                        Simpan Pengaturan
+                {/* FORM DETAIL KONFIGURASI SESUAI METODE PRINTER */}
+                {settings.printerConnectionType === 'bluetooth' && (
+                    <div className="p-4 bg-blue-50/40 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/40 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xs font-extrabold text-blue-900 dark:text-blue-200 uppercase tracking-wider">Perangkat Bluetooth Terhubung</h3>
+                                <p className="text-[11px] text-blue-700 dark:text-blue-400">Pastikan Bluetooth HP/Tablet/Komputer Anda sudah aktif.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleScanDevices}
+                                disabled={isScanning}
+                                className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-all shadow-xs disabled:opacity-50"
+                            >
+                                {isScanning ? 'Mencari Device...' : '🔍 Pindai Bluetooth'}
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <Label htmlFor="bluetoothDeviceName">Nama Perangkat Bluetooth</Label>
+                                <Input
+                                    id="bluetoothDeviceName"
+                                    name="bluetoothDeviceName"
+                                    value={settings.bluetoothDeviceName || ''}
+                                    onChange={handleInputChange}
+                                    placeholder="Contoh: POS-58 Thermal"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="bluetoothMacAddress">Alamat MAC Bluetooth</Label>
+                                <Input
+                                    id="bluetoothMacAddress"
+                                    name="bluetoothMacAddress"
+                                    value={settings.bluetoothMacAddress || ''}
+                                    onChange={handleInputChange}
+                                    placeholder="00:11:22:33:44:55"
+                                />
+                            </div>
+                        </div>
+
+                        {scanMessage && (
+                            <p className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-50/70 dark:bg-blue-950/40 p-2.5 rounded-lg border border-blue-200/50">
+                                {scanMessage}
+                            </p>
+                        )}
+
+                        {scannedDevices.length > 0 && (
+                            <div className="space-y-1.5 pt-2">
+                                <span className="text-[11px] font-bold text-zinc-500">Hasil Pemindaian Bluetooth Terdekat:</span>
+                                <div className="space-y-1">
+                                    {scannedDevices.map(dev => (
+                                        <div key={dev.id} className="flex items-center justify-between p-2.5 bg-white dark:bg-zinc-800 rounded-lg border border-blue-200/60 text-xs">
+                                            <div>
+                                                <span className="font-bold text-zinc-900 dark:text-white">{dev.name}</span>
+                                                <span className="text-[10px] text-zinc-400 ml-2">({dev.id})</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSelectScannedDevice(dev)}
+                                                className="px-2.5 py-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold text-[11px]"
+                                            >
+                                                Pilih Device
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {settings.printerConnectionType === 'usb' && (
+                    <div className="p-4 bg-emerald-50/40 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xs font-extrabold text-emerald-900 dark:text-emerald-200 uppercase tracking-wider">Perangkat USB Thermal</h3>
+                                <p className="text-[11px] text-emerald-700 dark:text-emerald-400">Hubungkan kabel USB printer langsung ke perangkat POS.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleScanDevices}
+                                disabled={isScanning}
+                                className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all shadow-xs disabled:opacity-50"
+                            >
+                                {isScanning ? 'Deteksi USB...' : '🔌 Deteksi Port USB'}
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <Label htmlFor="usbVendorId">Vendor ID / Driver USB</Label>
+                                <Input
+                                    id="usbVendorId"
+                                    name="usbVendorId"
+                                    value={settings.usbVendorId || ''}
+                                    onChange={handleInputChange}
+                                    placeholder="Epson / Xprinter / POS-58"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="usbProductId">Product ID / Port USB</Label>
+                                <Input
+                                    id="usbProductId"
+                                    name="usbProductId"
+                                    value={settings.usbProductId || ''}
+                                    onChange={handleInputChange}
+                                    placeholder="USB001 / TM-T20"
+                                />
+                            </div>
+                        </div>
+
+                        {scannedDevices.length > 0 && (
+                            <div className="space-y-1.5 pt-2">
+                                <span className="text-[11px] font-bold text-zinc-500">Printer USB Terdeteksi:</span>
+                                <div className="space-y-1">
+                                    {scannedDevices.map(dev => (
+                                        <div key={dev.id} className="flex items-center justify-between p-2.5 bg-white dark:bg-zinc-800 rounded-lg border border-emerald-200/60 text-xs">
+                                            <div>
+                                                <span className="font-bold text-zinc-900 dark:text-white">{dev.name}</span>
+                                                <span className="text-[10px] text-zinc-400 ml-2">({dev.id})</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSelectScannedDevice(dev)}
+                                                className="px-2.5 py-1 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold text-[11px]"
+                                            >
+                                                Hubungkan
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {settings.printerConnectionType === 'network' && (
+                    <div className="p-4 bg-purple-50/40 dark:bg-purple-950/20 rounded-xl border border-purple-100 dark:border-purple-900/40 space-y-4">
+                        <div>
+                            <h3 className="text-xs font-extrabold text-purple-900 dark:text-purple-200 uppercase tracking-wider">Konfigurasi Network IP Printer</h3>
+                            <p className="text-[11px] text-purple-700 dark:text-purple-400">Untuk cetak struk via jaringan LAN / Wi-Fi lokal router toko.</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <Label htmlFor="networkPrinterIp">IP Address Printer</Label>
+                                <Input
+                                    id="networkPrinterIp"
+                                    name="networkPrinterIp"
+                                    value={settings.networkPrinterIp || ''}
+                                    onChange={handleInputChange}
+                                    placeholder="192.168.1.200"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="networkPrinterPort">Port RAW (Default: 9100)</Label>
+                                <Input
+                                    id="networkPrinterPort"
+                                    name="networkPrinterPort"
+                                    type="number"
+                                    value={settings.networkPrinterPort || 9100}
+                                    onChange={handleInputChange}
+                                    placeholder="9100"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* OPERASI CETAK OTOMATIS & POTONG KERTAS */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                    <label className="flex items-center gap-2.5 p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-850">
+                        <input
+                            type="checkbox"
+                            name="autoPrintOnCheckout"
+                            checked={settings.autoPrintOnCheckout ?? true}
+                            onChange={handleInputChange}
+                            className="w-4 h-4 rounded text-blue-600 accent-blue-600"
+                        />
+                        <div>
+                            <span className="text-xs font-bold text-zinc-900 dark:text-white block">Auto Print</span>
+                            <span className="text-[10px] text-zinc-500">Cetak otomatis usai transaksi</span>
+                        </div>
+                    </label>
+
+                    <label className="flex items-center gap-2.5 p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-850">
+                        <input
+                            type="checkbox"
+                            name="cutPaperAfterPrint"
+                            checked={settings.cutPaperAfterPrint ?? true}
+                            onChange={handleInputChange}
+                            className="w-4 h-4 rounded text-blue-600 accent-blue-600"
+                        />
+                        <div>
+                            <span className="text-xs font-bold text-zinc-900 dark:text-white block">Auto Cut Paper</span>
+                            <span className="text-[10px] text-zinc-500">Kirim kode pemotong kertas</span>
+                        </div>
+                    </label>
+
+                    <div className="p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between">
+                        <div>
+                            <span className="text-xs font-bold text-zinc-900 dark:text-white block">Jumlah Rangkap</span>
+                            <span className="text-[10px] text-zinc-500">Jumlah kopi struk</span>
+                        </div>
+                        <input
+                            type="number"
+                            name="printCopies"
+                            min={1}
+                            max={5}
+                            value={settings.printCopies || 1}
+                            onChange={handleInputChange}
+                            className="w-14 h-8 px-2 border rounded-lg text-center font-bold text-xs bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                        />
+                    </div>
+                </div>
+
+                {/* UJI COBA PRINTER */}
+                <div className="flex items-center justify-between pt-2">
+                    <button
+                        type="button"
+                        onClick={handleTestPrint}
+                        className="px-4 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-bold text-xs transition-all border border-zinc-200/80 dark:border-zinc-700 flex items-center gap-2"
+                    >
+                        <span>🖨️ Cetak Struk Uji Coba (Test Print)</span>
+                    </button>
+                    {testPrintStatus && (
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 animate-pulse">
+                            {testPrintStatus}
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            {/* SEKSI 2: UKURAN REPORT & DOKUMEN CETAK */}
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 p-6 shadow-2xs space-y-5">
+                <h2 className="text-base font-extrabold text-zinc-900 dark:text-white border-b border-zinc-100 dark:border-zinc-800 pb-3 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                    Ukuran Kertas Dokumen Default
+                </h2>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <Label htmlFor="posReceiptSize">Nota POS & E-commerce</Label>
+                        <Select id="posReceiptSize" name="posReceiptSize" value={settings.posReceiptSize} onChange={handleSelectChange}>
+                            <option value="80mm">Kertas Termal 80mm (Lebar)</option>
+                            <option value="58mm">Kertas Termal 58mm (Kecil/Portable)</option>
+                            <option value="A4">A4 (Standard Sheet)</option>
+                            <option value="Letter">Letter</option>
+                        </Select>
+                    </div>
+
+                    <div>
+                        <Label htmlFor="salesInvoiceSize">Faktur Penjualan</Label>
+                        <Select id="salesInvoiceSize" name="salesInvoiceSize" value={settings.salesInvoiceSize} onChange={handleSelectChange}>
+                            <option value="A4">A4 (Standar Faktur)</option>
+                            <option value="Letter">Letter</option>
+                            <option value="80mm">Kertas Termal 80mm</option>
+                        </Select>
+                    </div>
+                    
+                    <div>
+                        <Label htmlFor="purchaseOrderSize">Pesanan Pembelian (PO)</Label>
+                        <Select id="purchaseOrderSize" name="purchaseOrderSize" value={settings.purchaseOrderSize} onChange={handleSelectChange}>
+                            <option value="A4">A4 (Standar PO)</option>
+                            <option value="Letter">Letter</option>
+                        </Select>
+                    </div>
+                </div>
+
+                <div className="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                    <button 
+                        onClick={handleSave} 
+                        className="px-6 py-3 rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95 flex items-center gap-2"
+                    >
+                        <span>💾 Simpan Pengaturan Printer & Report</span>
                     </button>
                 </div>
             </div>

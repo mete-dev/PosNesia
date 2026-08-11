@@ -415,12 +415,93 @@ export const ProductListPage: React.FC = () => {
                     </Select>
                 </div>
             </div>
-            {/* PRODUCT CARD GRID BLOCKS */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto pb-4">
+            {/* DESKTOP TABLE VIEW (Tablet & Desktop) */}
+            <div className="hidden sm:block overflow-x-auto bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+                <Table>
+                    <Thead>
+                        <Tr>
+                            <Th className="w-10">
+                                <input
+                                    type="checkbox"
+                                    checked={selectedProductIds.size > 0 && selectedProductIds.size === filteredProducts.length}
+                                    onChange={e => handleSelectAll(e.target.checked)}
+                                    className="rounded text-primary-600 w-4 h-4 cursor-pointer"
+                                />
+                            </Th>
+                            <Th>Nama Produk</Th>
+                            <Th>Barcode</Th>
+                            <Th>Merk</Th>
+                            <Th>Harga Jual</Th>
+                            <Th className="text-center">Stok Available</Th>
+                            <Th>Status</Th>
+                            <Th className="text-right">Aksi</Th>
+                        </Tr>
+                    </Thead>
+                    <Tbody>
+                        {filteredProducts.map(product => {
+                            const stock = productStockMap.get(product.id) || 0;
+                            return (
+                                <Tr key={product.id}>
+                                    <Td>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedProductIds.has(product.id)}
+                                            onChange={e => handleSelectProduct(product.id, e.target.checked)}
+                                            className="rounded text-primary-600 w-4 h-4 cursor-pointer"
+                                        />
+                                    </Td>
+                                    <Td>
+                                        <div className="font-extrabold text-zinc-900 dark:text-white text-sm">
+                                            {product.name}
+                                        </div>
+                                    </Td>
+                                    <Td>
+                                        <span className="font-mono text-xs text-zinc-500">{product.barcode || '-'}</span>
+                                    </Td>
+                                    <Td>
+                                        <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+                                            {product.brandId ? brandMap.get(product.brandId) : '-'}
+                                        </span>
+                                    </Td>
+                                    <Td>
+                                        <span className="font-black text-emerald-600 dark:text-emerald-400 text-sm font-mono">
+                                            Rp{product.price.toLocaleString('id-ID')}
+                                        </span>
+                                    </Td>
+                                    <Td className="text-center">
+                                        <span className={`font-extrabold font-mono text-sm px-2.5 py-0.5 rounded-md ${
+                                            stock > 5 ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200' : stock > 0 ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40' : 'bg-red-50 text-red-600 dark:bg-red-950/40'
+                                        }`}>
+                                            {stock}
+                                        </span>
+                                    </Td>
+                                    <Td>
+                                        <Badge variant={product.status === 'active' ? 'success' : 'neutral'}>{product.status}</Badge>
+                                    </Td>
+                                    <Td className="text-right">
+                                        <ActionsDropdown>
+                                            <DropdownItem onClick={() => handleOpenDetailsModal(product)}>Lihat Detail</DropdownItem>
+                                            <DropdownItem onClick={() => handleOpenModal(product)}>Ubah</DropdownItem>
+                                            {product.status !== 'archived' && (
+                                                <DropdownItem onClick={() => handleSetStatus(product.id, product.status === 'active' ? 'inactive' : 'active')}>
+                                                    {product.status === 'active' ? 'Non-aktifkan' : 'Aktifkan'}
+                                                </DropdownItem>
+                                            )}
+                                        </ActionsDropdown>
+                                    </Td>
+                                </Tr>
+                            );
+                        })}
+                    </Tbody>
+                </Table>
+            </div>
+
+            {/* MOBILE CARD GRID BLOCKS (Mobile screens only) */}
+            <div className="grid grid-cols-1 gap-4 sm:hidden overflow-y-auto pb-4">
                 {filteredProducts.map(product => {
                     const stock = productStockMap.get(product.id) || 0;
                     return (
-                        <div key={product.id} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-slate-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative group">
+                        <div key={product.id} className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col justify-between relative">
                             <div className="flex items-start justify-between gap-2 mb-3">
                                 <div className="flex items-center gap-2">
                                     <input

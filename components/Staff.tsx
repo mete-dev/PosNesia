@@ -222,49 +222,128 @@ export const StaffListPage: React.FC = () => {
                 </Button>
             </div>
         </div>
-      {/* STAFF CARD GRID BLOCKS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto pb-4">
+      {/* DESKTOP TABLE VIEW (Visible on tablet & desktop screens) */}
+      <div className="hidden sm:block overflow-x-auto bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+        <Table>
+          <Thead>
+            <Tr>
+              <Th>Karyawan</Th>
+              <Th>Jabatan</Th>
+              <Th>Kontak</Th>
+              <Th>Status</Th>
+              <Th className="text-right">Aksi</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {staff.map((member) => {
+              const role = roles.find(r => r.id === member.roleId);
+              return (
+                <Tr key={member.id}>
+                  <Td>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-extrabold flex items-center justify-center text-xs shadow-xs shrink-0">
+                        {member.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-extrabold text-zinc-900 dark:text-white text-sm">{member.name}</div>
+                        <div className="text-[10px] text-zinc-400 font-mono">ID: #{member.id}</div>
+                      </div>
+                    </div>
+                  </Td>
+                  <Td>
+                    <span className="inline-block text-[11px] font-extrabold px-2.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/40">
+                      {role?.name || 'Staf'}
+                    </span>
+                  </Td>
+                  <Td>
+                    <div className="space-y-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+                      <div>✉️ {member.email || '-'}</div>
+                      <div className="font-mono">📞 {member.phone || '-'}</div>
+                    </div>
+                  </Td>
+                  <Td>
+                    <span className={`inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md ${
+                      member.status === 'active' 
+                      ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40' 
+                      : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${member.status === 'active' ? 'bg-emerald-500' : 'bg-zinc-400'}`}></span>
+                      {member.status === 'active' ? 'Active' : member.status}
+                    </span>
+                  </Td>
+                  <Td className="text-right">
+                    <ActionsDropdown>
+                      <DropdownItem onClick={() => handleOpenModal(member)}>Ubah Data</DropdownItem>
+                      {member.status !== 'archived' && (
+                        <DropdownItem onClick={() => handleSetStatus(member.id, member.status === 'active' ? 'inactive' : 'active')}>
+                          {member.status === 'active' ? 'Non-aktifkan' : 'Aktifkan'}
+                        </DropdownItem>
+                      )}
+                    </ActionsDropdown>
+                  </Td>
+                </Tr>
+              );
+            })}
+          </Tbody>
+        </Table>
+      </div>
+
+      {/* MOBILE CARD GRID VIEW (Visible on mobile screens only) */}
+      <div className="grid grid-cols-1 gap-4 sm:hidden overflow-y-auto pb-4">
         {staff.map((member) => {
           const role = roles.find(r => r.id === member.roleId);
           return (
-            <div key={member.id} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-slate-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative group">
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-md">
+            <div key={member.id} className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col justify-between relative">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-extrabold flex items-center justify-center text-sm shadow-xs shrink-0">
                     {member.name.charAt(0).toUpperCase()}
                   </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white text-base leading-snug">{member.name}</h3>
-                    <span className="inline-block text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
-                      {role?.name || 'Staf'}
-                    </span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-extrabold text-zinc-900 dark:text-white text-sm truncate leading-snug" title={member.name}>
+                      {member.name}
+                    </h3>
+                    <div className="mt-0.5">
+                      <span className="inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/40">
+                        {role?.name || 'Staf'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <ActionsDropdown>
-                  <DropdownItem onClick={() => handleOpenModal(member)}>Ubah</DropdownItem>
-                  {member.status !== 'archived' && (
-                    <DropdownItem onClick={() => handleSetStatus(member.id, member.status === 'active' ? 'inactive' : 'active')}>
-                      {member.status === 'active' ? 'Non-aktifkan' : 'Aktifkan'}
-                    </DropdownItem>
-                  )}
-                </ActionsDropdown>
+
+                <div className="shrink-0">
+                  <ActionsDropdown>
+                    <DropdownItem onClick={() => handleOpenModal(member)}>Ubah Data</DropdownItem>
+                    {member.status !== 'archived' && (
+                      <DropdownItem onClick={() => handleSetStatus(member.id, member.status === 'active' ? 'inactive' : 'active')}>
+                        {member.status === 'active' ? 'Non-aktifkan' : 'Aktifkan'}
+                      </DropdownItem>
+                    )}
+                  </ActionsDropdown>
+                </div>
               </div>
 
-              <div className="space-y-1.5 py-3 border-t border-slate-100 dark:border-gray-700/60 mt-2 text-xs text-slate-600 dark:text-gray-300">
-                <p className="flex items-center gap-2 truncate">
-                  <span className="opacity-60">✉️</span> {member.email || '-'}
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="opacity-60">📞</span> {member.phone || '-'}
-                </p>
+              <div className="space-y-2 py-3 border-t border-zinc-100 dark:border-zinc-800/80 mt-3 text-xs text-zinc-600 dark:text-zinc-400">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-5 h-5 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-500 shrink-0">✉️</span>
+                  <span className="truncate text-xs font-medium" title={member.email}>{member.email || '-'}</span>
+                </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-5 h-5 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-500 shrink-0">📞</span>
+                  <span className="truncate text-xs font-medium font-mono">{member.phone || '-'}</span>
+                </div>
               </div>
 
-              <div className="pt-2 flex items-center justify-between mt-auto">
-                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                  member.status === 'active' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400' : 'bg-gray-100 text-gray-500'
+              <div className="pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 flex items-center justify-between mt-auto">
+                <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md flex items-center gap-1.5 ${
+                  member.status === 'active' 
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40' 
+                  : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
                 }`}>
-                  ● {member.status}
+                  <span className={`w-1.5 h-1.5 rounded-full ${member.status === 'active' ? 'bg-emerald-500' : 'bg-zinc-400'}`}></span>
+                  {member.status === 'active' ? 'Active' : member.status}
                 </span>
+                <span className="text-[10px] text-zinc-400 font-mono">ID: #{member.id}</span>
               </div>
             </div>
           );

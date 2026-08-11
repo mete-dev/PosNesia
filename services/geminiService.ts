@@ -4,17 +4,26 @@ import { GoogleGenAI } from "@google/genai";
 const API_KEY = (typeof process !== "undefined" && process.env?.API_KEY) || (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
 
 if (!API_KEY) {
-  console.error("Gemini API key is not set. Please set the process.env.API_KEY environment variable.");
+  console.warn("Gemini API key is not set. AI features will be disabled until VITE_GEMINI_API_KEY is configured.");
 }
 
-const ai = new GoogleGenAI({ apiKey: API_KEY! });
+const getAiClient = () => {
+  if (!API_KEY) return null;
+  try {
+    return new GoogleGenAI({ apiKey: API_KEY });
+  } catch (err) {
+    console.error("Failed to initialize GoogleGenAI:", err);
+    return null;
+  }
+};
 
 export const generateProductDescription = async (
   productName: string,
   keywords: string
 ): Promise<string> => {
-  if (!API_KEY) {
-    return "API Key not configured. Please check the console for instructions.";
+  const ai = getAiClient();
+  if (!ai) {
+    return "API Key belum dikonfigurasi. Fitur AI Generative saat ini dinonaktifkan.";
   }
 
   const prompt = `
@@ -30,16 +39,9 @@ export const generateProductDescription = async (
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
-      config: {
-        temperature: 0.7,
-        topP: 1,
-        topK: 32,
-        maxOutputTokens: 150,
-        thinkingConfig: { thinkingBudget: 0 } // Disable thinking for faster response
-      }
     });
-    
-    return response.text.trim();
+
+    return response.text || "Deskripsi gagal dibuat.";
   } catch (error) {
     console.error("Error generating product description:", error);
     return "Failed to generate description due to an API error.";

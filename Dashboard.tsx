@@ -1,7 +1,5 @@
 import React, { useMemo } from 'react';
 import { 
-    AreaChart, 
-    Area, 
     BarChart, 
     Bar, 
     XAxis, 
@@ -14,14 +12,9 @@ import {
     Cell 
 } from 'recharts';
 import { useAppContext } from './hooks/useAppContext';
-import { getChartColors } from './utils/colors';
-import { Card } from './components/ui';
 import { AccountType, JournalEntry, Sale, PurchaseOrder, Customer, Page } from './types';
 import { MOBILE_MENU_CATEGORIES } from './components/MobileMenuPage';
 import { 
-    SalesIcon, 
-    PurchaseListIcon, 
-    CustomerListIcon, 
     IncomeStatementIcon, 
     FinancialPositionIcon, 
     BillIcon, 
@@ -29,29 +22,28 @@ import {
 } from './components/icons';
 import { 
     TrendingUp, 
-    TrendingDown, 
     ShoppingCart, 
     Package, 
     Users, 
     Calendar, 
-    Clock, 
-    ArrowUpRight, 
     Plus, 
-    Store, 
-    Sparkles, 
     AlertTriangle, 
     CheckCircle2, 
     Receipt, 
-    FileText,
+    ArrowRight,
+    Sparkles,
     Building2,
-    ChevronRight,
-    ArrowRight
+    Activity,
+    Layers,
+    UserCheck,
+    ClipboardList,
+    Box
 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const { 
-        sales, customers, purchases, themeConfig, currentBranchId, branches,
+        sales, customers, purchases, currentBranchId, branches,
         accounts, products, inventoryLevels, customerBills, staff, attendance, journalEntries, currentUser
     } = state;
 
@@ -72,7 +64,6 @@ export const Dashboard: React.FC = () => {
     const filteredJournals = useMemo(() => filterByBranch(journalEntries, 'branchId'), [journalEntries, currentBranchId]);
 
     // --- CALCULATIONS ---
-
     const financialStats = useMemo(() => {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -91,7 +82,6 @@ export const Dashboard: React.FC = () => {
             });
         });
         
-        // Fallback to sales total if no journal entries found
         if (totalRevenue === 0 && filteredSales.length > 0) {
             totalRevenue = filteredSales.reduce((sum, s) => sum + s.grandTotal, 0);
         }
@@ -131,7 +121,7 @@ export const Dashboard: React.FC = () => {
             date: new Date(s.date), 
             type: 'Penjualan', 
             icon: <ShoppingCart className="w-4 h-4 text-emerald-500" />,
-            bgColor: 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800',
+            bgColor: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/60 dark:border-emerald-800/40',
             description: `Penjualan #${s.id.slice(-6)}`,
             amount: `Rp${s.grandTotal.toLocaleString('id-ID')}`
         }));
@@ -139,7 +129,7 @@ export const Dashboard: React.FC = () => {
             date: new Date(p.orderDate), 
             type: 'Pembelian', 
             icon: <Package className="w-4 h-4 text-blue-500" />,
-            bgColor: 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800',
+            bgColor: 'bg-blue-50 dark:bg-blue-950/40 border-blue-200/60 dark:border-blue-800/40',
             description: `PO #${p.id.slice(-6)}: ${p.vendorName}`,
             amount: ''
         }));
@@ -147,21 +137,20 @@ export const Dashboard: React.FC = () => {
             date: new Date(c.joinDate), 
             type: 'Pelanggan', 
             icon: <Users className="w-4 h-4 text-indigo-500" />,
-            bgColor: 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800',
-            description: `Pelanggan baru: ${c.name}`,
+            bgColor: 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200/60 dark:border-indigo-800/40',
+            description: `Pelanggan: ${c.name}`,
             amount: ''
         }));
 
         return [...saleActivities, ...purchaseActivities, ...customerActivities]
             .sort((a, b) => b.date.getTime() - a.date.getTime())
-            .slice(0, 6);
+            .slice(0, 5);
     }, [filteredSales, filteredPurchases, customers]);
 
     const salesByDayChart = useMemo(() => {
         const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
         const dataMap: Record<string, number> = {};
         
-        // Initialize last 7 days
         for (let i = 6; i >= 0; i--) {
             const d = new Date();
             d.setDate(d.getDate() - i);
@@ -201,48 +190,51 @@ export const Dashboard: React.FC = () => {
     const formattedDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto font-sans">
+        <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto font-sans">
             
-            {/* HERO WELCOME HEADER */}
-            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-                <div className="absolute bottom-0 left-1/3 -mb-16 w-60 h-60 bg-emerald-400/10 rounded-full blur-2xl pointer-events-none"></div>
+            {/* HERO WELCOME BANNER — Simple & Clean without subtitle */}
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-900 rounded-2xl p-5 sm:p-7 text-white shadow-md relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div className="absolute bottom-0 left-1/3 -mb-16 w-56 h-56 bg-emerald-400/10 rounded-full blur-2xl pointer-events-none"></div>
 
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                    <div className="space-y-2">
-
-                        <h1 className="text-2xl sm:text-4xl font-black tracking-tight">
-                            Selamat Datang, {currentUser?.name || 'Admin'}! 👋
-                        </h1>
-                        <p className="text-blue-100 text-xs sm:text-sm font-medium flex items-center gap-2">
-                            <Calendar className="w-4 h-4 opacity-80" />
-                            <span>{formattedDate}</span>
-                        </p>
+                <div className="relative z-10 space-y-1">
+                    <div className="flex items-center gap-2">
+                        <span className="bg-white/20 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-sm flex items-center gap-1.5">
+                            <Building2 className="w-3 h-3" />
+                            {currentBranchName}
+                        </span>
+                        <span className="text-white/70 text-xs font-medium flex items-center gap-1">
+                            <Calendar className="w-3 h-3 opacity-70" />
+                            {formattedDate}
+                        </span>
                     </div>
+                    <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight">
+                        Selamat Datang, {currentUser?.name || 'Admin'}
+                    </h1>
+                </div>
 
-                    {/* Quick Navigation Action Buttons */}
-                    <div className="flex flex-wrap items-center gap-3">
-                        <button
-                            onClick={() => dispatch({ type: 'ui/togglePosMode', payload: true })}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-5 py-3 rounded-2xl shadow-lg shadow-emerald-500/25 transition-all transform hover:scale-105 active:scale-95 flex items-center space-x-2 text-xs sm:text-sm"
-                        >
-                            <ShoppingCart className="w-4 h-4" />
-                            <span>Buka Kasir (POS)</span>
-                        </button>
+                {/* Quick Actions */}
+                <div className="relative z-10 flex flex-wrap items-center gap-2.5">
+                    <button
+                        onClick={() => dispatch({ type: 'ui/togglePosMode', payload: true })}
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl shadow-md shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 text-xs sm:text-sm"
+                    >
+                        <ShoppingCart className="w-4 h-4" />
+                        <span>Buka Kasir (POS)</span>
+                    </button>
 
-                        <button
-                            onClick={() => dispatch({ type: 'ui/setPage', payload: Page.ProductList })}
-                            className="bg-white/15 hover:bg-white/25 text-white font-bold px-4 py-3 rounded-2xl backdrop-blur-md transition-all flex items-center space-x-2 text-xs sm:text-sm border border-white/20"
-                        >
-                            <Plus className="w-4 h-4" />
-                            <span>Tambah Produk</span>
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => dispatch({ type: 'ui/setPage', payload: Page.ProductList })}
+                        className="bg-white/15 hover:bg-white/25 text-white font-semibold px-3.5 py-2.5 rounded-xl backdrop-blur-md transition-all flex items-center gap-1.5 text-xs sm:text-sm border border-white/20"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>Tambah Produk</span>
+                    </button>
                 </div>
             </div>
 
-            {/* MOBILE QUICK MENU GRID — visible on HP only */}
-            <div className="grid grid-cols-4 gap-3 sm:hidden">
+            {/* MOBILE QUICK MENU GRID */}
+            <div className="grid grid-cols-4 gap-2.5 sm:hidden">
                 {MOBILE_MENU_CATEGORIES.map((cat) => (
                     <button
                         key={cat.label}
@@ -253,9 +245,9 @@ export const Dashboard: React.FC = () => {
                                 dispatch({ type: 'ui/setMobileMenu', payload: cat.label });
                             }
                         }}
-                        className="flex flex-col items-center gap-2 py-3 px-1 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:scale-105 active:scale-95 transition-all shadow-sm"
+                        className="flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800 hover:scale-105 active:scale-95 transition-all shadow-2xs"
                     >
-                        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${cat.color} text-white flex items-center justify-center shadow-lg`}>
+                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${cat.color} text-white flex items-center justify-center shadow-sm`}>
                             {cat.icon}
                         </div>
                         <span className="text-[10px] font-bold text-zinc-700 dark:text-zinc-300 text-center leading-tight">{cat.label}</span>
@@ -264,113 +256,107 @@ export const Dashboard: React.FC = () => {
             </div>
 
             {/* KPI STAT CARDS GRID */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 
                 {/* 1. Pendapatan */}
-                <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-slate-200/80 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                            Pendapatan (30 Hari)
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-blue-500/10 transition-colors"></div>
+                    <div className="flex items-center justify-between mb-3 relative z-10">
+                        <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">
+                            PENDAPATAN (30 HARI)
                         </span>
-                        <div className="p-3 bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-2xl group-hover:scale-110 transition-transform">
-                            <IncomeStatementIcon className="w-6 h-6" />
+                        <div className="w-10 h-10 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+                            <IncomeStatementIcon className="w-5 h-5" />
                         </div>
                     </div>
-                    <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                        Rp{financialStats.totalRevenue.toLocaleString('id-ID')}
-                    </div>
-                    <div className="mt-3 flex items-center text-xs text-emerald-600 font-bold space-x-1">
-                        <TrendingUp className="w-3.5 h-3.5" />
-                        <span>Arus Kas Aktif</span>
+                    <div className="relative z-10">
+                        <div className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
+                            Rp{financialStats.totalRevenue.toLocaleString('id-ID')}
+                        </div>
                     </div>
                 </div>
 
                 {/* 2. Laba Bersih */}
-                <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-slate-200/80 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                            Laba Bersih (30 Hari)
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-emerald-500/10 transition-colors"></div>
+                    <div className="flex items-center justify-between mb-3 relative z-10">
+                        <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">
+                            LABA BERSIH (30 HARI)
                         </span>
-                        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 rounded-2xl group-hover:scale-110 transition-transform">
-                            <FinancialPositionIcon className="w-6 h-6" />
+                        <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+                            <FinancialPositionIcon className="w-5 h-5" />
                         </div>
                     </div>
-                    <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                        Rp{financialStats.netIncome.toLocaleString('id-ID')}
-                    </div>
-                    <div className="mt-3 flex items-center text-xs text-emerald-600 font-bold space-x-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Surplus Operasional</span>
+                    <div className="relative z-10">
+                        <div className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
+                            Rp{financialStats.netIncome.toLocaleString('id-ID')}
+                        </div>
                     </div>
                 </div>
 
                 {/* 3. Tagihan Belum Lunas */}
-                <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-slate-200/80 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                            Tagihan Belum Lunas
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-amber-500/10 transition-colors"></div>
+                    <div className="flex items-center justify-between mb-3 relative z-10">
+                        <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">
+                            TAGIHAN BELUM LUNAS
                         </span>
-                        <div className="p-3 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 rounded-2xl group-hover:scale-110 transition-transform">
-                            <BillIcon className="w-6 h-6" />
+                        <div className="w-10 h-10 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+                            <BillIcon className="w-5 h-5" />
                         </div>
                     </div>
-                    <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                        {operationalStats.unpaidInvoices} <span className="text-xs font-semibold text-slate-400">faktur</span>
-                    </div>
-                    <div className="mt-3 flex items-center text-xs text-amber-600 font-bold space-x-1">
-                        <Receipt className="w-3.5 h-3.5" />
-                        <span>Menunggu Pembayaran</span>
+                    <div className="relative z-10">
+                        <div className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight flex items-baseline gap-1.5">
+                            {operationalStats.unpaidInvoices}
+                            <span className="text-xs font-semibold text-zinc-400">faktur</span>
+                        </div>
                     </div>
                 </div>
 
                 {/* 4. Stok Rendah */}
-                <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-slate-200/80 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                            Stok Rendah
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-rose-500/10 transition-colors"></div>
+                    <div className="flex items-center justify-between mb-3 relative z-10">
+                        <span className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 tracking-wider">
+                            STOK RENDAH
                         </span>
-                        <div className="p-3 bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-2xl group-hover:scale-110 transition-transform">
-                            <ProductStockIcon className="w-6 h-6" />
+                        <div className="w-10 h-10 bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 rounded-xl flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+                            <ProductStockIcon className="w-5 h-5" />
                         </div>
                     </div>
-                    <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                        {operationalStats.lowStockItems} <span className="text-xs font-semibold text-slate-400">produk</span>
-                    </div>
-                    <div className="mt-3 flex items-center text-xs text-rose-600 font-bold space-x-1">
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        <span>Perlu Restock Segera</span>
+                    <div className="relative z-10">
+                        <div className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight flex items-baseline gap-1.5">
+                            {operationalStats.lowStockItems}
+                            <span className="text-xs font-semibold text-zinc-400">produk</span>
+                        </div>
                     </div>
                 </div>
 
             </div>
 
             {/* CHARTS SECTION */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                 
-                {/* Main Sales Trend Chart (8 Cols) */}
-                <div className="lg:col-span-8 bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-7 border border-slate-200/80 dark:border-gray-700 shadow-sm">
-                    <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                        <div>
-                            <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                                Tren Penjualan Minggu Ini
-                            </h2>
-                            <p className="text-xs text-slate-500 dark:text-gray-400 font-medium">
-                                Total omset harian dalam 7 hari terakhir
-                            </p>
-                        </div>
+                {/* Main Sales Trend Chart */}
+                <div className="lg:col-span-8 bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-base font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
+                            <Activity className="w-4 h-4 text-blue-600" />
+                            <span>Tren Penjualan Minggu Ini</span>
+                        </h2>
                         <button
                             onClick={() => dispatch({ type: 'ui/setPage', payload: Page.SalesList })}
-                            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center space-x-1"
+                            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                         >
-                            <span>Lihat Semua Penjualan</span>
+                            <span>Lihat Semua</span>
                             <ArrowRight className="w-3.5 h-3.5" />
                         </button>
                     </div>
 
-                    <div className="h-72 w-full">
+                    <div className="h-64 w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={salesByDayChart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                 <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} />
                                 <YAxis 
                                     tickLine={false} 
@@ -382,7 +368,7 @@ export const Dashboard: React.FC = () => {
                                     contentStyle={{ 
                                         backgroundColor: '#0f172a', 
                                         border: 'none', 
-                                        borderRadius: '16px', 
+                                        borderRadius: '12px', 
                                         color: '#fff', 
                                         boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)',
                                         fontSize: '12px',
@@ -390,24 +376,20 @@ export const Dashboard: React.FC = () => {
                                     }} 
                                     formatter={(value) => [`Rp${(value as number).toLocaleString('id-ID')}`, 'Penjualan']} 
                                 />
-                                <Bar dataKey="Sales" fill="#2563eb" radius={[8, 8, 0, 0]} />
+                                <Bar dataKey="Sales" fill="#2563eb" radius={[6, 6, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
-                {/* Sales Channels Donut Chart (4 Cols) */}
-                <div className="lg:col-span-4 bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-7 border border-slate-200/80 dark:border-gray-700 shadow-sm flex flex-col justify-between">
-                    <div>
-                        <h2 className="text-lg font-black text-slate-900 dark:text-white mb-1">
-                            Saluran Penjualan
-                        </h2>
-                        <p className="text-xs text-slate-500 dark:text-gray-400 font-medium mb-4">
-                            Proporsi metode transaksi
-                        </p>
-                    </div>
+                {/* Sales Channels Donut Chart */}
+                <div className="lg:col-span-4 bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col justify-between">
+                    <h2 className="text-base font-extrabold text-zinc-900 dark:text-white flex items-center gap-2 mb-2">
+                        <Layers className="w-4 h-4 text-indigo-600" />
+                        <span>Saluran Penjualan</span>
+                    </h2>
 
-                    <div className="h-56 w-full relative flex items-center justify-center">
+                    <div className="h-48 w-full relative flex items-center justify-center my-1">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie 
@@ -416,8 +398,8 @@ export const Dashboard: React.FC = () => {
                                     nameKey="name" 
                                     cx="50%" 
                                     cy="50%" 
-                                    innerRadius={55}
-                                    outerRadius={85} 
+                                    innerRadius={50}
+                                    outerRadius={75} 
                                     paddingAngle={4}
                                 >
                                     {salesByChannelData.map((_, index) => (
@@ -429,15 +411,14 @@ export const Dashboard: React.FC = () => {
                         </ResponsiveContainer>
                     </div>
 
-                    {/* Donut Chart Legend list */}
-                    <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-gray-700">
+                    <div className="space-y-1.5 pt-3 border-t border-zinc-100 dark:border-zinc-800">
                         {salesByChannelData.map((item, idx) => (
-                            <div key={item.name} className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-gray-300">
-                                <span className="flex items-center space-x-2">
+                            <div key={item.name} className="flex items-center justify-between text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                                <span className="flex items-center gap-2">
                                     <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: pieColors[idx % pieColors.length] }}></span>
                                     <span>{item.name}</span>
                                 </span>
-                                <span className="font-mono text-slate-500">{item.value} tx</span>
+                                <span className="font-mono text-zinc-500">{item.value} tx</span>
                             </div>
                         ))}
                     </div>
@@ -446,66 +427,80 @@ export const Dashboard: React.FC = () => {
             </div>
 
             {/* LOWER SECTION: OPERATIONAL SUMMARY & RECENT ACTIVITIES */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                 
-                {/* Operational Quick Stats (5 Cols) */}
-                <div className="lg:col-span-5 bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-7 border border-slate-200/80 dark:border-gray-700 shadow-sm space-y-5">
-                    <h2 className="text-lg font-black text-slate-900 dark:text-white border-b border-slate-100 dark:border-gray-700 pb-3">
-                        Ringkasan Operasional
+                {/* Operational Quick Stats */}
+                <div className="lg:col-span-5 bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs space-y-4">
+                    <h2 className="text-base font-extrabold text-zinc-900 dark:text-white border-b border-zinc-100 dark:border-zinc-800 pb-3 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                        <span>Ringkasan Operasional</span>
                     </h2>
 
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-gray-900/50 rounded-2xl border border-slate-100 dark:border-gray-700">
-                            <span className="text-xs font-bold text-slate-600 dark:text-gray-300">Kehadiran Staf Hari Ini</span>
-                            <span className="text-sm font-black text-blue-600 dark:text-blue-400 font-mono">
+                    <div className="space-y-2.5">
+                        <div className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-850 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                            <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300 flex items-center gap-2">
+                                <UserCheck className="w-4 h-4 text-blue-500" />
+                                Kehadiran Staf Hari Ini
+                            </span>
+                            <span className="text-xs font-extrabold text-blue-600 dark:text-blue-400 font-mono">
                                 {hrmStats.present} / {hrmStats.activeStaff} Orang
                             </span>
                         </div>
 
-                        <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-gray-900/50 rounded-2xl border border-slate-100 dark:border-gray-700">
-                            <span className="text-xs font-bold text-slate-600 dark:text-gray-300">Pesanan Pembelian (PO) Pending</span>
-                            <span className="text-sm font-black text-amber-600 dark:text-amber-400 font-mono">
+                        <div className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-850 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                            <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300 flex items-center gap-2">
+                                <ClipboardList className="w-4 h-4 text-amber-500" />
+                                PO Pembelian Pending
+                            </span>
+                            <span className="text-xs font-extrabold text-amber-600 dark:text-amber-400 font-mono">
                                 {operationalStats.pendingPOs} PO
                             </span>
                         </div>
 
-                        <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-gray-900/50 rounded-2xl border border-slate-100 dark:border-gray-700">
-                            <span className="text-xs font-bold text-slate-600 dark:text-gray-300">Total Pelanggan Terdaftar</span>
-                            <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                        <div className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-850 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                            <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300 flex items-center gap-2">
+                                <Users className="w-4 h-4 text-emerald-500" />
+                                Total Pelanggan Terdaftar
+                            </span>
+                            <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
                                 {customers.length} Pelanggan
                             </span>
                         </div>
 
-                        <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-gray-900/50 rounded-2xl border border-slate-100 dark:border-gray-700">
-                            <span className="text-xs font-bold text-slate-600 dark:text-gray-300">Total Katalog Produk</span>
-                            <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 font-mono">
+                        <div className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-850 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                            <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300 flex items-center gap-2">
+                                <Box className="w-4 h-4 text-indigo-500" />
+                                Total Katalog Produk
+                            </span>
+                            <span className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 font-mono">
                                 {products.length} SKU
                             </span>
                         </div>
                     </div>
                 </div>
 
-                {/* Recent Activities Timeline (7 Cols) */}
-                <div className="lg:col-span-7 bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-7 border border-slate-200/80 dark:border-gray-700 shadow-sm">
-                    <div className="flex items-center justify-between mb-5 border-b border-slate-100 dark:border-gray-700 pb-3">
-                        <h2 className="text-lg font-black text-slate-900 dark:text-white">
-                            Aktivitas Terkini
+                {/* Recent Activities Timeline */}
+                <div className="lg:col-span-7 bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+                    <div className="flex items-center justify-between mb-4 border-b border-zinc-100 dark:border-zinc-800 pb-3">
+                        <h2 className="text-base font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
+                            <Activity className="w-4 h-4 text-emerald-500" />
+                            <span>Aktivitas Terkini</span>
                         </h2>
-                        <span className="text-xs font-semibold text-slate-400">Live Feed</span>
+                        <span className="text-[11px] font-semibold text-zinc-400">Live</span>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                         {recentActivities.map((act, i) => (
-                            <div key={i} className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-gray-900/40 rounded-2xl border border-slate-100 dark:border-gray-700/80 hover:bg-slate-100/80 dark:hover:bg-gray-900 transition-colors">
-                                <div className="flex items-center space-x-3">
-                                    <div className={`p-2.5 rounded-xl border ${act.bgColor}`}>
+                            <div key={i} className="flex items-center justify-between p-2.5 bg-zinc-50 dark:bg-zinc-850 rounded-xl border border-zinc-100 dark:border-zinc-800/80 hover:bg-zinc-100/80 dark:hover:bg-zinc-800 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-lg border ${act.bgColor}`}>
                                         {act.icon}
                                     </div>
                                     <div>
-                                        <p className="text-xs font-bold text-slate-900 dark:text-white">
+                                        <p className="text-xs font-bold text-zinc-900 dark:text-white">
                                             {act.description}
                                         </p>
-                                        <p className="text-[10px] text-slate-400 font-medium">
+                                        <p className="text-[10px] text-zinc-400 font-medium">
                                             {act.date.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
                                         </p>
                                     </div>
