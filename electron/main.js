@@ -62,7 +62,16 @@ function sendUpdateStatus(status, data = {}) {
 autoUpdater.on('checking-for-update', () => sendUpdateStatus('checking'));
 autoUpdater.on('update-available', (info) => sendUpdateStatus('available', { version: info.version }));
 autoUpdater.on('update-not-available', () => sendUpdateStatus('not-available'));
-autoUpdater.on('error', (err) => sendUpdateStatus('error', { error: err.message }));
+autoUpdater.on('error', (err) => {
+  // If no release exists yet or network issue, treat as "not available" gracefully
+  const msg = err.message || '';
+  const isNotFound = msg.includes('404') || msg.includes('ENOTFOUND') || msg.includes('ECONNREFUSED') || msg.includes('net::');
+  if (isNotFound) {
+    sendUpdateStatus('not-available');
+  } else {
+    sendUpdateStatus('error', { error: msg });
+  }
+});
 autoUpdater.on('download-progress', (progressObj) => sendUpdateStatus('downloading', { percent: Math.round(progressObj.percent) }));
 autoUpdater.on('update-downloaded', () => sendUpdateStatus('downloaded'));
 
@@ -74,7 +83,14 @@ ipcMain.handle('check-for-updates', async () => {
   try {
     await autoUpdater.checkForUpdates();
   } catch (e) {
-    sendUpdateStatus('error', { error: e.message });
+    // Gracefully handle missing release or network errors
+    const msg = e.message || '';
+    const isNotFound = msg.includes('404') || msg.includes('ENOTFOUND') || msg.includes('ECONNREFUSED') || msg.includes('net::');
+    if (isNotFound) {
+      sendUpdateStatus('not-available');
+    } else {
+      sendUpdateStatus('error', { error: msg });
+    }
   }
 });
 
