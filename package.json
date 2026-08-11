@@ -10,7 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "dist": "vite build && electron-builder",
+    "dist": "vite build && electron-builder --config build-config/electron-builder.yml",
     "cap:build": "vite build && npx cap sync",
     "cap:open": "npx cap open android"
   },

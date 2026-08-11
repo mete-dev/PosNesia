@@ -12,6 +12,7 @@ files:
   - "!android/**/*"
   - "!dist-desktop/**/*"
   - "!release/**/*"
+  - "!aplikasi/**/*"
 
 win:
   target: nsis
@@ -28,4 +29,3 @@ publish:
   provider: github
   owner: mete-dev
   repo: PosNesia
-
