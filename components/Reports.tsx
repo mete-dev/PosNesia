@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { Sale, Product, StockMovement, AccountType, JournalEntry, Account, PurchaseOrder, PosSessionSummary, ProductCategory, Shelf, InventoryLevel, ProductTypeLocation } from '../types';
-import { Card, Button, Label, Select, DateRangeFilter, PageHeader, Table, Thead, Tbody, Tr, Th, Td, Input } from './ui';
+import { Card, Button, Label, Select, DateRangeFilter, PageHeader, Table, Thead, Tbody, Tr, Th, Td, Input, Badge, Modal } from './ui';
+import { TrendingUp, Package, ShoppingCart, DollarSign, Wallet, FileText, ArrowRightLeft, Percent, Layers, PieChart, Filter } from 'lucide-react';
 
 // --- Consolidated Goods Report ---
 export const GoodsReportPage: React.FC = () => {
@@ -12,23 +13,28 @@ export const GoodsReportPage: React.FC = () => {
     type FilterType = 'Semua Barang' | 'Kategori' | 'Rak';
     type QuantityFilterType = 'Semua Barang' | 'Paling Sedikit' | 'Paling Banyak';
 
+    const today = new Date().toISOString().split('T')[0];
+    const pastDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const [startDate, setStartDate] = useState(pastDate);
+    const [endDate, setEndDate] = useState(today);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     const [reportType, setReportType] = useState<ReportType>('Persediaan');
     const [filterType, setFilterType] = useState<FilterType>('Semua Barang');
     const [filterId, setFilterId] = useState('');
-    const [locationFilterId, setLocationFilterId] = useState(''); // New state for location filter
+    const [locationFilterId, setLocationFilterId] = useState('');
     const [quantityFilter, setQuantityFilter] = useState<QuantityFilterType>('Semua Barang');
     const [quantityLimit, setQuantityLimit] = useState<number | string>(10);
     const [reportData, setReportData] = useState<any[]>([]);
     const [reportTitle, setReportTitle] = useState('Laporan Barang');
 
     const handleGenerateReport = (start: string, end: string) => {
-        const startDate = new Date(start);
-        const endDate = new Date(end);
+        const startD = new Date(start);
+        const endD = new Date(end);
         let data: any[] = [];
         let title = `Laporan ${reportType}`;
 
-        // --- Step 1: Filter products by category/shelf ---
         let filteredProducts = products;
         if (filterType === 'Kategori' && filterId) {
             filteredProducts = products.filter(p => p.categoryId === filterId);
@@ -40,14 +46,11 @@ export const GoodsReportPage: React.FC = () => {
         }
         const filteredProductIds = new Set(filteredProducts.map(p => p.id));
         
-        // Add location to title if selected
-        if(locationFilterId) {
+        if (locationFilterId) {
             const loc = [...warehouses, ...branches].find(l => l.id === locationFilterId);
-            if(loc) title += ` - Lokasi: ${loc.name}`;
+            if (loc) title += ` - Lokasi: ${loc.name}`;
         }
 
-
-        // --- Step 2: Get base data based on reportType ---
         const stockMap = new Map<string, number>();
         inventoryLevels
             .filter(inv => !locationFilterId || inv.locationId === locationFilterId)
@@ -95,7 +98,7 @@ export const GoodsReportPage: React.FC = () => {
             case 'Penjualan':
                 const salesInRange = sales.filter(s => {
                     const saleDate = new Date(s.date);
-                    const inDate = saleDate >= startDate && saleDate <= endDate;
+                    const inDate = saleDate >= startD && saleDate <= endD;
                     const inLocation = !locationFilterId || s.branchId === locationFilterId;
                     return inDate && inLocation;
                 });
@@ -112,14 +115,13 @@ export const GoodsReportPage: React.FC = () => {
                 break;
         }
 
-        // --- Step 3: Apply quantity filter (sort & slice) ---
         const limit = Number(quantityLimit) > 0 ? Number(quantityLimit) : data.length;
 
         if (quantityFilter !== 'Semua Barang') {
             const sortKey = reportType === 'Penjualan' ? 'Kuantitas' : 'Stok';
             if (quantityFilter === 'Paling Sedikit') {
                 data.sort((a, b) => a[sortKey] - b[sortKey]);
-            } else { // Paling Banyak
+            } else {
                 data.sort((a, b) => b[sortKey] - a[sortKey]);
             }
             data = data.slice(0, limit);
@@ -130,95 +132,174 @@ export const GoodsReportPage: React.FC = () => {
         setReportTitle(title);
     };
 
+    const handleApplyFilter = () => {
+        handleGenerateReport(startDate, endDate);
+        setIsFilterOpen(false);
+    };
+
+    React.useEffect(() => {
+        handleGenerateReport(startDate, endDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const renderFilterDropdown = () => {
         if (filterType === 'Kategori') {
-            return <Select value={filterId} onChange={e => setFilterId(e.target.value)}><option value="">Pilih Kategori</option>{productCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>;
+            return <Select value={filterId} onChange={e => setFilterId(e.target.value)} className="text-xs py-1.5 w-full"><option value="">Pilih Kategori</option>{productCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>;
         }
         if (filterType === 'Rak') {
-            return <Select value={filterId} onChange={e => setFilterId(e.target.value)}><option value="">Pilih Rak</option>{shelves.map(s => <option key={s.id} value={s.id}>{s.code} - {s.description}</option>)}</Select>;
+            return <Select value={filterId} onChange={e => setFilterId(e.target.value)} className="text-xs py-1.5 w-full"><option value="">Pilih Rak</option>{shelves.map(s => <option key={s.id} value={s.id}>{s.code} - {s.description}</option>)}</Select>;
         }
-        return <Input disabled className="bg-gray-200 dark:bg-gray-700/50" />;
+        return null;
     };
 
     const columns = reportData.length > 0 ? Object.keys(reportData[0]) : [];
 
     return (
-        <div className="p-8 h-full flex flex-col">
-            <PageHeader title="Laporan Barang" />
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
-                    <div>
-                        <Label>Jenis Laporan</Label>
-                        <Select value={reportType} onChange={e => setReportType(e.target.value as ReportType)}>
-                            <option value="Persediaan">Persediaan</option>
-                            <option value="Penjualan">Penjualan</option>
-                            <option value="Stok Minus">Stok Minus</option>
-                        </Select>
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
+            {/* Header Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+                        <Package className="w-5 h-5" />
                     </div>
-                     <div className="flex gap-4 items-end">
-                        <div className="flex-grow">
-                            <Label>Filter Kuantitas</Label>
-                            <Select value={quantityFilter} onChange={e => setQuantityFilter(e.target.value as QuantityFilterType)}>
+                    <div>
+                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+                            Laporan Barang
+                        </h1>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs shrink-0 self-end sm:self-center">
+                    <div className="px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-medium">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">Total Item:</span>{" "}
+                        <span className="font-bold font-mono">{reportData.length}</span>
+                    </div>
+
+                    <Button onClick={() => setIsFilterOpen(true)} className="gap-2 text-xs py-1.5 px-3 shadow-xs">
+                        <Filter className="w-4 h-4" />
+                        Buat Laporan / Filter
+                    </Button>
+                </div>
+            </div>
+
+            {/* Table Area (Maximizes vertical height) */}
+            <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col">
+                <div className="overflow-x-auto flex-1">
+                    <Table>
+                        <Thead>
+                            <Tr>
+                                {columns.map(col => <Th key={col} className={typeof reportData[0]?.[col] === 'number' ? 'text-right' : 'text-left'}>{col}</Th>)}
+                            </Tr>
+                        </Thead>
+                        <Tbody>
+                            {reportData.length === 0 ? (
+                                <Tr>
+                                    <Td colSpan={columns.length || 4} className="text-center py-12 text-slate-400">
+                                        Tidak ada data barang yang sesuai filter. Klik "Buat Laporan / Filter" untuk memilih kriteria.
+                                    </Td>
+                                </Tr>
+                            ) : (
+                                reportData.map((row, index) => (
+                                    <Tr key={index}>
+                                        {columns.map(col => (
+                                            <Td key={col} className={typeof row[col] === 'number' ? 'text-right font-mono' : 'text-left'}>
+                                                {typeof row[col] === 'number' ? row[col].toLocaleString('id-ID') : row[col]}
+                                            </Td>
+                                        ))}
+                                    </Tr>
+                                ))
+                            )}
+                        </Tbody>
+                    </Table>
+                </div>
+            </div>
+
+            {/* Pop-up Filter Modal */}
+            <Modal
+                isOpen={isFilterOpen}
+                onClose={() => setIsFilterOpen(false)}
+                title="Filter & Buat Laporan Barang"
+                maxWidth="max-w-lg"
+                footer={
+                    <div className="flex justify-end gap-2 w-full">
+                        <Button variant="secondary" onClick={() => setIsFilterOpen(false)}>Batal</Button>
+                        <Button onClick={handleApplyFilter} className="gap-1.5">
+                            <Filter className="w-4 h-4" />
+                            Generate Laporan
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="space-y-4 text-sm">
+                    {/* Periode Tanggal */}
+                    <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 space-y-2">
+                        <Label className="font-bold text-slate-800 dark:text-zinc-200 text-xs">Periode Tanggal Laporan</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <Label htmlFor="goods_start" className="text-xs text-slate-500">Tanggal Mulai</Label>
+                                <Input id="goods_start" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                            <div>
+                                <Label htmlFor="goods_end" className="text-xs text-slate-500">Tanggal Selesai</Label>
+                                <Input id="goods_end" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Filter Options */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <Label className="text-xs font-semibold mb-1">Jenis Laporan</Label>
+                            <Select value={reportType} onChange={e => setReportType(e.target.value as ReportType)} className="text-xs py-1.5">
+                                <option value="Persediaan">Persediaan</option>
+                                <option value="Penjualan">Penjualan</option>
+                                <option value="Stok Minus">Stok Minus</option>
+                            </Select>
+                        </div>
+
+                        <div>
+                            <Label className="text-xs font-semibold mb-1">Lokasi Pengecekan</Label>
+                            <Select value={locationFilterId} onChange={e => setLocationFilterId(e.target.value)} className="text-xs py-1.5">
+                                <option value="">Semua Lokasi</option>
+                                {warehouses.map(w => <option key={w.id} value={w.id}>Gudang: {w.name}</option>)}
+                                {branches.map(b => <option key={b.id} value={b.id}>Toko: {b.name}</option>)}
+                            </Select>
+                        </div>
+
+                        <div>
+                            <Label className="text-xs font-semibold mb-1">Filter Kuantitas</Label>
+                            <Select value={quantityFilter} onChange={e => setQuantityFilter(e.target.value as QuantityFilterType)} className="text-xs py-1.5">
                                 <option value="Semua Barang">Semua Barang</option>
                                 <option value="Paling Sedikit">Paling Sedikit</option>
                                 <option value="Paling Banyak">Paling Banyak</option>
                             </Select>
                         </div>
+
                         {(quantityFilter === 'Paling Sedikit' || quantityFilter === 'Paling Banyak') && (
-                            <div className="flex-shrink-0">
-                                <Label>Jumlah</Label>
-                                <Input type="number" value={quantityLimit} onChange={e => setQuantityLimit(e.target.value)} className="w-24" />
+                            <div>
+                                <Label className="text-xs font-semibold mb-1">Batas Jumlah Item</Label>
+                                <Input type="number" value={quantityLimit} onChange={e => setQuantityLimit(e.target.value)} className="text-xs py-1.5" placeholder="10" />
+                            </div>
+                        )}
+
+                        <div>
+                            <Label className="text-xs font-semibold mb-1">Kategori / Rak</Label>
+                            <Select value={filterType} onChange={e => {setFilterType(e.target.value as FilterType); setFilterId('');}} className="text-xs py-1.5">
+                                <option value="Semua Barang">Semua Barang</option>
+                                <option value="Kategori">Berdasarkan Kategori</option>
+                                <option value="Rak">Berdasarkan Rak</option>
+                            </Select>
+                        </div>
+
+                        {(filterType === 'Kategori' || filterType === 'Rak') && (
+                            <div>
+                                <Label className="text-xs font-semibold mb-1">Pilih {filterType}</Label>
+                                {renderFilterDropdown()}
                             </div>
                         )}
                     </div>
-                     <div className="flex gap-4 items-end">
-                        <div className="flex-grow">
-                            <Label>Berdasarkan</Label>
-                            <Select value={filterType} onChange={e => {setFilterType(e.target.value as FilterType); setFilterId('');}}>
-                                <option value="Semua Barang">Semua Barang</option>
-                                <option value="Kategori">Kategori</option>
-                                <option value="Rak">Rak</option>
-                            </Select>
-                        </div>
-                        <div className="flex-grow">
-                             {(filterType === 'Kategori' || filterType === 'Rak') && <Label>Filter Spesifik</Label>}
-                            {renderFilterDropdown()}
-                        </div>
-                    </div>
-                     {/* New Location Filter */}
-                    <div className="lg:col-span-3">
-                        <Label>Lokasi Pengecekan</Label>
-                        <Select value={locationFilterId} onChange={e => setLocationFilterId(e.target.value)}>
-                            <option value="">Semua Lokasi</option>
-                            {warehouses.map(w => <option key={w.id} value={w.id}>Gudang: {w.name}</option>)}
-                            {branches.map(b => <option key={b.id} value={b.id}>Toko: {b.name}</option>)}
-                        </Select>
-                    </div>
                 </div>
-            </div>
-            <DateRangeFilter onFilter={handleGenerateReport} defaultRange={30} />
-            <Card className="flex-grow overflow-y-auto">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{reportTitle}</h3>
-                <Table>
-                    <Thead>
-                        <Tr>
-                            {columns.map(col => <Th key={col} className={typeof reportData[0]?.[col] === 'number' ? 'text-right' : 'text-left'}>{col}</Th>)}
-                        </Tr>
-                    </Thead>
-                    <Tbody>
-                        {reportData.map((row, index) => (
-                            <Tr key={index}>
-                                {columns.map(col => (
-                                    <Td key={col} className={typeof row[col] === 'number' ? 'text-right font-mono' : 'text-left'}>
-                                        {typeof row[col] === 'number' ? row[col].toLocaleString('id-ID') : row[col]}
-                                    </Td>
-                                ))}
-                            </Tr>
-                        ))}
-                    </Tbody>
-                </Table>
-            </Card>
+            </Modal>
         </div>
     );
 };
@@ -239,13 +320,22 @@ export const FinancialInventoryReportPage: React.FC = () => {
     const { products, productCategories, inventoryLevels, sales } = state;
     const [reportData, setReportData] = useState<CategoryFinancials[]>([]);
     
+    const today = new Date().toISOString().split('T')[0];
+    const pastDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const [startDate, setStartDate] = useState(pastDate);
+    const [endDate, setEndDate] = useState(today);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+
     const handleFilter = (start: string, end: string) => {
-        const startDate = new Date(start);
-        const endDate = new Date(end);
+        const startD = new Date(start);
+        startD.setHours(0, 0, 0, 0);
+        const endD = new Date(end);
+        endD.setHours(23, 59, 59, 999);
 
         const salesInRange = sales.filter(s => {
             const saleDate = new Date(s.date);
-            return saleDate >= startDate && saleDate <= endDate;
+            return saleDate >= startD && saleDate <= endD;
         });
 
         const stockMap = new Map<string, number>();
@@ -286,6 +376,16 @@ export const FinancialInventoryReportPage: React.FC = () => {
         setReportData(buildTree());
     };
 
+    const handleApplyFilter = () => {
+        handleFilter(startDate, endDate);
+        setIsFilterOpen(false);
+    };
+
+    React.useEffect(() => {
+        handleFilter(startDate, endDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const renderRow = (cat: CategoryFinancials) => (
         <React.Fragment key={cat.id}>
             <Tr className="bg-gray-50 dark:bg-gray-700/50">
@@ -298,23 +398,86 @@ export const FinancialInventoryReportPage: React.FC = () => {
     );
 
     return (
-        <div className="p-8 h-full flex flex-col">
-            <PageHeader title="Laporan Keuangan Inventaris per Kategori" />
-            <DateRangeFilter onFilter={handleFilter} />
-            <Card className="flex-grow overflow-y-auto">
-                <Table>
-                    <Thead>
-                        <Tr>
-                            <Th>Kategori Produk</Th>
-                            <Th className="text-right">Total Nilai Persediaan (HPP)</Th>
-                            <Th className="text-right">Total Nilai Penjualan</Th>
-                        </Tr>
-                    </Thead>
-                    <Tbody>
-                        {reportData.map(renderRow)}
-                    </Tbody>
-                </Table>
-            </Card>
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
+            {/* Header Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+                        <PieChart className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+                            Laporan Keuangan Inventaris per Kategori
+                        </h1>
+                    </div>
+                </div>
+
+                <div className="shrink-0">
+                    <Button onClick={() => setIsFilterOpen(true)} className="gap-2 text-xs py-1.5 px-3 shadow-xs">
+                        <Filter className="w-4 h-4" />
+                        Buat Laporan / Filter
+                    </Button>
+                </div>
+            </div>
+
+            {/* Table Area */}
+            <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col">
+                <div className="overflow-x-auto flex-1">
+                    <Table>
+                        <Thead>
+                            <Tr>
+                                <Th>Kategori Produk</Th>
+                                <Th className="text-right">Total Nilai Persediaan (HPP)</Th>
+                                <Th className="text-right">Total Nilai Penjualan</Th>
+                            </Tr>
+                        </Thead>
+                        <Tbody>
+                            {reportData.length === 0 ? (
+                                <Tr>
+                                    <Td colSpan={3} className="text-center py-12 text-slate-400">
+                                        Tidak ada data inventaris pada periode ini. Klik "Buat Laporan / Filter" untuk memilih periode.
+                                    </Td>
+                                </Tr>
+                            ) : (
+                                reportData.map(renderRow)
+                            )}
+                        </Tbody>
+                    </Table>
+                </div>
+            </div>
+
+            {/* Pop-up Filter Modal */}
+            <Modal
+                isOpen={isFilterOpen}
+                onClose={() => setIsFilterOpen(false)}
+                title="Filter & Buat Laporan Keuangan Inventaris"
+                maxWidth="max-w-md"
+                footer={
+                    <div className="flex justify-end gap-2 w-full">
+                        <Button variant="secondary" onClick={() => setIsFilterOpen(false)}>Batal</Button>
+                        <Button onClick={handleApplyFilter} className="gap-1.5">
+                            <Filter className="w-4 h-4" />
+                            Generate Laporan
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="space-y-4 text-sm">
+                    <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 space-y-2">
+                        <Label className="font-bold text-slate-800 dark:text-zinc-200 text-xs">Periode Tanggal Laporan</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <Label htmlFor="fin_start" className="text-xs text-slate-500">Tanggal Mulai</Label>
+                                <Input id="fin_start" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                            <div>
+                                <Label htmlFor="fin_end" className="text-xs text-slate-500">Tanggal Selesai</Label>
+                                <Input id="fin_end" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };
@@ -331,11 +494,11 @@ export const SalesReport: React.FC = () => {
     const [cashierId, setCashierId] = useState('all');
     const [customerType, setCustomerType] = useState<'all' | 'Perorangan' | 'Perusahaan'>('all');
     
-    const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
+    const today = new Date().toISOString().split('T')[0];
+    const pastDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    const handleDateFilter = (start: string, end: string) => {
-        setDateRange({ start, end });
-    };
+    const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: pastDate, end: today });
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     const applyAllFilters = () => {
         const startDate = new Date(dateRange.start);
@@ -360,14 +523,16 @@ export const SalesReport: React.FC = () => {
         
         setFilteredSales(tempSales);
     };
+
+    const handleConfirmFilter = () => {
+        applyAllFilters();
+        setIsFilterOpen(false);
+    };
     
     React.useEffect(() => {
-        if (dateRange.start && dateRange.end) {
-            applyAllFilters();
-        }
+        applyAllFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dateRange, saleChannel, cashierId, customerType, currentBranchId]);
-
+    }, []);
 
     const reportData = useMemo(() => {
         const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.grandTotal, 0);
@@ -377,75 +542,141 @@ export const SalesReport: React.FC = () => {
     }, [filteredSales]);
 
     return (
-        <div className="p-8 space-y-8 overflow-y-auto">
-            <PageHeader title="Rekap Penjualan" />
-            <DateRangeFilter onFilter={handleDateFilter} defaultRange={7} />
-             <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
+            {/* Header Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+                        <TrendingUp className="w-5 h-5" />
+                    </div>
                     <div>
-                        <Label>Saluran Penjualan</Label>
-                        <Select value={saleChannel} onChange={e => setSaleChannel(e.target.value)}>
-                            <option value="all">Semua</option>
-                            <option value="POS">POS</option>
-                            <option value="E-commerce">E-commerce</option>
-                        </Select>
-                    </div>
-                     <div>
-                        <Label>Kasir</Label>
-                        <Select value={cashierId} onChange={e => setCashierId(e.target.value)}>
-                            <option value="all">Semua Kasir</option>
-                            {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                        </Select>
-                    </div>
-                     <div>
-                        <Label>Tipe Pelanggan</Label>
-                        <Select value={customerType} onChange={e => setCustomerType(e.target.value as any)}>
-                            <option value="all">Semua</option>
-                            <option value="Perorangan">Perorangan</option>
-                            <option value="Perusahaan">Perusahaan</option>
-                        </Select>
+                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+                            Rekap Penjualan
+                        </h1>
                     </div>
                 </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs shrink-0 self-end sm:self-center">
+                    <div className="px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-medium">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">Total Pendapatan:</span>{" "}
+                        <span className="font-bold font-mono">Rp{reportData.totalRevenue.toLocaleString('id-ID')}</span>
+                    </div>
+
+                    <div className="px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-medium">
+                        <span className="text-[10px] uppercase font-bold">Transaksi:</span>{" "}
+                        <span className="font-bold font-mono">{reportData.totalTransactions}</span>
+                    </div>
+
+                    <Button onClick={() => setIsFilterOpen(true)} className="gap-2 text-xs py-1.5 px-3 shadow-xs">
+                        <Filter className="w-4 h-4" />
+                        Buat Laporan / Filter
+                    </Button>
+                </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Pendapatan</h3>
-                    <p className="text-3xl font-bold text-green-500">Rp{reportData.totalRevenue.toLocaleString('id-ID')}</p>
-                </Card>
-                 <Card>
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Jumlah Transaksi</h3>
-                    <p className="text-3xl font-bold">{reportData.totalTransactions}</p>
-                </Card>
-                 <Card>
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Rata-rata Penjualan</h3>
-                    <p className="text-3xl font-bold">Rp{reportData.averageSale.toLocaleString('id-ID')}</p>
-                </Card>
-            </div>
-            <Card>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Detail Penjualan</h3>
-                 <div className="overflow-x-auto max-h-96">
+
+            {/* Table Area (Maximizes vertical height) */}
+            <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col">
+                <div className="overflow-x-auto flex-1">
                     <Table>
-                      <Thead>
-                        <Tr>
-                          <Th>ID</Th>
-                          <Th>Tanggal</Th>
-                          <Th>Pelanggan</Th>
-                          <Th>Total</Th>
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {filteredSales.map((sale) => (
-                          <Tr key={sale.id}>
-                            <Td>{sale.id}</Td>
-                            <Td>{new Date(sale.date).toLocaleString('id-ID')}</Td>
-                            <Td>{sale.customerName}</Td>
-                            <Td className="font-semibold">Rp{sale.grandTotal.toLocaleString('id-ID')}</Td>
-                          </Tr>
-                        ))}
-                      </Tbody>
+                        <Thead>
+                            <Tr>
+                                <Th>ID Transaksi</Th>
+                                <Th>Tanggal & Waktu</Th>
+                                <Th>Pelanggan</Th>
+                                <Th>Kasir / Staff</Th>
+                                <Th>Saluran</Th>
+                                <Th className="text-right">Total Transaksi</Th>
+                            </Tr>
+                        </Thead>
+                        <Tbody>
+                            {filteredSales.length === 0 ? (
+                                <Tr>
+                                    <Td colSpan={6} className="text-center py-12 text-slate-400">
+                                        Tidak ada data transaksi penjualan pada periode ini. Klik "Buat Laporan / Filter" untuk memilih kriteria.
+                                    </Td>
+                                </Tr>
+                            ) : (
+                                filteredSales.map((sale) => {
+                                    const cashierStaff = staff.find(s => s.id === sale.staffId);
+                                    return (
+                                        <Tr key={sale.id}>
+                                            <Td className="font-mono text-xs font-bold text-slate-900 dark:text-white">{sale.id}</Td>
+                                            <Td className="text-slate-600 dark:text-slate-400">{new Date(sale.date).toLocaleString('id-ID')}</Td>
+                                            <Td className="font-semibold text-slate-800 dark:text-zinc-200">{sale.customerName || 'Pelanggan Umum'}</Td>
+                                            <Td className="text-slate-600 dark:text-slate-400">{cashierStaff?.name || '-'}</Td>
+                                            <Td>{sale.saleChannel === 'E-commerce' ? <Badge variant="info">E-commerce</Badge> : <Badge variant="success">POS Kasir</Badge>}</Td>
+                                            <Td className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                                Rp{sale.grandTotal.toLocaleString('id-ID')}
+                                            </Td>
+                                        </Tr>
+                                    );
+                                })
+                            )}
+                        </Tbody>
                     </Table>
                 </div>
-            </Card>
+            </div>
+
+            {/* Filter Modal Pop-up */}
+            <Modal
+                isOpen={isFilterOpen}
+                onClose={() => setIsFilterOpen(false)}
+                title="Filter & Buat Laporan Penjualan"
+                maxWidth="max-w-md"
+                footer={
+                    <div className="flex justify-end gap-2 w-full">
+                        <Button variant="secondary" onClick={() => setIsFilterOpen(false)}>Batal</Button>
+                        <Button onClick={handleConfirmFilter} className="gap-1.5">
+                            <Filter className="w-4 h-4" />
+                            Generate Laporan
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="space-y-4 text-sm">
+                    <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 space-y-2">
+                        <Label className="font-bold text-slate-800 dark:text-zinc-200 text-xs">Periode Tanggal Laporan</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <Label htmlFor="sales_start" className="text-xs text-slate-500">Tanggal Mulai</Label>
+                                <Input id="sales_start" type="date" value={dateRange.start} onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))} className="text-xs py-1.5" />
+                            </div>
+                            <div>
+                                <Label htmlFor="sales_end" className="text-xs text-slate-500">Tanggal Selesai</Label>
+                                <Input id="sales_end" type="date" value={dateRange.end} onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))} className="text-xs py-1.5" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <div>
+                            <Label className="text-xs font-semibold mb-1">Saluran Penjualan</Label>
+                            <Select value={saleChannel} onChange={e => setSaleChannel(e.target.value)} className="text-xs py-1.5">
+                                <option value="all">Semua Saluran</option>
+                                <option value="POS">POS Kasir</option>
+                                <option value="E-commerce">E-commerce</option>
+                            </Select>
+                        </div>
+
+                        <div>
+                            <Label className="text-xs font-semibold mb-1">Kasir / Staff</Label>
+                            <Select value={cashierId} onChange={e => setCashierId(e.target.value)} className="text-xs py-1.5">
+                                <option value="all">Semua Kasir</option>
+                                {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </Select>
+                        </div>
+
+                        <div>
+                            <Label className="text-xs font-semibold mb-1">Tipe Pelanggan</Label>
+                            <Select value={customerType} onChange={e => setCustomerType(e.target.value as any)} className="text-xs py-1.5">
+                                <option value="all">Semua Pelanggan</option>
+                                <option value="Perorangan">Perorangan</option>
+                                <option value="Perusahaan">Perusahaan</option>
+                            </Select>
+                        </div>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };
@@ -455,35 +686,139 @@ export const PurchaseReportPage: React.FC = () => {
     const { state } = useAppContext();
     const [filteredPurchases, setFilteredPurchases] = useState<PurchaseOrder[]>([]);
 
+    const today = new Date().toISOString().split('T')[0];
+    const pastDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const [startDate, setStartDate] = useState(pastDate);
+    const [endDate, setEndDate] = useState(today);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+
     const handleFilter = (start: string, end: string) => {
-        const startDate = new Date(start);
-        const endDate = new Date(end);
+        const startD = new Date(start);
+        startD.setHours(0, 0, 0, 0);
+        const endD = new Date(end);
+        endD.setHours(23, 59, 59, 999);
         setFilteredPurchases(state.purchases.filter(p => {
             const pDate = new Date(p.orderDate);
-            return pDate >= startDate && pDate <= endDate;
+            return pDate >= startD && pDate <= endD;
         }));
     };
+
+    const handleApplyFilter = () => {
+        handleFilter(startDate, endDate);
+        setIsFilterOpen(false);
+    };
+
+    React.useEffect(() => {
+        handleFilter(startDate, endDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const totalPurchaseValue = filteredPurchases.reduce((sum, p) => sum + p.grandTotal, 0);
+
     return (
-        <div className="p-8">
-            <PageHeader title="Rekap Pembelian" />
-            <DateRangeFilter onFilter={handleFilter} />
-            <Card>
-                <Table>
-                    <Thead>
-                        <Tr>
-                            <Th>ID</Th>
-                            <Th>Vendor</Th>
-                            <Th>Total</Th>
-                        </Tr>
-                    </Thead>
-                    <Tbody>
-                        {filteredPurchases.map(p => <Tr key={p.id}><Td>{p.id}</Td><Td>{p.vendorName}</Td><Td>Rp{p.grandTotal.toLocaleString('id-ID')}</Td></Tr>)}
-                    </Tbody>
-                </Table>
-            </Card>
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
+            {/* Header Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+                        <ShoppingCart className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+                            Rekap Pembelian
+                        </h1>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs shrink-0 self-end sm:self-center">
+                    <div className="px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-medium">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">Total Pembelian:</span>{" "}
+                        <span className="font-bold font-mono">Rp{totalPurchaseValue.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div className="px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-medium">
+                        <span className="text-[10px] uppercase font-bold">Total PO:</span>{" "}
+                        <span className="font-bold font-mono">{filteredPurchases.length}</span>
+                    </div>
+
+                    <Button onClick={() => setIsFilterOpen(true)} className="gap-2 text-xs py-1.5 px-3 shadow-xs">
+                        <Filter className="w-4 h-4" />
+                        Buat Laporan / Filter
+                    </Button>
+                </div>
+            </div>
+
+            {/* Table Area */}
+            <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col">
+                <div className="overflow-x-auto flex-1">
+                    <Table>
+                        <Thead>
+                            <Tr>
+                                <Th>ID PO</Th>
+                                <Th>Tanggal PO</Th>
+                                <Th>Nama Vendor / Supplier</Th>
+                                <Th className="text-right">Total Pembelian</Th>
+                            </Tr>
+                        </Thead>
+                        <Tbody>
+                            {filteredPurchases.length === 0 ? (
+                                <Tr>
+                                    <Td colSpan={4} className="text-center py-12 text-slate-400">
+                                        Tidak ada data pembelian pada periode ini. Klik "Buat Laporan / Filter" untuk memilih periode.
+                                    </Td>
+                                </Tr>
+                            ) : (
+                                filteredPurchases.map(p => (
+                                    <Tr key={p.id}>
+                                        <Td className="font-mono text-xs font-bold text-slate-900 dark:text-white">{p.id}</Td>
+                                        <Td className="text-slate-600 dark:text-slate-400">{new Date(p.orderDate).toLocaleDateString('id-ID')}</Td>
+                                        <Td className="font-semibold text-slate-800 dark:text-zinc-200">{p.vendorName}</Td>
+                                        <Td className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                            Rp{p.grandTotal.toLocaleString('id-ID')}
+                                        </Td>
+                                    </Tr>
+                                ))
+                            )}
+                        </Tbody>
+                    </Table>
+                </div>
+            </div>
+
+            {/* Pop-up Filter Modal */}
+            <Modal
+                isOpen={isFilterOpen}
+                onClose={() => setIsFilterOpen(false)}
+                title="Filter & Buat Laporan Pembelian"
+                maxWidth="max-w-md"
+                footer={
+                    <div className="flex justify-end gap-2 w-full">
+                        <Button variant="secondary" onClick={() => setIsFilterOpen(false)}>Batal</Button>
+                        <Button onClick={handleApplyFilter} className="gap-1.5">
+                            <Filter className="w-4 h-4" />
+                            Generate Laporan
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="space-y-4 text-sm">
+                    <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 space-y-2">
+                        <Label className="font-bold text-slate-800 dark:text-zinc-200 text-xs">Periode Tanggal Laporan</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <Label htmlFor="pur_start" className="text-xs text-slate-500">Tanggal Mulai</Label>
+                                <Input id="pur_start" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                            <div>
+                                <Label htmlFor="pur_end" className="text-xs text-slate-500">Tanggal Selesai</Label>
+                                <Input id="pur_end" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
-}
+};
 
 interface ProductPerformance {
     name: string;
@@ -497,10 +832,22 @@ export const ProductPerformanceReportPage: React.FC = () => {
     const { state } = useAppContext();
     const [reportData, setReportData] = useState<ProductPerformance[]>([]);
 
+    const today = new Date().toISOString().split('T')[0];
+    const pastDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const [startDate, setStartDate] = useState(pastDate);
+    const [endDate, setEndDate] = useState(today);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+
     const handleFilter = (start: string, end: string) => {
-         const startDate = new Date(start);
-        const endDate = new Date(end);
-        const salesInRange = state.sales.filter(s => new Date(s.date) >= startDate && new Date(s.date) <= endDate);
+        const startD = new Date(start);
+        startD.setHours(0, 0, 0, 0);
+        const endD = new Date(end);
+        endD.setHours(23, 59, 59, 999);
+        const salesInRange = state.sales.filter(s => {
+            const sDate = new Date(s.date);
+            return sDate >= startD && sDate <= endD;
+        });
 
         const performance = salesInRange.flatMap(s => s.items).reduce((acc, item) => {
             if (!acc[item.productId]) {
@@ -517,25 +864,112 @@ export const ProductPerformanceReportPage: React.FC = () => {
         setReportData((Object.values(performance) as ProductPerformance[]).sort((a: ProductPerformance, b: ProductPerformance) => b.profit - a.profit));
     };
 
+    const handleApplyFilter = () => {
+        handleFilter(startDate, endDate);
+        setIsFilterOpen(false);
+    };
+
+    React.useEffect(() => {
+        handleFilter(startDate, endDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     return (
-        <div className="p-8">
-            <PageHeader title="Rekap Performa Produk" />
-            <DateRangeFilter onFilter={handleFilter} />
-            <Card>
-                <Table>
-                     <Thead>
-                         <Tr>
-                             <Th>Produk</Th>
-                             <Th>Qty Terjual</Th>
-                             <Th>Pendapatan</Th>
-                             <Th>Profit</Th>
-                         </Tr>
-                    </Thead>
-                     <Tbody>
-                        {reportData.map(p => <Tr key={p.name}><Td>{p.name}</Td><Td>{p.quantity}</Td><Td>Rp{p.revenue.toLocaleString('id-ID')}</Td><Td>Rp{p.profit.toLocaleString('id-ID')}</Td></Tr>)}
-                     </Tbody>
-                </Table>
-            </Card>
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
+            {/* Header Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+                        <Layers className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+                            Rekap Performa Produk
+                        </h1>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs shrink-0 self-end sm:self-center">
+                    <div className="px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-medium">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">Produk Teranalisis:</span>{" "}
+                        <span className="font-bold font-mono">{reportData.length}</span>
+                    </div>
+
+                    <Button onClick={() => setIsFilterOpen(true)} className="gap-2 text-xs py-1.5 px-3 shadow-xs">
+                        <Filter className="w-4 h-4" />
+                        Buat Laporan / Filter
+                    </Button>
+                </div>
+            </div>
+
+            {/* Table Area */}
+            <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col">
+                <div className="overflow-x-auto flex-1">
+                    <Table>
+                        <Thead>
+                            <Tr>
+                                <Th>Nama Produk</Th>
+                                <Th className="text-center">Qty Terjual</Th>
+                                <Th className="text-right">Total Pendapatan</Th>
+                                <Th className="text-right">Profit / Keuntungan</Th>
+                            </Tr>
+                        </Thead>
+                        <Tbody>
+                            {reportData.length === 0 ? (
+                                <Tr>
+                                    <Td colSpan={4} className="text-center py-12 text-slate-400">
+                                        Tidak ada data performa produk pada periode ini. Klik "Buat Laporan / Filter" untuk memilih periode.
+                                    </Td>
+                                </Tr>
+                            ) : (
+                                reportData.map(p => (
+                                    <Tr key={p.name}>
+                                        <Td className="font-semibold text-slate-800 dark:text-zinc-200">{p.name}</Td>
+                                        <Td className="text-center font-bold font-mono">{p.quantity}</Td>
+                                        <Td className="text-right font-mono">Rp{p.revenue.toLocaleString('id-ID')}</Td>
+                                        <Td className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                            Rp{p.profit.toLocaleString('id-ID')}
+                                        </Td>
+                                    </Tr>
+                                ))
+                            )}
+                        </Tbody>
+                    </Table>
+                </div>
+            </div>
+
+            {/* Pop-up Filter Modal */}
+            <Modal
+                isOpen={isFilterOpen}
+                onClose={() => setIsFilterOpen(false)}
+                title="Filter & Buat Laporan Performa Produk"
+                maxWidth="max-w-md"
+                footer={
+                    <div className="flex justify-end gap-2 w-full">
+                        <Button variant="secondary" onClick={() => setIsFilterOpen(false)}>Batal</Button>
+                        <Button onClick={handleApplyFilter} className="gap-1.5">
+                            <Filter className="w-4 h-4" />
+                            Generate Laporan
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="space-y-4 text-sm">
+                    <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 space-y-2">
+                        <Label className="font-bold text-slate-800 dark:text-zinc-200 text-xs">Periode Tanggal Laporan</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <Label htmlFor="perf_start" className="text-xs text-slate-500">Tanggal Mulai</Label>
+                                <Input id="perf_start" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                            <div>
+                                <Label htmlFor="perf_end" className="text-xs text-slate-500">Tanggal Selesai</Label>
+                                <Input id="perf_end" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };
@@ -545,48 +979,137 @@ export const CashierDepositReportPage: React.FC = () => {
     const { posSessionSummaries, currentUser } = state;
     const [filteredSummaries, setFilteredSummaries] = useState<PosSessionSummary[]>([]);
 
+    const today = new Date().toISOString().split('T')[0];
+    const pastDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const [startDate, setStartDate] = useState(pastDate);
+    const [endDate, setEndDate] = useState(today);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+
     const userIsCashier = currentUser?.roleId === 'kasir.toko';
 
     const handleFilter = (start: string, end: string) => {
-        const startDate = new Date(start);
-        const endDate = new Date(end);
-        let summaries = posSessionSummaries.filter(s => new Date(s.date) >= startDate && new Date(s.date) <= endDate);
+        const startD = new Date(start);
+        startD.setHours(0, 0, 0, 0);
+        const endD = new Date(end);
+        endD.setHours(23, 59, 59, 999);
+        let summaries = posSessionSummaries.filter(s => {
+            const sDate = new Date(s.date);
+            return sDate >= startD && sDate <= endD;
+        });
         if (userIsCashier) {
             summaries = summaries.filter(s => s.cashierId === currentUser.id);
         }
         setFilteredSummaries(summaries);
     };
 
+    const handleApplyFilter = () => {
+        handleFilter(startDate, endDate);
+        setIsFilterOpen(false);
+    };
+
+    React.useEffect(() => {
+        handleFilter(startDate, endDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     return (
-         <div className="p-8">
-            <PageHeader title="Rekap Setoran Kasir" />
-            <DateRangeFilter onFilter={handleFilter} />
-            <Card>
-                 <Table>
-                    <Thead>
-                        <Tr>
-                            <Th>Tanggal</Th>
-                            <Th>Kasir</Th>
-                            <Th>Kas Dihitung</Th>
-                            <Th>Kas Seharusnya</Th>
-                            <Th>Selisih</Th>
-                            <Th>Status</Th>
-                        </Tr>
-                    </Thead>
-                    <Tbody>
-                        {filteredSummaries.map(s => (
-                            <Tr key={s.id}>
-                                <Td>{new Date(s.date).toLocaleString('id-ID')}</Td>
-                                <Td>{s.cashierName}</Td>
-                                <Td>Rp{s.countedCash.toLocaleString('id-ID')}</Td>
-                                <Td>Rp{s.expectedCash.toLocaleString('id-ID')}</Td>
-                                <Td className={`font-bold ${s.variance < 0 ? 'text-red-500' : 'text-green-500'}`}>Rp{s.variance.toLocaleString('id-ID')}</Td>
-                                <Td>{s.status}</Td>
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
+            {/* Header Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+                        <Wallet className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+                            Rekap Setoran Kasir
+                        </h1>
+                    </div>
+                </div>
+
+                <div className="shrink-0">
+                    <Button onClick={() => setIsFilterOpen(true)} className="gap-2 text-xs py-1.5 px-3 shadow-xs">
+                        <Filter className="w-4 h-4" />
+                        Buat Laporan / Filter
+                    </Button>
+                </div>
+            </div>
+
+            {/* Table Area */}
+            <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col">
+                <div className="overflow-x-auto flex-1">
+                    <Table>
+                        <Thead>
+                            <Tr>
+                                <Th>Tanggal</Th>
+                                <Th>Kasir</Th>
+                                <Th className="text-right">Kas Dihitung</Th>
+                                <Th className="text-right">Kas Seharusnya</Th>
+                                <Th className="text-right">Selisih</Th>
+                                <Th className="text-center">Status</Th>
                             </Tr>
-                        ))}
-                    </Tbody>
-                </Table>
-            </Card>
+                        </Thead>
+                        <Tbody>
+                            {filteredSummaries.length === 0 ? (
+                                <Tr>
+                                    <Td colSpan={6} className="text-center py-12 text-slate-400">
+                                        Tidak ada data setoran kasir pada periode ini. Klik "Buat Laporan / Filter" untuk memilih periode.
+                                    </Td>
+                                </Tr>
+                            ) : (
+                                filteredSummaries.map(s => (
+                                    <Tr key={s.id}>
+                                        <Td className="text-slate-600 dark:text-slate-400">{new Date(s.date).toLocaleString('id-ID')}</Td>
+                                        <Td className="font-semibold text-slate-800 dark:text-zinc-200">{s.cashierName}</Td>
+                                        <Td className="text-right font-mono">Rp{s.countedCash.toLocaleString('id-ID')}</Td>
+                                        <Td className="text-right font-mono">Rp{s.expectedCash.toLocaleString('id-ID')}</Td>
+                                        <Td className={`text-right font-mono font-bold ${s.variance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                            Rp{s.variance.toLocaleString('id-ID')}
+                                        </Td>
+                                        <Td className="text-center">
+                                            {s.status === 'verified' ? <Badge variant="success">Terverifikasi</Badge> : <Badge variant="warning">Pending</Badge>}
+                                        </Td>
+                                    </Tr>
+                                ))
+                            )}
+                        </Tbody>
+                    </Table>
+                </div>
+            </div>
+
+            {/* Pop-up Filter Modal */}
+            <Modal
+                isOpen={isFilterOpen}
+                onClose={() => setIsFilterOpen(false)}
+                title="Filter & Buat Laporan Setoran Kasir"
+                maxWidth="max-w-md"
+                footer={
+                    <div className="flex justify-end gap-2 w-full">
+                        <Button variant="secondary" onClick={() => setIsFilterOpen(false)}>Batal</Button>
+                        <Button onClick={handleApplyFilter} className="gap-1.5">
+                            <Filter className="w-4 h-4" />
+                            Generate Laporan
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="space-y-4 text-sm">
+                    <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 space-y-2">
+                        <Label className="font-bold text-slate-800 dark:text-zinc-200 text-xs">Periode Tanggal Laporan</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <Label htmlFor="dep_start" className="text-xs text-slate-500">Tanggal Mulai</Label>
+                                <Input id="dep_start" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                            <div>
+                                <Label htmlFor="dep_end" className="text-xs text-slate-500">Tanggal Selesai</Label>
+                                <Input id="dep_end" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };
@@ -607,11 +1130,18 @@ export const ProductStockReport: React.FC = () => {
     const { products, stockMovements, currentBranchId } = state;
     const [reportData, setReportData] = useState<ProductStockInfo[]>([]);
 
+    const today = new Date().toISOString().split('T')[0];
+    const pastDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const [startDate, setStartDate] = useState(pastDate);
+    const [endDate, setEndDate] = useState(today);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+
     const handleFilter = (start: string, end: string) => {
-        const startDate = new Date(start);
-        startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(end);
-        endDate.setHours(23, 59, 59, 999);
+        const startD = new Date(start);
+        startD.setHours(0, 0, 0, 0);
+        const endD = new Date(end);
+        endD.setHours(23, 59, 59, 999);
         
         const branchMovements = currentBranchId 
             ? stockMovements.filter(m => m.locationId === currentBranchId)
@@ -620,8 +1150,11 @@ export const ProductStockReport: React.FC = () => {
         const data: ProductStockInfo[] = products.map(product => {
             const productMovements = branchMovements.filter(m => m.productId === product.id);
             
-            const movementsBefore = productMovements.filter(m => new Date(m.date) < startDate);
-            const movementsDuring = productMovements.filter(m => new Date(m.date) >= startDate && new Date(m.date) <= endDate);
+            const movementsBefore = productMovements.filter(m => new Date(m.date) < startD);
+            const movementsDuring = productMovements.filter(m => {
+                const mDate = new Date(m.date);
+                return mDate >= startD && mDate <= endD;
+            });
 
             const startStock = movementsBefore.reduce((sum, m) => sum + m.quantityChange, 0);
             const stockIn = movementsDuring.filter(m => m.quantityChange > 0).reduce((sum, m) => sum + m.quantityChange, 0);
@@ -638,35 +1171,108 @@ export const ProductStockReport: React.FC = () => {
         });
         setReportData(data);
     };
+
+    const handleApplyFilter = () => {
+        handleFilter(startDate, endDate);
+        setIsFilterOpen(false);
+    };
+
+    React.useEffect(() => {
+        handleFilter(startDate, endDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     
     return (
-        <div className="p-8 h-full flex flex-col">
-            <PageHeader title="Laporan Stok Produk" />
-            <DateRangeFilter onFilter={handleFilter} defaultRange={30}/>
-             <div className="flex-grow bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-y-auto">
-                 <Table>
-                  <Thead>
-                    <Tr>
-                      <Th>Nama Produk</Th>
-                      <Th>Stok Awal</Th>
-                      <Th>Masuk</Th>
-                      <Th>Keluar</Th>
-                      <Th>Stok Akhir</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {reportData.map((data, index) => (
-                      <Tr key={index}>
-                        <Td className="font-medium text-gray-900 dark:text-white">{data.productName}</Td>
-                        <Td>{data.startStock}</Td>
-                        <Td className="text-green-500">{data.stockIn}</Td>
-                        <Td className="text-red-500">{data.stockOut}</Td>
-                        <Td className="font-bold">{data.endStock}</Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
+            {/* Header Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+                        <ArrowRightLeft className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+                            Laporan Stok Produk
+                        </h1>
+                    </div>
+                </div>
+
+                <div className="shrink-0">
+                    <Button onClick={() => setIsFilterOpen(true)} className="gap-2 text-xs py-1.5 px-3 shadow-xs">
+                        <Filter className="w-4 h-4" />
+                        Buat Laporan / Filter
+                    </Button>
+                </div>
             </div>
+
+            {/* Table Area */}
+            <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col">
+                <div className="overflow-x-auto flex-1">
+                    <Table>
+                        <Thead>
+                            <Tr>
+                                <Th>Nama Produk</Th>
+                                <Th className="text-center">Stok Awal</Th>
+                                <Th className="text-center">Masuk</Th>
+                                <Th className="text-center">Keluar</Th>
+                                <Th className="text-center">Stok Akhir</Th>
+                            </Tr>
+                        </Thead>
+                        <Tbody>
+                            {reportData.length === 0 ? (
+                                <Tr>
+                                    <Td colSpan={5} className="text-center py-12 text-slate-400">
+                                        Tidak ada pergerakan stok pada periode ini. Klik "Buat Laporan / Filter" untuk memilih periode.
+                                    </Td>
+                                </Tr>
+                            ) : (
+                                reportData.map((data, index) => (
+                                    <Tr key={index}>
+                                        <Td className="font-semibold text-slate-900 dark:text-white">{data.productName}</Td>
+                                        <Td className="text-center font-mono">{data.startStock}</Td>
+                                        <Td className="text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">+{data.stockIn}</Td>
+                                        <Td className="text-center font-mono font-bold text-rose-600 dark:text-rose-400">{data.stockOut}</Td>
+                                        <Td className="text-center font-mono font-bold text-slate-900 dark:text-white">{data.endStock}</Td>
+                                    </Tr>
+                                ))
+                            )}
+                        </Tbody>
+                    </Table>
+                </div>
+            </div>
+
+            {/* Pop-up Filter Modal */}
+            <Modal
+                isOpen={isFilterOpen}
+                onClose={() => setIsFilterOpen(false)}
+                title="Filter & Buat Laporan Mutasi Stok"
+                maxWidth="max-w-md"
+                footer={
+                    <div className="flex justify-end gap-2 w-full">
+                        <Button variant="secondary" onClick={() => setIsFilterOpen(false)}>Batal</Button>
+                        <Button onClick={handleApplyFilter} className="gap-1.5">
+                            <Filter className="w-4 h-4" />
+                            Generate Laporan
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="space-y-4 text-sm">
+                    <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 space-y-2">
+                        <Label className="font-bold text-slate-800 dark:text-zinc-200 text-xs">Periode Tanggal Laporan</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <Label htmlFor="stk_start" className="text-xs text-slate-500">Tanggal Mulai</Label>
+                                <Input id="stk_start" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                            <div>
+                                <Label htmlFor="stk_end" className="text-xs text-slate-500">Tanggal Selesai</Label>
+                                <Input id="stk_end" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };
@@ -676,6 +1282,14 @@ export const ProductStockReport: React.FC = () => {
 export const IncomeStatementReport: React.FC = () => {
     const { state } = useAppContext();
     const { journalEntries, accounts, currentBranchId } = state;
+
+    const today = new Date().toISOString().split('T')[0];
+    const pastDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const [startDate, setStartDate] = useState(pastDate);
+    const [endDate, setEndDate] = useState(today);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+
     const [reportData, setReportData] = useState<{
         revenue: number,
         cogs: number,
@@ -685,12 +1299,14 @@ export const IncomeStatementReport: React.FC = () => {
     } | null>(null);
 
     const handleFilter = (start: string, end: string) => {
-        const startDate = new Date(start);
-        const endDate = new Date(end);
+        const startD = new Date(start);
+        startD.setHours(0, 0, 0, 0);
+        const endD = new Date(end);
+        endD.setHours(23, 59, 59, 999);
         
         const entriesInDateRange = journalEntries.filter(entry => {
             const entryDate = new Date(entry.date);
-            const isInDate = entryDate >= startDate && entryDate <= endDate;
+            const isInDate = entryDate >= startD && entryDate <= endD;
             const isInBranch = !currentBranchId || entry.branchId === currentBranchId;
             return isInDate && isInBranch;
         });
@@ -716,21 +1332,202 @@ export const IncomeStatementReport: React.FC = () => {
         setReportData({ revenue, cogs, grossProfit, expenses, netIncome });
     };
 
+    const handleApplyFilter = () => {
+        handleFilter(startDate, endDate);
+        setIsFilterOpen(false);
+    };
+
+    React.useEffect(() => {
+        handleFilter(startDate, endDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const grossMarginPercent = reportData && reportData.revenue > 0 
+        ? ((reportData.grossProfit / reportData.revenue) * 100).toFixed(1) 
+        : '0.0';
+    const netMarginPercent = reportData && reportData.revenue > 0 
+        ? ((reportData.netIncome / reportData.revenue) * 100).toFixed(1) 
+        : '0.0';
+
     return (
-        <div className="p-8">
-            <PageHeader title="Laporan Laba Rugi" />
-            <DateRangeFilter onFilter={handleFilter} />
-            {reportData && (
-                <Card>
-                    <div className="space-y-4">
-                        <div className="flex justify-between"><span>Pendapatan</span> <span>Rp{reportData.revenue.toLocaleString('id-ID')}</span></div>
-                        <div className="flex justify-between"><span>Beban Pokok Penjualan</span> <span>(Rp{reportData.cogs.toLocaleString('id-ID')})</span></div>
-                        <div className="flex justify-between font-bold border-t pt-2"><span>Laba Kotor</span> <span>Rp{reportData.grossProfit.toLocaleString('id-ID')}</span></div>
-                        <div className="flex justify-between"><span>Beban Operasional</span> <span>(Rp{reportData.expenses.toLocaleString('id-ID')})</span></div>
-                        <div className="flex justify-between font-bold text-xl border-t pt-2"><span>Laba Bersih</span> <span>Rp{reportData.netIncome.toLocaleString('id-ID')}</span></div>
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-4 overflow-hidden">
+            {/* Header Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                        <FileText className="w-5 h-5" />
                     </div>
-                </Card>
+                    <div>
+                        <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                            Laporan Laba Rugi
+                        </h1>
+                    </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs shrink-0 self-end sm:self-center">
+                    {reportData && (
+                        <>
+                            <div className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 font-medium">
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">Pendapatan:</span>{" "}
+                                <span className="font-bold font-mono">Rp{reportData.revenue.toLocaleString('id-ID')}</span>
+                            </div>
+
+                            <div className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/60 dark:border-indigo-800/60 text-indigo-700 dark:text-indigo-300 font-medium">
+                                <span className="text-[10px] uppercase font-bold">Laba Bersih:</span>{" "}
+                                <span className="font-bold font-mono">Rp{reportData.netIncome.toLocaleString('id-ID')}</span>
+                            </div>
+                        </>
+                    )}
+
+                    <Button onClick={() => setIsFilterOpen(true)} className="gap-2 text-xs py-1.5 px-3.5 shadow-xs">
+                        <Filter className="w-4 h-4" />
+                        Buat Laporan / Filter
+                    </Button>
+                </div>
+            </div>
+
+            {/* Content Area */}
+            {reportData && (
+                <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
+                    {/* Metric Cards Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+                            <div>
+                                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wide">Marjin Laba Kotor</span>
+                                <div className="text-xl font-black text-slate-900 dark:text-white font-mono mt-0.5">{grossMarginPercent}%</div>
+                            </div>
+                            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs">
+                                <Percent className="w-4 h-4" />
+                            </div>
+                        </div>
+
+                        <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+                            <div>
+                                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wide">Marjin Laba Bersih</span>
+                                <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">{netMarginPercent}%</div>
+                            </div>
+                            <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs">
+                                <TrendingUp className="w-4 h-4" />
+                            </div>
+                        </div>
+
+                        <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+                            <div>
+                                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wide">Total Beban Usaha</span>
+                                <div className="text-xl font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5">
+                                    Rp{(reportData.cogs + reportData.expenses).toLocaleString('id-ID')}
+                                </div>
+                            </div>
+                            <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold text-xs">
+                                <DollarSign className="w-4 h-4" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Detailed Income Statement Breakdown Card */}
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+                        <div className="px-5 py-3.5 bg-slate-50/70 dark:bg-zinc-800/40 border-b border-slate-200/80 dark:border-zinc-800 flex justify-between items-center">
+                            <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-primary-500" />
+                                Rincian Laporan Laba Rugi
+                            </h3>
+                            <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono">
+                                Periode: {new Date(startDate).toLocaleDateString('id-ID')} - {new Date(endDate).toLocaleDateString('id-ID')}
+                            </span>
+                        </div>
+
+                        <div className="p-5 space-y-4 text-sm">
+                            {/* Section 1: Pendapatan */}
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center font-bold text-slate-900 dark:text-white pb-1 border-b border-slate-100 dark:border-zinc-800 text-xs uppercase tracking-wider text-primary-600 dark:text-primary-400">
+                                    <span>Pendapatan Usaha</span>
+                                    <span>Nominal</span>
+                                </div>
+                                <div className="flex justify-between items-center py-1.5 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800/50 text-slate-700 dark:text-zinc-300">
+                                    <span>Penjualan Bersih & Pendapatan Operasional</span>
+                                    <span className="font-mono font-semibold text-slate-900 dark:text-white">Rp{reportData.revenue.toLocaleString('id-ID')}</span>
+                                </div>
+                            </div>
+
+                            {/* Section 2: HPP */}
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center font-bold text-slate-900 dark:text-white pb-1 border-b border-slate-100 dark:border-zinc-800 text-xs uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                                    <span>Beban Pokok Penjualan (HPP)</span>
+                                    <span>Nominal</span>
+                                </div>
+                                <div className="flex justify-between items-center py-1.5 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800/50 text-slate-700 dark:text-zinc-300">
+                                    <span>Harga Pokok Penjualan Produk (COGS)</span>
+                                    <span className="font-mono text-rose-600 dark:text-rose-400">(Rp{reportData.cogs.toLocaleString('id-ID')})</span>
+                                </div>
+                            </div>
+
+                            {/* Subtotal: Laba Kotor */}
+                            <div className="flex justify-between items-center py-3 px-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/70 dark:border-blue-800/60 font-bold text-blue-900 dark:text-blue-200">
+                                <span className="text-sm">LABA KOTOR (GROSS PROFIT)</span>
+                                <span className="font-mono text-base">Rp{reportData.grossProfit.toLocaleString('id-ID')}</span>
+                            </div>
+
+                            {/* Section 3: Beban Operasional */}
+                            <div className="space-y-2 pt-2">
+                                <div className="flex justify-between items-center font-bold text-slate-900 dark:text-white pb-1 border-b border-slate-100 dark:border-zinc-800 text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                    <span>Beban Operasional & Lain-lain</span>
+                                    <span>Nominal</span>
+                                </div>
+                                <div className="flex justify-between items-center py-1.5 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800/50 text-slate-700 dark:text-zinc-300">
+                                    <span>Beban Gaji, Listrik, Sewa, & Operasional Toko</span>
+                                    <span className="font-mono text-rose-600 dark:text-rose-400">(Rp{reportData.expenses.toLocaleString('id-ID')})</span>
+                                </div>
+                            </div>
+
+                            {/* Hero Highlight: Laba Bersih */}
+                            <div className="pt-3">
+                                <div className="flex justify-between items-center py-4 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-700 dark:to-teal-800 text-white shadow-md">
+                                    <div>
+                                        <div className="text-xs uppercase font-bold text-emerald-100 tracking-wider">HASIL AKHIR PERIODE</div>
+                                        <div className="text-lg font-black mt-0.5">LABA / (RUGI) BERSIH</div>
+                                    </div>
+                                    <div className="text-2xl font-black font-mono tracking-tight">
+                                        Rp{reportData.netIncome.toLocaleString('id-ID')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
+
+            {/* Pop-up Filter Modal */}
+            <Modal
+                isOpen={isFilterOpen}
+                onClose={() => setIsFilterOpen(false)}
+                title="Filter & Buat Laporan Laba Rugi"
+                maxWidth="max-w-md"
+                footer={
+                    <div className="flex justify-end gap-2 w-full">
+                        <Button variant="secondary" onClick={() => setIsFilterOpen(false)}>Batal</Button>
+                        <Button onClick={handleApplyFilter} className="gap-1.5">
+                            <Filter className="w-4 h-4" />
+                            Generate Laporan
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="space-y-4 text-sm">
+                    <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 space-y-2">
+                        <Label className="font-bold text-slate-800 dark:text-zinc-200 text-xs">Periode Tanggal Laporan</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <Label htmlFor="inc_start" className="text-xs text-slate-500">Tanggal Mulai</Label>
+                                <Input id="inc_start" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                            <div>
+                                <Label htmlFor="inc_end" className="text-xs text-slate-500">Tanggal Selesai</Label>
+                                <Input id="inc_end" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };
@@ -738,6 +1535,10 @@ export const IncomeStatementReport: React.FC = () => {
 export const FinancialPositionReportPage: React.FC = () => {
     const { state } = useAppContext();
     const { accounts, currentBranchId } = state;
+
+    const today = new Date().toISOString().split('T')[0];
+    const [asOfDate, setAsOfDate] = useState(today);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     const reportData = useMemo(() => {
         const branchAccounts = currentBranchId 
@@ -755,51 +1556,206 @@ export const FinancialPositionReportPage: React.FC = () => {
         };
     }, [accounts, currentBranchId]);
 
+    const isBalanced = reportData.assets === (reportData.liabilities + reportData.equity);
+
     return (
-        <div className="p-8 h-full flex flex-col">
-            <PageHeader title="Laporan Posisi Keuangan (Neraca)" />
-            <Card className="flex-grow">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div>
-                        <h3 className="text-lg font-semibold mb-2">Aset</h3>
-                        <table className="w-full text-sm">
-                            <tbody>
-                                {accounts.filter(a => a.type === AccountType.Asset).map(acc => (
-                                    <tr key={acc.id} className="border-b dark:border-gray-700">
-                                        <td className="py-2">{acc.name}</td>
-                                        <td className="py-2 text-right">Rp{acc.balance.toLocaleString('id-ID')}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                            <tfoot>
-                                <tr className="font-bold border-t-2 dark:border-gray-500">
-                                    <td className="py-2">Total Aset</td>
-                                    <td className="py-2 text-right">Rp{reportData.assets.toLocaleString('id-ID')}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-4 overflow-hidden">
+            {/* Header Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                        <DollarSign className="w-5 h-5" />
                     </div>
                     <div>
-                         <h3 className="text-lg font-semibold mb-2">Liabilitas dan Ekuitas</h3>
-                         <table className="w-full text-sm">
-                            <tbody>
-                                {accounts.filter(a => a.type === AccountType.Liability || a.type === AccountType.Equity).map(acc => (
-                                    <tr key={acc.id} className="border-b dark:border-gray-700">
-                                        <td className="py-2">{acc.name}</td>
-                                        <td className="py-2 text-right">Rp{Math.abs(acc.balance).toLocaleString('id-ID')}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                            <tfoot>
-                                <tr className="font-bold border-t-2 dark:border-gray-500">
-                                    <td className="py-2">Total Liabilitas dan Ekuitas</td>
-                                    <td className="py-2 text-right">Rp{(reportData.liabilities + reportData.equity).toLocaleString('id-ID')}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
+                        <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                            Laporan Posisi Keuangan (Neraca)
+                        </h1>
                     </div>
                 </div>
-            </Card>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs shrink-0 self-end sm:self-center">
+                    <div className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 font-medium">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">Total Aset:</span>{" "}
+                        <span className="font-bold font-mono">Rp{reportData.assets.toLocaleString('id-ID')}</span>
+                    </div>
+
+                    <div className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200/60 dark:border-amber-800/60 text-amber-700 dark:text-amber-300 font-medium">
+                        <span className="text-[10px] uppercase font-bold">Total Liabilitas:</span>{" "}
+                        <span className="font-bold font-mono">Rp{reportData.liabilities.toLocaleString('id-ID')}</span>
+                    </div>
+
+                    <div className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200/60 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 font-medium">
+                        <span className="text-[10px] uppercase font-bold">Total Ekuitas:</span>{" "}
+                        <span className="font-bold font-mono">Rp{reportData.equity.toLocaleString('id-ID')}</span>
+                    </div>
+
+                    <Button onClick={() => setIsFilterOpen(true)} className="gap-2 text-xs py-1.5 px-3.5 shadow-xs">
+                        <Filter className="w-4 h-4" />
+                        Buat Laporan / Filter
+                    </Button>
+                </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
+                {/* 2-Column Balance Sheet Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Card 1: ASET (Aktiva) */}
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col justify-between">
+                        <div>
+                            <div className="px-5 py-3.5 bg-emerald-50/70 dark:bg-emerald-950/30 border-b border-emerald-100 dark:border-emerald-900/50 flex justify-between items-center">
+                                <h3 className="font-extrabold text-emerald-900 dark:text-emerald-300 text-sm uppercase tracking-wide flex items-center gap-2">
+                                    <Wallet className="w-4 h-4 text-emerald-600" />
+                                    ASET (AKTIVA)
+                                </h3>
+                                <Badge variant="success">Aktiva Operasional</Badge>
+                            </div>
+
+                            <div className="p-4 space-y-2">
+                                <table className="w-full text-xs">
+                                    <thead>
+                                        <tr className="border-b border-slate-100 dark:border-zinc-800 text-slate-400 text-left">
+                                            <th className="py-2 font-semibold">Nama Akun / Rekening</th>
+                                            <th className="py-2 text-right font-semibold">Saldo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
+                                        {accounts.filter(a => a.type === AccountType.Asset).map(acc => (
+                                            <tr key={acc.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/40">
+                                                <td className="py-2.5 text-slate-800 dark:text-zinc-200 font-medium">
+                                                    <span className="font-mono text-slate-400 mr-2">{acc.id}</span>
+                                                    {acc.name}
+                                                </td>
+                                                <td className="py-2.5 text-right font-mono font-bold text-slate-900 dark:text-white">
+                                                    Rp{acc.balance.toLocaleString('id-ID')}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-emerald-50/80 dark:bg-emerald-950/40 border-t border-emerald-100 dark:border-emerald-900/60 flex justify-between items-center font-bold text-emerald-900 dark:text-emerald-200 text-sm">
+                            <span>TOTAL ASET (AKTIVA)</span>
+                            <span className="font-mono text-base">Rp{reportData.assets.toLocaleString('id-ID')}</span>
+                        </div>
+                    </div>
+
+                    {/* Card 2: LIABILITAS & EKUITAS (Pasiva) */}
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col justify-between">
+                        <div>
+                            <div className="px-5 py-3.5 bg-blue-50/70 dark:bg-blue-950/30 border-b border-blue-100 dark:border-blue-900/50 flex justify-between items-center">
+                                <h3 className="font-extrabold text-blue-900 dark:text-blue-300 text-sm uppercase tracking-wide flex items-center gap-2">
+                                    <PieChart className="w-4 h-4 text-blue-600" />
+                                    LIABILITAS & EKUITAS (PASIVA)
+                                </h3>
+                                <Badge variant="info">Kewajiban & Modal</Badge>
+                            </div>
+
+                            <div className="p-4 space-y-4">
+                                {/* Sub-section: Liabilitas */}
+                                <div>
+                                    <h4 className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1.5 pb-1 border-b border-slate-100 dark:border-zinc-800">
+                                        Liabilitas (Kewajiban)
+                                    </h4>
+                                    <table className="w-full text-xs">
+                                        <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
+                                            {accounts.filter(a => a.type === AccountType.Liability).map(acc => (
+                                                <tr key={acc.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/40">
+                                                    <td className="py-2 text-slate-800 dark:text-zinc-200 font-medium">
+                                                        <span className="font-mono text-slate-400 mr-2">{acc.id}</span>
+                                                        {acc.name}
+                                                    </td>
+                                                    <td className="py-2 text-right font-mono font-bold text-amber-600 dark:text-amber-400">
+                                                        Rp{Math.abs(acc.balance).toLocaleString('id-ID')}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Sub-section: Ekuitas */}
+                                <div>
+                                    <h4 className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1.5 pb-1 border-b border-slate-100 dark:border-zinc-800">
+                                        Ekuitas (Modal Bisnis)
+                                    </h4>
+                                    <table className="w-full text-xs">
+                                        <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
+                                            {accounts.filter(a => a.type === AccountType.Equity).map(acc => (
+                                                <tr key={acc.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/40">
+                                                    <td className="py-2 text-slate-800 dark:text-zinc-200 font-medium">
+                                                        <span className="font-mono text-slate-400 mr-2">{acc.id}</span>
+                                                        {acc.name}
+                                                    </td>
+                                                    <td className="py-2 text-right font-mono font-bold text-blue-600 dark:text-blue-400">
+                                                        Rp{Math.abs(acc.balance).toLocaleString('id-ID')}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-blue-50/80 dark:bg-blue-950/40 border-t border-blue-100 dark:border-blue-900/60 flex justify-between items-center font-bold text-blue-900 dark:text-blue-200 text-sm">
+                            <span>TOTAL LIABILITAS & EKUITAS</span>
+                            <span className="font-mono text-base">Rp{(reportData.liabilities + reportData.equity).toLocaleString('id-ID')}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bottom Balance Verification Card */}
+                <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-3 ${
+                    isBalanced 
+                        ? 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200' 
+                        : 'bg-rose-50/90 dark:bg-rose-950/40 border-rose-200/80 dark:border-rose-800/60 text-rose-900 dark:text-rose-200'
+                }`}>
+                    <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-white ${isBalanced ? 'bg-emerald-600' : 'bg-rose-600'}`}>
+                            {isBalanced ? '✓' : '!'}
+                        </div>
+                        <div>
+                            <div className="font-black text-sm">
+                                {isBalanced ? 'Status Neraca: Seimbang (Balanced)' : 'Status Neraca: Tidak Seimbang (Unbalanced)'}
+                            </div>
+                            <div className="text-xs opacity-80">
+                                Formulasi Akuntansi: Aset (Rp{reportData.assets.toLocaleString('id-ID')}) = Liabilitas + Ekuitas (Rp{(reportData.liabilities + reportData.equity).toLocaleString('id-ID')})
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="font-mono font-extrabold text-sm px-3 py-1 rounded-lg bg-white/70 dark:bg-zinc-800/70 shrink-0">
+                        Selisih: Rp{Math.abs(reportData.assets - (reportData.liabilities + reportData.equity)).toLocaleString('id-ID')}
+                    </div>
+                </div>
+            </div>
+
+            {/* Pop-up Filter Modal */}
+            <Modal
+                isOpen={isFilterOpen}
+                onClose={() => setIsFilterOpen(false)}
+                title="Filter & Buat Laporan Neraca"
+                maxWidth="max-w-md"
+                footer={
+                    <div className="flex justify-end gap-2 w-full">
+                        <Button variant="secondary" onClick={() => setIsFilterOpen(false)}>Batal</Button>
+                        <Button onClick={() => setIsFilterOpen(false)} className="gap-1.5">
+                            <Filter className="w-4 h-4" />
+                            Generate Laporan
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="space-y-4 text-sm">
+                    <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 space-y-2">
+                        <Label className="font-bold text-slate-800 dark:text-zinc-200 text-xs">Per Tanggal (As of Date)</Label>
+                        <Input type="date" value={asOfDate} onChange={e => setAsOfDate(e.target.value)} className="text-xs py-1.5" />
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };

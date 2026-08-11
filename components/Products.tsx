@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Product, Page, InventoryLevel, Status, BranchType, WarehouseType, Branch, Warehouse } from '../types';
+import * as XLSX from 'xlsx';
+import { Camera, Plus, Trash2, Layers, Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Product, Page, InventoryLevel, Status, BranchType, WarehouseType, Branch, Warehouse, ProductUnitTier } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
-import { generateProductDescription } from '../services/geminiService';
-import { Input, Select, Textarea, Label, Button, ActionsDropdown, DropdownItem, Modal, Badge } from './ui';
+import { Input, Select, Textarea, Label, Button, ActionsDropdown, DropdownItem, Modal, Badge, Table, Thead, Tbody, Tr, Th, Td } from './ui';
 import { PurchaseOrderDetailsModal } from './Purchases';
 
 // --- Shared Components ---
@@ -13,64 +14,107 @@ export const ProductModal: React.FC<{
   onSaveSuccess?: (newProduct: Product) => void;
 }> = ({ isOpen, onClose, existingProduct, onSaveSuccess }) => {
     const { state, dispatch } = useAppContext();
-    const { productCategories, vendors, isTaxEnabled, products, branchTypes, warehouseTypes } = state;
-    const [formData, setFormData] = useState<Partial<Product>>({ isTaxable: true, pricingType: 'manual', status: 'active' });
+    const { productCategories = [], vendors = [] } = state || {};
+    const [formData, setFormData] = useState<Partial<Product>>({ isTaxable: true, pricingType: 'manual', status: 'active', unit: 'Pcs' });
+    const [unitTiers, setUnitTiers] = useState<ProductUnitTier[]>([]);
     
-    // State for type-location-specific data
-    const [typeLocationData, setTypeLocationData] = useState<Record<string, { selected: boolean; shelvingNumber: string }>>({});
-    
-    const [keywords, setKeywords] = useState('');
-    const [isGenerating, setIsGenerating] = useState(false);
+    // Camera scanner state
+    const [isCameraScannerOpen, setCameraScannerOpen] = useState(false);
+    const [cameraError, setCameraError] = useState('');
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const mediaStreamRef = useRef<MediaStream | null>(null);
 
     useEffect(() => {
         if (isOpen) {
-            const initialFormData = existingProduct || { isTaxable: true, pricingType: 'manual', status: 'active' };
+            const initialFormData = existingProduct || { isTaxable: true, pricingType: 'manual', status: 'active', unit: 'Pcs' };
             setFormData(initialFormData);
-
-            const initialTypeData: typeof typeLocationData = {};
-            [...branchTypes, ...warehouseTypes].forEach(type => {
-                const existing = existingProduct ? state.productTypeLocations.find(ptl => ptl.productId === existingProduct.id && ptl.locationTypeId === type.id) : null;
-                initialTypeData[type.id] = {
-                    selected: !!existing,
-                    shelvingNumber: existing?.shelvingNumber || '',
-                };
-            });
-            setTypeLocationData(initialTypeData);
+            setUnitTiers(existingProduct?.unitTiers || []);
         }
-    }, [isOpen, existingProduct, branchTypes, warehouseTypes, state.productTypeLocations]);
+    }, [isOpen, existingProduct]);
 
-
-    const handleGenerateDescription = async () => {
-        if (!formData.name) {
-            alert("Harap masukkan Nama Produk terlebih dahulu.");
-            return;
-        }
-        setIsGenerating(true);
-        const description = await generateProductDescription(formData.name, keywords);
-        setFormData(prev => ({ ...prev, description }));
-        setIsGenerating(false);
-    };
-
-    const handleTypeLocationChange = (typeId: string, field: keyof typeof typeLocationData[string], value: any) => {
-        setTypeLocationData(prev => ({
+    const handleAddUnitTier = () => {
+        setUnitTiers(prev => [
             ...prev,
-            [typeId]: { ...prev[typeId], [field]: value }
-        }));
+            {
+                id: 'tier_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                unitName: '',
+                conversionQty: 12,
+                price: 0,
+                barcode: ''
+            }
+        ]);
     };
-    
+
+    const handleUpdateUnitTier = (id: string, field: keyof ProductUnitTier, value: any) => {
+        setUnitTiers(prev => prev.map(tier => tier.id === id ? { ...tier, [field]: value } : tier));
+    };
+
+    const handleRemoveUnitTier = (id: string) => {
+        setUnitTiers(prev => prev.filter(tier => tier.id !== id));
+    };
+
+    const stopCamera = () => {
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
+    };
+
+    const startCamera = async () => {
+      setCameraError('');
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        });
+        mediaStreamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+      } catch (err: any) {
+        setCameraError('Gagal mengakses kamera. Pastikan izin kamera telah diberikan.');
+      }
+    };
+
+    useEffect(() => {
+      if (isCameraScannerOpen) {
+        startCamera();
+      } else {
+        stopCamera();
+      }
+      return () => stopCamera();
+    }, [isCameraScannerOpen]);
+
+    useEffect(() => {
+      let interval: any;
+      if (isCameraScannerOpen && 'BarcodeDetector' in window) {
+        const barcodeDetector = new (window as any).BarcodeDetector({
+          formats: ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e']
+        });
+        interval = setInterval(async () => {
+          if (videoRef.current && videoRef.current.readyState === 4) {
+            try {
+              const barcodes = await barcodeDetector.detect(videoRef.current);
+              if (barcodes.length > 0) {
+                const scannedCode = barcodes[0].rawValue;
+                if (scannedCode) {
+                  setFormData(prev => ({ ...prev, barcode: scannedCode }));
+                  setCameraScannerOpen(false);
+                }
+              }
+            } catch (e) {}
+          }
+        }, 500);
+      }
+      return () => {
+        if (interval) clearInterval(interval);
+      };
+    }, [isCameraScannerOpen]);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
-        const selectedTypeLocations = Object.entries(typeLocationData)
-            .filter(([, data]) => data.selected)
-            .map(([typeId, data]) => {
-                const isBranchType = branchTypes.some(bt => bt.id === typeId);
-                return {
-                    locationTypeId: typeId,
-                    locationType: isBranchType ? 'branch' as const : 'warehouse' as const,
-                    shelvingNumber: data.shelvingNumber || undefined
-                };
-            });
+        const validTiers = unitTiers.filter(t => t.unitName.trim() !== '');
 
         if (existingProduct) {
              const payload = {
@@ -78,27 +122,35 @@ export const ProductModal: React.FC<{
                     ...existingProduct,
                     ...formData,
                     name: formData.name || '',
-                    pricingType: formData.pricingType || 'manual',
-                    isTaxable: formData.isTaxable === undefined ? true : formData.isTaxable,
+                    pricingType: 'manual',
+                    isTaxable: true,
                     price: Number(formData.price) || 0,
                     cost: Number(formData.cost) || 0,
+                    wholesalePrice: Number(formData.wholesalePrice) || 0,
+                    wholesaleMinQty: Number(formData.wholesaleMinQty) || 0,
+                    initialStock: Number(formData.initialStock) || 0,
+                    unitTiers: validTiers,
                     status: formData.status || 'active',
                 } as Product,
-                typeLocations: selectedTypeLocations
+                typeLocations: []
             };
             dispatch({ type: 'products/update', payload });
         } else {
              const payload = {
                 productData: {
                     name: formData.name || '',
-                    pricingType: formData.pricingType || 'manual',
-                    isTaxable: formData.isTaxable === undefined ? true : formData.isTaxable,
+                    pricingType: 'manual',
+                    isTaxable: true,
                     price: Number(formData.price) || 0,
                     cost: Number(formData.cost) || 0,
+                    wholesalePrice: Number(formData.wholesalePrice) || 0,
+                    wholesaleMinQty: Number(formData.wholesaleMinQty) || 0,
+                    initialStock: Number(formData.initialStock) || 0,
+                    unitTiers: validTiers,
                     status: 'active',
                     ...formData,
                 } as Omit<Product, 'id'>,
-                typeLocations: selectedTypeLocations,
+                typeLocations: [],
                 initialStocks: {}
             };
             dispatch({ type: 'products/add', payload });
@@ -106,121 +158,204 @@ export const ProductModal: React.FC<{
         onClose();
     };
 
+    const baseUnits = ['Pcs', 'Botol', 'Kg', 'Gram', 'Liter', 'Sachet', 'Pcs/Lbr', 'Roll', 'Buah', 'Pasang'];
+
     const footer = (
         <Button onClick={handleSubmit}>Simpan Produk</Button>
     );
     
     return (
-        <Modal
-            isOpen={isOpen}
-            onClose={onClose}
-            title={`${existingProduct ? 'Ubah' : 'Tambah'} Produk`}
-            footer={footer}
-            maxWidth="max-w-4xl"
-        >
-             <form id="product-form" onSubmit={handleSubmit} className="space-y-6">
-                {/* Basic Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Input placeholder="Nama Produk*" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} required />
-                    <Input placeholder="Barcode" value={formData.barcode || ''} onChange={e => setFormData({...formData, barcode: e.target.value})}/>
-                </div>
-                 <div>
-                    <Label htmlFor="imageUrl">URL Foto Produk</Label>
-                    <Input id="imageUrl" placeholder="https://example.com/image.png" value={formData.imageUrl || ''} onChange={e => setFormData({...formData, imageUrl: e.target.value})}/>
-                </div>
-                {/* Pricing Info */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Input type="number" placeholder="Harga Jual (Rp)*" value={formData.price || ''} onChange={e => setFormData({...formData, price: Number(e.target.value)})} required/>
-                    <Input type="number" placeholder="Harga Modal (Rp)*" value={formData.cost || ''} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} required/>
-                </div>
-                {/* Description Generator */}
-                <div className="p-4 border rounded-lg dark:border-gray-600">
-                    <h3 className="font-semibold mb-2">Deskripsi Produk (AI)</h3>
-                    <p className="text-xs text-gray-500 mb-2">Gunakan AI untuk membuat deskripsi produk yang menarik. Cukup isi nama produk dan kata kunci.</p>
-                    <div className="flex gap-2">
-                            <Input placeholder="Kata Kunci (opsional, cth: nyaman, tahan lama)" value={keywords} onChange={e => setKeywords(e.target.value)}/>
-                            <Button type="button" onClick={handleGenerateDescription} disabled={isGenerating}>{isGenerating ? "Membuat..." : "Buat"}</Button>
-                    </div>
-                    <Textarea placeholder="Deskripsi akan muncul di sini..." value={formData.description || ''} onChange={e => setFormData({...formData, description: e.target.value})} rows={3} className="mt-2"/>
-                </div>
-                {/* Associations */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Select value={formData.categoryId || ''} onChange={e => setFormData({...formData, categoryId: e.target.value})}><option value="">Pilih Kategori</option>{productCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>
-                    <Select value={formData.vendorId || ''} onChange={e => setFormData({...formData, vendorId: e.target.value})}><option value="">Pilih Vendor</option>{vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</Select>
-                </div>
-                 {/* Location & Stock */}
-                <div className="p-4 border rounded-lg dark:border-gray-600">
-                    <h3 className="font-semibold mb-2">Lokasi Ketersediaan</h3>
-                    <p className="text-xs text-gray-500 mb-2">Pilih tipe lokasi (cabang/gudang) tempat produk ini tersedia.</p>
-                    <div className="max-h-60 overflow-y-auto space-y-3 pr-2">
+        <>
+            <Modal
+                isOpen={isOpen}
+                onClose={onClose}
+                title={`${existingProduct ? 'Ubah' : 'Tambah'} Produk`}
+                footer={footer}
+                maxWidth="max-w-3xl"
+            >
+                 <form id="product-form" onSubmit={handleSubmit} className="space-y-4">
+                    {/* Basic Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <h4 className="font-semibold text-sm my-2 text-gray-600 dark:text-gray-300">Tipe Cabang</h4>
-                            {branchTypes.map(type => {
-                                const currentTypeData = typeLocationData[type.id];
-                                return (
-                                    <div key={type.id} className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md mb-2">
-                                        <label className="flex items-center font-medium">
-                                            <input
-                                                type="checkbox"
-                                                checked={currentTypeData?.selected || false}
-                                                onChange={e => handleTypeLocationChange(type.id, 'selected', e.target.checked)}
-                                                className="mr-2 rounded text-primary-500"
-                                            />
-                                            {type.name}
-                                        </label>
-                                        {currentTypeData?.selected && (
-                                            <div className="pl-6 mt-2">
-                                                <Input value={currentTypeData.shelvingNumber} onChange={e => handleTypeLocationChange(type.id, 'shelvingNumber', e.target.value)} placeholder="No. Selving / Keterangan Lokasi" />
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                            <Label>Nama Produk*</Label>
+                            <Input placeholder="Nama Produk*" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} required />
                         </div>
                         <div>
-                            <h4 className="font-semibold text-sm my-2 text-gray-600 dark:text-gray-300">Tipe Gudang</h4>
-                            {warehouseTypes.map(type => {
-                                const currentTypeData = typeLocationData[type.id];
-                                return (
-                                    <div key={type.id} className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md mb-2">
-                                        <label className="flex items-center font-medium">
-                                            <input
-                                                type="checkbox"
-                                                checked={currentTypeData?.selected || false}
-                                                onChange={e => handleTypeLocationChange(type.id, 'selected', e.target.checked)}
-                                                className="mr-2 rounded text-primary-500"
-                                            />
-                                            {type.name}
-                                        </label>
-                                        {currentTypeData?.selected && (
-                                            <div className="pl-6 mt-2">
-                                                <Input value={currentTypeData.shelvingNumber} onChange={e => handleTypeLocationChange(type.id, 'shelvingNumber', e.target.value)} placeholder="No. Selving / Keterangan Lokasi" />
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                            <Label>Barcode Produk</Label>
+                            <div className="flex gap-2 items-center">
+                                <Input placeholder="Barcode" value={formData.barcode || ''} onChange={e => setFormData({...formData, barcode: e.target.value})} className="flex-1" />
+                                <button
+                                    type="button"
+                                    onClick={() => setCameraScannerOpen(true)}
+                                    className="p-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/80 text-blue-600 dark:text-blue-400 rounded-lg border border-blue-200/80 dark:border-blue-800/60 transition-all flex items-center justify-center shrink-0 cursor-pointer shadow-2xs active:scale-95"
+                                    title="Scan Barcode via Kamera HP/Webcam"
+                                >
+                                    <Camera className="w-4.5 h-4.5" />
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-                 {/* Settings */}
-                <div className="flex items-center gap-6 pt-2">
-                    {isTaxEnabled && <label className="flex items-center"><input type="checkbox" checked={formData.isTaxable} onChange={e => setFormData({...formData, isTaxable: e.target.checked})} className="rounded text-primary-600"/> <span className="ml-2">Kena Pajak</span></label>}
-                    <label className="flex items-center"><input type="radio" name="pricingType" value="manual" checked={formData.pricingType === 'manual'} onChange={e => setFormData({...formData, pricingType: 'manual'})} /> <span className="ml-2">Harga Manual</span></label>
-                    <label className="flex items-center"><input type="radio" name="pricingType" value="auto" checked={formData.pricingType === 'auto'} onChange={e => setFormData({...formData, pricingType: 'auto'})}/> <span className="ml-2">Harga Otomatis</span></label>
-                </div>
-                 {existingProduct && (
+
+                    {/* Deskripsi Produk (Tepat di bawah Nama Produk) */}
                     <div>
-                        <Label>Status Produk</Label>
-                        <Select value={formData.status || ''} onChange={e => setFormData({...formData, status: e.target.value as Status})}>
-                            <option value="active">Aktif</option>
-                            <option value="inactive">Non-Aktif</option>
-                            <option value="archived">Diarsipkan</option>
-                        </Select>
+                        <Label>Deskripsi Produk</Label>
+                        <Textarea 
+                            placeholder="Tuliskan keterangan / deskripsi detail produk di sini..." 
+                            value={formData.description || ''} 
+                            onChange={e => setFormData({...formData, description: e.target.value})} 
+                            rows={2} 
+                        />
                     </div>
-                )}
-            </form>
-        </Modal>
+
+                    {/* Satuan Dasar & Pricing & Stock */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <Label>Satuan Utama</Label>
+                            <Select value={formData.unit || 'Pcs'} onChange={e => setFormData({...formData, unit: e.target.value})}>
+                                {baseUnits.map(u => <option key={u} value={u}>{u}</option>)}
+                            </Select>
+                        </div>
+                        <div>
+                            <Label>Harga Jual ({formData.unit || 'Pcs'})*</Label>
+                            <Input type="number" placeholder="Harga Jual (Rp)*" value={formData.price || ''} onChange={e => setFormData({...formData, price: Number(e.target.value)})} required/>
+                        </div>
+                        <div>
+                            <Label>Harga Modal / HPP*</Label>
+                            <Input type="number" placeholder="Harga Modal (Rp)*" value={formData.cost || ''} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} required/>
+                        </div>
+                        <div>
+                            <Label>Stok Awal Produk</Label>
+                            <Input type="number" placeholder="Stok Produk (cth: 100)" value={formData.initialStock ?? ''} onChange={e => setFormData({...formData, initialStock: Number(e.target.value)})}/>
+                        </div>
+                    </div>
+
+                    {/* Dynamic Multi-Tier Packaging Prices (Harga Packaging Bertingkat) */}
+                    <div className="p-4 bg-slate-50/80 dark:bg-zinc-800/60 rounded-xl border border-slate-200/80 dark:border-zinc-700/60 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Layers className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                                <h4 className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Harga Packaging Bertingkat (Custom Tier)</h4>
+                            </div>
+                            <Button type="button" onClick={handleAddUnitTier} variant="secondary" className="text-xs px-2.5 py-1">
+                                <Plus className="w-3.5 h-3.5 mr-1" /> Tambah Tingkatan
+                            </Button>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-zinc-400">
+                            Atur harga grosir/kemasan bertingkat (misal: Pack/Renceng, Box, Karton/Crt).
+                        </p>
+                        
+                        {unitTiers.length === 0 ? (
+                            <div className="text-center py-3 text-xs text-slate-400 border border-dashed border-slate-200 dark:border-zinc-700 rounded-lg">
+                                Belum ada tingkatan satuan bertingkat. Klik "+ Tambah Tingkatan" untuk menambahkan.
+                            </div>
+                        ) : (
+                            <div className="space-y-2.5">
+                                {unitTiers.map((tier, idx) => (
+                                    <div key={tier.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center bg-white dark:bg-zinc-900 p-2.5 rounded-lg border border-slate-200/60 dark:border-zinc-700/60 shadow-2xs">
+                                        <div className="sm:col-span-3">
+                                            <Input 
+                                                placeholder="Nama Satuan (cth: Pack, Box, Crt)" 
+                                                value={tier.unitName} 
+                                                onChange={e => handleUpdateUnitTier(tier.id, 'unitName', e.target.value)} 
+                                            />
+                                        </div>
+                                        <div className="sm:col-span-3 flex items-center gap-1.5">
+                                            <span className="text-xs text-slate-400 shrink-0">Isi:</span>
+                                            <Input 
+                                                type="number" 
+                                                placeholder={`Isi per ${formData.unit || 'Pcs'}`} 
+                                                value={tier.conversionQty || ''} 
+                                                onChange={e => handleUpdateUnitTier(tier.id, 'conversionQty', Number(e.target.value))} 
+                                            />
+                                        </div>
+                                        <div className="sm:col-span-3">
+                                            <Input 
+                                                type="number" 
+                                                placeholder="Harga Jual Tier (Rp)" 
+                                                value={tier.price || ''} 
+                                                onChange={e => handleUpdateUnitTier(tier.id, 'price', Number(e.target.value))} 
+                                            />
+                                        </div>
+                                        <div className="sm:col-span-2">
+                                            <Input 
+                                                placeholder="Barcode Tier (opsional)" 
+                                                value={tier.barcode || ''} 
+                                                onChange={e => handleUpdateUnitTier(tier.id, 'barcode', e.target.value)} 
+                                            />
+                                        </div>
+                                        <div className="sm:col-span-1 flex justify-end">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveUnitTier(tier.id)}
+                                                className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                                                title="Hapus Tingkatan Satuan"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Associations (Category & Vendor) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <Label>Kategori Produk</Label>
+                            <Select value={formData.categoryId || ''} onChange={e => setFormData({...formData, categoryId: e.target.value})}>
+                                <option value="">Pilih Kategori</option>
+                                {(productCategories || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </Select>
+                        </div>
+                        <div>
+                            <Label>Vendor / Supplier</Label>
+                            <Select value={formData.vendorId || ''} onChange={e => setFormData({...formData, vendorId: e.target.value})}>
+                                <option value="">Pilih Vendor</option>
+                                {(vendors || []).map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                            </Select>
+                        </div>
+                    </div>
+
+                    {/* Status */}
+                    {existingProduct && (
+                        <div>
+                            <Label>Status Produk</Label>
+                            <Select value={formData.status || ''} onChange={e => setFormData({...formData, status: e.target.value as Status})}>
+                                <option value="active">Aktif</option>
+                                <option value="inactive">Non-Aktif</option>
+                                <option value="archived">Diarsipkan</option>
+                            </Select>
+                        </div>
+                    )}
+                </form>
+            </Modal>
+
+            {/* Camera Barcode Scanner Modal */}
+            <Modal
+                isOpen={isCameraScannerOpen}
+                onClose={() => setCameraScannerOpen(false)}
+                title="Scan Barcode via Kamera HP"
+                footer={<Button onClick={() => setCameraScannerOpen(false)} variant="secondary">Tutup Kamera</Button>}
+                maxWidth="max-w-md"
+            >
+                <div className="flex flex-col items-center space-y-4">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                        Arahkan kamera ke kode barcode pada kemasan produk. Barcode akan otomatis terisi.
+                    </p>
+                    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                        {cameraError ? (
+                            <p className="text-xs text-red-500 font-semibold p-4 text-center">{cameraError}</p>
+                        ) : (
+                            <>
+                                <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+                                <div className="absolute inset-0 border-2 border-dashed border-blue-500/70 pointer-events-none rounded-xl m-6" />
+                            </>
+                        )}
+                    </div>
+                </div>
+            </Modal>
+        </>
     );
 };
 
@@ -314,12 +449,308 @@ const ProductDetailsModal: React.FC<{
         </>
     );
 };
+// --- Import Product Modal ---
+export const ImportProductModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+}> = ({ isOpen, onClose }) => {
+    const { state, dispatch } = useAppContext();
+    const { productCategories = [], vendors = [] } = state || {};
+
+    const [fileName, setFileName] = useState<string>('');
+    const [parsedProducts, setParsedProducts] = useState<Array<{
+        name: string;
+        barcode: string;
+        unit: string;
+        price: number;
+        cost: number;
+        initialStock: number;
+        categoryName: string;
+        vendorName: string;
+        description: string;
+        isValid: boolean;
+        errorMessage?: string;
+    }>>([]);
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handleDownloadTemplate = () => {
+        const sampleData = [
+            {
+                "Nama Produk*": "Kopi Susu Gula Aren 250ml",
+                "Barcode": "8991234567890",
+                "Satuan Utama": "Botol",
+                "Harga Jual*": 18000,
+                "Harga Modal*": 11000,
+                "Stok Awal": 50,
+                "Kategori": "Minuman",
+                "Vendor": "PT Sumber Kopi",
+                "Deskripsi": "Kopi rasa manis gurih khas gula aren"
+            },
+            {
+                "Nama Produk*": "Roti Tawar Serbaguna",
+                "Barcode": "8999876543210",
+                "Satuan Utama": "Pack",
+                "Harga Jual*": 15000,
+                "Harga Modal*": 10000,
+                "Stok Awal": 30,
+                "Kategori": "Makanan",
+                "Vendor": "CV Roti Enak",
+                "Deskripsi": "Roti tawar lembut dan gurih"
+            }
+        ];
+
+        const worksheet = XLSX.utils.json_to_sheet(sampleData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Template Produk");
+        
+        worksheet["!cols"] = [
+            { wch: 30 }, // Nama Produk
+            { wch: 18 }, // Barcode
+            { wch: 14 }, // Satuan Utama
+            { wch: 14 }, // Harga Jual
+            { wch: 14 }, // Harga Modal
+            { wch: 12 }, // Stok Awal
+            { wch: 16 }, // Kategori
+            { wch: 22 }, // Vendor
+            { wch: 35 }  // Deskripsi
+        ];
+
+        XLSX.writeFile(workbook, "Template_Import_Produk_POSNesia.xlsx");
+    };
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setFileName(file.name);
+        const reader = new FileReader();
+
+        reader.onload = (evt) => {
+            try {
+                const bstr = evt.target?.result;
+                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wsname = wb.SheetNames[0];
+                const ws = wb.Sheets[wsname];
+                const data = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+                const parsed = data.map((row: any) => {
+                    const name = String(row["Nama Produk*"] || row["Nama Produk"] || row["name"] || "").trim();
+                    const barcode = String(row["Barcode"] || row["barcode"] || "").trim();
+                    const unit = String(row["Satuan Utama"] || row["Satuan"] || row["unit"] || "Pcs").trim();
+                    const price = Number(row["Harga Jual*"] || row["Harga Jual"] || row["price"] || 0);
+                    const cost = Number(row["Harga Modal*"] || row["Harga Modal"] || row["cost"] || 0);
+                    const initialStock = Number(row["Stok Awal"] || row["stok"] || 0);
+                    const categoryName = String(row["Kategori"] || row["category"] || "").trim();
+                    const vendorName = String(row["Vendor"] || row["vendor"] || "").trim();
+                    const description = String(row["Deskripsi"] || row["description"] || "").trim();
+
+                    let isValid = true;
+                    let errorMessage = "";
+
+                    if (!name) {
+                        isValid = false;
+                        errorMessage = "Nama Produk wajib diisi";
+                    } else if (price <= 0) {
+                        isValid = false;
+                        errorMessage = "Harga Jual harus > 0";
+                    }
+
+                    return {
+                        name,
+                        barcode,
+                        unit: unit || 'Pcs',
+                        price,
+                        cost,
+                        initialStock,
+                        categoryName,
+                        vendorName,
+                        description,
+                        isValid,
+                        errorMessage
+                    };
+                });
+
+                setParsedProducts(parsed);
+            } catch (error) {
+                alert("Gagal membaca file. Pastikan format file .xlsx, .xls, atau .csv");
+            }
+        };
+
+        reader.readAsBinaryString(file);
+    };
+
+    const handleImportSubmit = () => {
+        const validItems = parsedProducts.filter(p => p.isValid);
+        if (validItems.length === 0) {
+            alert("Tidak ada data produk valid untuk di-import.");
+            return;
+        }
+
+        setIsProcessing(true);
+
+        validItems.forEach(item => {
+            const cat = productCategories.find(c => c.name.toLowerCase() === item.categoryName.toLowerCase());
+            const ven = vendors.find(v => v.name.toLowerCase() === item.vendorName.toLowerCase());
+
+            const payload = {
+                productData: {
+                    name: item.name,
+                    barcode: item.barcode || undefined,
+                    unit: item.unit || 'Pcs',
+                    price: item.price,
+                    cost: item.cost,
+                    initialStock: item.initialStock,
+                    categoryId: cat ? cat.id : undefined,
+                    vendorId: ven ? ven.id : undefined,
+                    description: item.description || undefined,
+                    isTaxable: true,
+                    pricingType: 'manual' as const,
+                    status: 'active' as const
+                },
+                typeLocations: [],
+                initialStocks: {}
+            };
+
+            dispatch({ type: 'products/add', payload });
+        });
+
+        setIsProcessing(false);
+        alert(`Berhasil meng-import ${validItems.length} produk ke dalam sistem!`);
+        onClose();
+        setParsedProducts([]);
+        setFileName('');
+    };
+
+    const validCount = parsedProducts.filter(p => p.isValid).length;
+    const invalidCount = parsedProducts.length - validCount;
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Import Data Produk dari Excel / CSV"
+            footer={
+                <div className="flex gap-2 justify-between w-full items-center">
+                    <Button onClick={handleDownloadTemplate} variant="secondary" className="text-xs">
+                        <Download className="w-3.5 h-3.5 mr-1.5 text-emerald-600 dark:text-emerald-400" /> Download Template Excel
+                    </Button>
+                    <div className="flex gap-2">
+                        <Button onClick={onClose} variant="secondary">Batal</Button>
+                        <Button onClick={handleImportSubmit} disabled={validCount === 0 || isProcessing}>
+                            {isProcessing ? "Meng-import..." : `Import ${validCount} Produk`}
+                        </Button>
+                    </div>
+                </div>
+            }
+            maxWidth="max-w-4xl"
+        >
+            <div className="space-y-4">
+                {/* Instruction & File Upload */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-emerald-50/70 dark:bg-emerald-950/40 rounded-xl border border-emerald-100 dark:border-emerald-900/60 space-y-2">
+                        <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-bold text-sm">
+                            <FileSpreadsheet className="w-4 h-4" /> Petunjuk Import Excel
+                        </div>
+                        <ol className="text-xs text-emerald-900 dark:text-emerald-200 space-y-1 list-decimal pl-4">
+                            <li>Klik <strong>Download Template Excel</strong> untuk mengunduh format file.</li>
+                            <li>Isi kolom (Nama Produk & Harga Jual wajib diisi).</li>
+                            <li>Upload file Excel/CSV yang telah diisi di samping.</li>
+                            <li>Periksa pratinjau lalu klik <strong>Import Produk</strong>.</li>
+                        </ol>
+                    </div>
+
+                    <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-zinc-700 hover:border-emerald-500 rounded-xl transition-all bg-slate-50/50 dark:bg-zinc-800/40 cursor-pointer relative">
+                        <input
+                            type="file"
+                            accept=".xlsx, .xls, .csv"
+                            onChange={handleFileUpload}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <Upload className="w-8 h-8 text-slate-400 mb-2" />
+                        <p className="text-xs font-semibold text-slate-700 dark:text-zinc-300 text-center">
+                            {fileName ? fileName : "Klik atau seret file Excel/CSV di sini"}
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-1">Format didukung: .xlsx, .xls, .csv</p>
+                    </div>
+                </div>
+
+                {/* Preview Table */}
+                {parsedProducts.length > 0 && (
+                    <div className="space-y-2.5">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-zinc-300">
+                                Pratinjau Data ({parsedProducts.length} Produk)
+                            </h4>
+                            <div className="flex gap-2 text-xs font-semibold">
+                                <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 rounded-md">
+                                    {validCount} Valid
+                                </span>
+                                {invalidCount > 0 && (
+                                    <span className="px-2.5 py-0.5 bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 rounded-md">
+                                        {invalidCount} Error
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="max-h-60 overflow-y-auto border border-slate-200 dark:border-zinc-700 rounded-xl">
+                            <table className="w-full text-left text-xs">
+                                <thead className="bg-slate-100 dark:bg-zinc-800 sticky top-0 font-bold text-slate-700 dark:text-zinc-300">
+                                    <tr>
+                                        <th className="p-2">Status</th>
+                                        <th className="p-2">Nama Produk</th>
+                                        <th className="p-2">Barcode</th>
+                                        <th className="p-2">Satuan</th>
+                                        <th className="p-2 text-right">Harga Jual</th>
+                                        <th className="p-2 text-right">Harga Modal</th>
+                                        <th className="p-2 text-center">Stok Awal</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-200 dark:divide-zinc-800">
+                                    {parsedProducts.map((p, idx) => (
+                                        <tr key={idx} className={p.isValid ? 'hover:bg-slate-50 dark:hover:bg-zinc-800/50' : 'bg-rose-50/50 dark:bg-rose-950/30'}>
+                                            <td className="p-2">
+                                                {p.isValid ? (
+                                                    <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400 font-medium">
+                                                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Ready
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center text-rose-600 dark:text-rose-400 font-medium" title={p.errorMessage}>
+                                                        <AlertCircle className="w-3.5 h-3.5 mr-1" /> {p.errorMessage}
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="p-2 font-semibold text-slate-900 dark:text-white">{p.name || '-'}</td>
+                                            <td className="p-2 font-mono text-slate-500">{p.barcode || '-'}</td>
+                                            <td className="p-2">{p.unit}</td>
+                                            <td className="p-2 text-right font-mono text-emerald-600 font-semibold">Rp{p.price.toLocaleString('id-ID')}</td>
+                                            <td className="p-2 text-right font-mono text-slate-500">Rp{p.cost.toLocaleString('id-ID')}</td>
+                                            <td className="p-2 text-center font-mono">{p.initialStock}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </Modal>
+    );
+};
 
 
 export const ProductListPage: React.FC = () => {
     const { state, dispatch } = useAppContext();
-    const { products, inventoryLevels, currentBranchId, brands, productCategories } = state;
+    const { 
+        products = [], 
+        inventoryLevels = [], 
+        currentBranchId = null, 
+        brands = [], 
+        productCategories = [] 
+    } = state || {};
+    
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isDetailsModalOpen, setDetailsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -360,7 +791,7 @@ export const ProductListPage: React.FC = () => {
     
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            setSelectedProductIds(new Set(filteredProducts.map(p => p.id)));
+            setSelectedProductIds(new Set((filteredProducts || []).map(p => p.id)));
         } else {
             setSelectedProductIds(new Set());
         }
@@ -368,21 +799,26 @@ export const ProductListPage: React.FC = () => {
 
     const productStockMap = useMemo(() => {
         const map = new Map<string, number>();
-        inventoryLevels
-            .filter(inv => !currentBranchId || inv.locationId === currentBranchId)
+        (inventoryLevels || [])
+            .filter(inv => inv && (!currentBranchId || inv.locationId === currentBranchId))
             .forEach(inv => {
-                map.set(inv.productId, (map.get(inv.productId) || 0) + inv.quantity);
+                if (inv && inv.productId) {
+                    map.set(inv.productId, (map.get(inv.productId) || 0) + (inv.quantity || 0));
+                }
             });
         return map;
     }, [inventoryLevels, currentBranchId]);
 
-    const brandMap = useMemo(() => new Map(brands.map(b => [b.id, b.name])), [brands]);
+    const brandMap = useMemo(() => new Map((brands || []).map(b => [b.id, b.name])), [brands]);
 
     const filteredProducts = useMemo(() => {
+        if (!Array.isArray(products)) return [];
         return products.filter(product => {
-            const lowercasedFilter = searchTerm.toLowerCase();
-            const matchesSearch = product.name.toLowerCase().includes(lowercasedFilter) ||
-                                  (product.barcode && product.barcode.includes(lowercasedFilter));
+            if (!product) return false;
+            const lowercasedFilter = (searchTerm || '').toLowerCase();
+            const productName = (product.name || '').toLowerCase();
+            const productBarcode = (product.barcode || '').toLowerCase();
+            const matchesSearch = productName.includes(lowercasedFilter) || productBarcode.includes(lowercasedFilter);
             const matchesCategory = categoryFilter === 'all' || product.categoryId === categoryFilter;
             return matchesSearch && matchesCategory;
         });
@@ -393,12 +829,17 @@ export const ProductListPage: React.FC = () => {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Data Produk</h1>
                 <div className="flex gap-2">
+                    <Button onClick={() => setIsImportModalOpen(true)} variant="secondary" className="gap-1.5">
+                        <Upload className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> Import Excel
+                    </Button>
                     <Button onClick={handlePrintSelected} disabled={selectedProductIds.size === 0} variant="secondary">
                         Cetak Label Harga ({selectedProductIds.size})
                     </Button>
                     <Button onClick={() => handleOpenModal(null)}>Tambah Produk</Button>
                 </div>
             </div>
+            {/* Modal Import Excel */}
+            <ImportProductModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} />
             <div className="mb-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input 
@@ -409,7 +850,7 @@ export const ProductListPage: React.FC = () => {
                     />
                     <Select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
                         <option value="all">Semua Kategori</option>
-                        {productCategories.map(cat => (
+                        {(productCategories || []).map(cat => (
                             <option key={cat.id} value={cat.id}>{cat.name}</option>
                         ))}
                     </Select>
@@ -440,6 +881,7 @@ export const ProductListPage: React.FC = () => {
                     <Tbody>
                         {filteredProducts.map(product => {
                             const stock = productStockMap.get(product.id) || 0;
+                            const priceFormatted = (product.price || 0).toLocaleString('id-ID');
                             return (
                                 <Tr key={product.id}>
                                     <Td>
@@ -452,7 +894,7 @@ export const ProductListPage: React.FC = () => {
                                     </Td>
                                     <Td>
                                         <div className="font-extrabold text-zinc-900 dark:text-white text-sm">
-                                            {product.name}
+                                            {product.name || 'Tanpa Nama'}
                                         </div>
                                     </Td>
                                     <Td>
@@ -460,12 +902,12 @@ export const ProductListPage: React.FC = () => {
                                     </Td>
                                     <Td>
                                         <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-                                            {product.brandId ? brandMap.get(product.brandId) : '-'}
+                                            {product.brandId ? brandMap.get(product.brandId) || '-' : '-'}
                                         </span>
                                     </Td>
                                     <Td>
                                         <span className="font-black text-emerald-600 dark:text-emerald-400 text-sm font-mono">
-                                            Rp{product.price.toLocaleString('id-ID')}
+                                            Rp{priceFormatted}
                                         </span>
                                     </Td>
                                     <Td className="text-center">
@@ -476,7 +918,7 @@ export const ProductListPage: React.FC = () => {
                                         </span>
                                     </Td>
                                     <Td>
-                                        <Badge variant={product.status === 'active' ? 'success' : 'neutral'}>{product.status}</Badge>
+                                        <Badge variant={product.status === 'active' ? 'success' : 'neutral'}>{product.status || 'active'}</Badge>
                                     </Td>
                                     <Td className="text-right">
                                         <ActionsDropdown>
@@ -510,7 +952,7 @@ export const ProductListPage: React.FC = () => {
                                         onChange={e => handleSelectProduct(product.id, e.target.checked)}
                                         className="rounded text-primary-600 w-4 h-4 mt-0.5"
                                     />
-                                    <Badge variant={product.status === 'active' ? 'success' : 'neutral'}>{product.status}</Badge>
+                                    <Badge variant={product.status === 'active' ? 'success' : 'neutral'}>{product.status || 'active'}</Badge>
                                 </div>
                                 <ActionsDropdown>
                                     <DropdownItem onClick={() => handleOpenDetailsModal(product)}>Lihat Detail</DropdownItem>

@@ -19,25 +19,16 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const loadTranslations = async () => {
       try {
-        // In a real build system, these files would be in a public folder.
-        // For this environment, we assume they are accessible at this path.
         const response = await fetch(`locales/${language}.json`);
-        if (!response.ok) {
-            console.error(`Could not load ${language}.json, falling back to English.`);
-            throw new Error(`Could not load ${language}.json`);
+        const contentType = response.headers.get('content-type') || '';
+        if (response.ok && contentType.includes('application/json')) {
+          const data = await response.json();
+          setTranslations(data);
+        } else {
+          setTranslations({});
         }
-        const data = await response.json();
-        setTranslations(data);
       } catch (error) {
-        console.error("Failed to load translations, loading English fallback:", error);
-        try {
-            const fallbackResponse = await fetch(`locales/en.json`);
-            const fallbackData = await fallbackResponse.json();
-            setTranslations(fallbackData);
-        } catch (fallbackError) {
-            console.error("Failed to load English fallback translations:", fallbackError);
-            setTranslations({}); // No translations available
-        }
+        setTranslations({});
       }
     };
     loadTranslations();

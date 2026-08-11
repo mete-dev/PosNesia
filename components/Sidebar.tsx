@@ -256,32 +256,26 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
         if (onCloseMobile) onCloseMobile();
     };
 
-    // Auto-close accordion toggle: Opening one dropdown closes all other open dropdowns automatically
+    // Toggle dropdown while preserving parent open state for nested menus
     const toggleDropdown = (label: string) => {
-        setOpenDropdowns(prev => {
-            const isCurrentlyOpen = prev[label];
-            if (isCurrentlyOpen) {
-                return {}; // Close all
-            }
-            return { [label]: true }; // Open only clicked dropdown
-        });
+        setOpenDropdowns(prev => ({
+            ...prev,
+            [label]: !prev[label]
+        }));
     };
 
     const toggleFlyout = (label: string) => {
-        setOpenFlyouts(prev => {
-            const isCurrentlyOpen = prev[label];
-            if (isCurrentlyOpen) {
-                return {};
-            }
-            return { [label]: true };
-        });
+        setOpenFlyouts(prev => ({
+            ...prev,
+            [label]: !prev[label]
+        }));
     };
 
     // Modern Lucide Icons for Menubar
     const navItems = [
         { icon: <ShoppingCart />, label: 'Point of Sales', page: Page.POS },
         {
-            isDropdown: true, icon: <TrendingUp />, label: 'Sales & Pelanggan', subItems: [
+            isDropdown: true, icon: <TrendingUp />, label: 'Penjualan', subItems: [
                 { label: 'Penjualan', page: Page.SalesList, icon: <Receipt /> },
                 { label: 'Data Pelanggan', page: Page.CustomerList, icon: <Users /> },
                 { label: 'Data Produk', page: Page.ProductList, icon: <Package /> },
@@ -289,14 +283,14 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
             ]
         },
         {
-            isDropdown: true, icon: <ShoppingBag />, label: 'Purchase', subItems: [
+            isDropdown: true, icon: <ShoppingBag />, label: 'Pembelian', subItems: [
                 { label: 'Pesanan Pembelian', page: Page.PurchaseList, icon: <FileSpreadsheet /> },
                 { label: 'Vendor', page: Page.Vendors, icon: <Building /> },
                 { label: 'Data Produk', page: Page.ProductList, icon: <Package /> },
             ]
         },
         {
-            isDropdown: true, icon: <Boxes />, label: 'Inventory', subItems: [
+            isDropdown: true, icon: <Boxes />, label: 'Inventaris', subItems: [
                 { label: 'Data Produk', page: Page.ProductList, icon: <Package /> },
                 { label: 'Penyesuaian Stok', page: Page.InventoryAdjustment, icon: <SlidersHorizontal /> },
                 { label: 'Penerimaan Barang', page: Page.GoodsReceipt, icon: <PackageCheck /> },
@@ -347,10 +341,26 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
             isDropdown: true, icon: <Settings />, label: 'Pengaturan', subItems: [
                 { label: 'Informasi Perusahaan', page: Page.CompanyInformationSettings, icon: <Building2 /> },
                 { label: 'Database', page: Page.BackupRestore, icon: <Database /> },
-                { label: 'Ukuran Report', page: Page.ReportSizesSettings, icon: <Printer /> },
+                { label: 'Printer', page: Page.ReportSizesSettings, icon: <Printer /> },
             ]
         }
     ];
+
+    // Auto-expand menu categories containing current page
+    React.useEffect(() => {
+        navItems.forEach(item => {
+            if (item.isDropdown && item.subItems) {
+                if (isPageInSubItems(item.subItems, currentPage)) {
+                    setOpenDropdowns(prev => ({ ...prev, [item.label]: true }));
+                    item.subItems.forEach((sub: any) => {
+                        if (sub && sub.isDropdown && sub.subItems && isPageInSubItems(sub.subItems, currentPage)) {
+                            setOpenDropdowns(prev => ({ ...prev, [sub.label]: true }));
+                        }
+                    });
+                }
+            }
+        });
+    }, [currentPage]);
 
     const [isHovered, setIsHovered] = useState(false);
     const effectiveCollapsed = isSidebarCollapsed && !isHovered;
@@ -360,7 +370,6 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => {
                 setIsHovered(false);
-                setOpenDropdowns({});
             }}
             className={`flex-shrink-0 h-full max-h-screen transition-all duration-300 bg-white dark:bg-gray-900 border-r border-slate-200/80 dark:border-gray-800 flex flex-col overflow-hidden ${effectiveCollapsed ? 'w-20' : 'w-64'}`}
         >

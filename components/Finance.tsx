@@ -1,4 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { 
+    CreditCard, Clock, Plus, Search, Edit2, Trash2, CheckCircle2, 
+    ShieldCheck, DollarSign, Wallet, Building2, Calendar, ArrowRightLeft 
+} from 'lucide-react';
 import { Account, AccountType, JournalEntry, JournalEntryLine, PaymentMethod, PaymentTerm, PosSessionSummary } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
 import { Card, Button, Input, Select, Label, Modal, DateRangeFilter, Table, Thead, Tbody, Tr, Th, Td, PageHeader, ActionsDropdown, DropdownItem, Badge } from './ui';
@@ -577,20 +581,585 @@ export const LedgerPage: React.FC = () => {
     );
 };
 
+// --- PAGE 7: Payment Methods Management Page (/pos/keuangan/metode-bayar) ---
 export const PaymentMethodsPage: React.FC = () => {
+    const { state, dispatch } = useAppContext();
+    const { paymentMethods = [], accounts = [] } = state || {};
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [typeFilter, setTypeFilter] = useState<string>('All');
+
+    // Form fields
+    const [name, setName] = useState('Tunai - Kasir');
+    const [type, setType] = useState<PaymentMethod['type']>('cash');
+    const [linkedAccountId, setLinkedAccountId] = useState('');
+    const [adminFeeType, setAdminFeeType] = useState<'fixed' | 'percentage'>('percentage');
+    const [adminFeeValue, setAdminFeeValue] = useState<string>('0');
+
+    const openCreateModal = () => {
+        setEditingMethod(null);
+        setName('Tunai - Kasir');
+        setType('cash');
+        setLinkedAccountId('');
+        setAdminFeeType('percentage');
+        setAdminFeeValue('0');
+        setIsModalOpen(true);
+    };
+
+    const openEditModal = (method: PaymentMethod) => {
+        setEditingMethod(method);
+        setName(method.name);
+        setType(method.type);
+        setLinkedAccountId(method.linkedAccountId || '');
+        setAdminFeeType(method.adminFeeType || 'percentage');
+        setAdminFeeValue(method.adminFeeValue !== undefined ? method.adminFeeValue.toString() : '0');
+        setIsModalOpen(true);
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!name.trim()) {
+            alert("Harap isi nama metode pembayaran.");
+            return;
+        }
+
+        const feeVal = type === 'cash' ? 0 : Math.max(0, parseFloat(adminFeeValue) || 0);
+
+        if (editingMethod) {
+            dispatch({
+                type: 'settings/updatePaymentMethod',
+                payload: {
+                    ...editingMethod,
+                    name,
+                    type,
+                    linkedAccountId: linkedAccountId || undefined,
+                    adminFeeType: type === 'cash' ? undefined : adminFeeType,
+                    adminFeeValue: feeVal
+                }
+            });
+        } else {
+            dispatch({
+                type: 'settings/addPaymentMethod',
+                payload: {
+                    name,
+                    type,
+                    linkedAccountId: linkedAccountId || undefined,
+                    adminFeeType: type === 'cash' ? undefined : adminFeeType,
+                    adminFeeValue: feeVal
+                }
+            });
+        }
+        setIsModalOpen(false);
+    };
+
+    const handleDelete = (id: string, methodName: string) => {
+        if (window.confirm(`Hapus metode pembayaran "${methodName}"?`)) {
+            dispatch({ type: 'settings/deletePaymentMethod', payload: id });
+        }
+    };
+
+    const filteredMethods = useMemo(() => {
+        return paymentMethods.filter(pm => {
+            const matchesSearch = (pm.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                  (pm.id || '').toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesType = typeFilter === 'All' || pm.type === typeFilter;
+            return matchesSearch && matchesType;
+        });
+    }, [paymentMethods, searchTerm, typeFilter]);
+
+    // Metrics
+    const totalCount = paymentMethods.length;
+    const cashCount = paymentMethods.filter(pm => pm.type === 'cash').length;
+    const digitalCount = paymentMethods.filter(pm => pm.type === 'ewallet' || pm.type === 'bank_transfer' || pm.type === 'qris' || pm.type === 'edc' || pm.type === 'bank').length;
+    const otherCount = paymentMethods.filter(pm => pm.type === 'other' || pm.type === 'accounts_receivable').length;
+
+    const getTypeBadge = (pmType: PaymentMethod['type']) => {
+        switch (pmType) {
+            case 'cash': return <Badge variant="success">Tunai</Badge>;
+            case 'ewallet': return <Badge variant="info">E-Wallet</Badge>;
+            case 'bank_transfer': return <Badge variant="info">Transfer Bank</Badge>;
+            case 'qris': return <Badge variant="success">QRIS</Badge>;
+            case 'edc': return <Badge variant="warning">EDC</Badge>;
+            case 'bank': return <Badge variant="info">Bank / Digital</Badge>;
+            default: return <Badge variant="neutral">Lainnya</Badge>;
+        }
+    };
+
+    const formatAdminFee = (pm: PaymentMethod) => {
+        if (pm.type === 'cash' || !pm.adminFeeValue) return <span className="text-slate-400">Gratis (Rp0)</span>;
+        if (pm.adminFeeType === 'fixed') {
+            return <span className="font-bold text-amber-600 dark:text-amber-400">Rp{pm.adminFeeValue.toLocaleString('id-ID')} / transaksi</span>;
+        }
+        return <span className="font-bold text-indigo-600 dark:text-indigo-400">{pm.adminFeeValue}% / transaksi</span>;
+    };
+
     return (
-        <div className="p-8">
-            <h1 className="text-3xl font-bold">Metode Pembayaran</h1>
-            <p className="mt-4 text-gray-500">Fitur ini sedang dalam pengembangan.</p>
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
+            {/* Header Bar - Row 1 */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+                        <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+                            Pengaturan Metode Pembayaran
+                        </h1>
+                        <p className="text-xs text-slate-500 dark:text-zinc-400">
+                            Kelola opsi penerimaan kasir (Tunai, E-Wallet, Transfer, QRIS, EDC) dan biaya admin transaksi.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-center">
+                    {/* Compact Stat Badges */}
+                    <div className="hidden md:flex items-center gap-1.5 text-xs">
+                        <div className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-medium">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">Total:</span>
+                            <span className="font-bold font-mono">{totalCount}</span>
+                        </div>
+                        <div className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-medium">
+                            <span className="text-[10px] uppercase font-bold">Tunai:</span>
+                            <span className="font-bold font-mono">{cashCount}</span>
+                        </div>
+                        <div className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-medium">
+                            <span className="text-[10px] uppercase font-bold">Digital / QRIS / EDC:</span>
+                            <span className="font-bold font-mono">{digitalCount}</span>
+                        </div>
+                        <div className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-medium">
+                            <span className="text-[10px] uppercase font-bold">Lainnya:</span>
+                            <span className="font-bold font-mono">{otherCount}</span>
+                        </div>
+                    </div>
+
+                    <Button onClick={openCreateModal} className="gap-1.5 text-xs py-2 shadow-xs shrink-0 whitespace-nowrap">
+                        <Plus className="w-4 h-4" /> Tambah Metode Bayar
+                    </Button>
+                </div>
+            </div>
+
+            {/* Filter & Search Controls Bar - Row 2 */}
+            <div className="bg-white dark:bg-zinc-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+                <div className="flex-1 min-w-[200px]">
+                    <Input
+                        type="text"
+                        placeholder="Cari Nama / ID Metode Pembayaran..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="text-xs py-1.5"
+                    />
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <Select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="w-48 text-xs py-1.5">
+                        <option value="All">Semua Tipe Metode</option>
+                        <option value="cash">Tunai (Cash)</option>
+                        <option value="ewallet">E-Wallet</option>
+                        <option value="bank_transfer">Transfer Bank</option>
+                        <option value="qris">QRIS</option>
+                        <option value="edc">EDC</option>
+                        <option value="other">Lainnya</option>
+                    </Select>
+                </div>
+            </div>
+
+            {/* Table Container */}
+            <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col">
+                <div className="overflow-x-auto flex-1">
+                    <Table>
+                        <Thead>
+                            <Tr>
+                                <Th>ID</Th>
+                                <Th>Nama Metode Pembayaran</Th>
+                                <Th>Tipe Kategori</Th>
+                                <Th>Biaya Admin (per Transaksi)</Th>
+                                <Th>Dompet / Rekening</Th>
+                                <Th className="text-right">Aksi</Th>
+                            </Tr>
+                        </Thead>
+                        <Tbody>
+                            {filteredMethods.length === 0 ? (
+                                <Tr>
+                                    <Td colSpan={6} className="text-center py-12 text-slate-400">
+                                        Tidak ada metode pembayaran yang ditemukan.
+                                    </Td>
+                                </Tr>
+                            ) : (
+                                filteredMethods.map(pm => {
+                                    const linkedAcc = accounts.find(a => a.id === pm.linkedAccountId);
+                                    return (
+                                        <Tr key={pm.id}>
+                                            <Td className="font-mono text-xs text-slate-500 font-bold">{pm.id}</Td>
+                                            <Td className="font-extrabold text-slate-900 dark:text-white text-sm">
+                                                {pm.name}
+                                            </Td>
+                                            <Td>{getTypeBadge(pm.type)}</Td>
+                                            <Td className="font-mono text-xs">
+                                                {formatAdminFee(pm)}
+                                            </Td>
+                                            <Td className="font-mono text-xs text-slate-600 dark:text-slate-400">
+                                                {linkedAcc ? `${linkedAcc.name} (${linkedAcc.code})` : '- (Belum Dihubungkan)'}
+                                            </Td>
+                                            <Td className="text-right">
+                                                <div className="flex items-center justify-end gap-1.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openEditModal(pm)}
+                                                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer"
+                                                        title="Edit Metode"
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDelete(pm.id, pm.name)}
+                                                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                                                        title="Hapus Metode"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </Td>
+                                        </Tr>
+                                    );
+                                })
+                            )}
+                        </Tbody>
+                    </Table>
+                </div>
+            </div>
+
+            {/* Form Modal */}
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={editingMethod ? "Edit Metode Pembayaran" : "Tambah Metode Pembayaran Baru"}
+                footer={
+                    <div className="flex gap-2 justify-end">
+                        <Button type="button" onClick={() => setIsModalOpen(false)} variant="secondary">Batal</Button>
+                        <Button onClick={handleSubmit}>Simpan</Button>
+                    </div>
+                }
+            >
+                <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+                    <div>
+                        <Label>Nama Metode Pembayaran*</Label>
+                        <Input
+                            type="text"
+                            placeholder="Contoh: BCA Transfer, ShopeePay, QRIS Statis, EDC Mandiri..."
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <Label>Tipe Metode Pembayaran*</Label>
+                        <Select value={type} onChange={e => setType(e.target.value as any)} required>
+                            <option value="cash">Tunai (Cash)</option>
+                            <option value="ewallet">E-Wallet (GoPay, OVO, Dana, ShopeePay, dll)</option>
+                            <option value="bank_transfer">Transfer Bank (BCA, Mandiri, BRI, BNI, dll)</option>
+                            <option value="qris">QRIS (Statis / Dinamis)</option>
+                            <option value="edc">EDC (Kartu Debit / Kredit)</option>
+                            <option value="other">Lainnya</option>
+                        </Select>
+                    </div>
+
+                    {type !== 'cash' && (
+                        <div className="p-3 bg-slate-50 dark:bg-zinc-800/60 rounded-xl border border-slate-200 dark:border-zinc-700 space-y-3">
+                            <span className="font-bold text-slate-800 dark:text-zinc-200 block text-xs">
+                                Form Biaya Admin Transaksi
+                            </span>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <Label>Tipe Biaya Admin</Label>
+                                    <Select
+                                        value={adminFeeType}
+                                        onChange={e => setAdminFeeType(e.target.value as any)}
+                                    >
+                                        <option value="percentage">Persentase (%)</option>
+                                        <option value="fixed">Nominal Tetap (Rp)</option>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label>Nilai Biaya Admin</Label>
+                                    <Input
+                                        type="number"
+                                        step={adminFeeType === 'percentage' ? "0.01" : "1"}
+                                        min="0"
+                                        placeholder={adminFeeType === 'percentage' ? "Contoh: 0.7" : "Contoh: 2500"}
+                                        value={adminFeeValue}
+                                        onChange={e => setAdminFeeValue(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-[11px] text-slate-500">
+                                {adminFeeType === 'percentage' 
+                                    ? `Setiap transaksi dengan metode ini akan dikenakan biaya admin sebesar ${adminFeeValue || 0}%.`
+                                    : `Setiap transaksi dengan metode ini akan dikenakan biaya admin tetap Rp${(parseFloat(adminFeeValue) || 0).toLocaleString('id-ID')}.`}
+                            </p>
+                        </div>
+                    )}
+
+                    <div>
+                        <Label>Pilih Dompet / Rekening Kategori*</Label>
+                        <Select value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} required>
+                            <option value="">-- Pilih Dompet / Rekening Kas/Bank Terdaftar --</option>
+                            {accounts.filter(a => a.isCashAccount).map(acc => (
+                                <option key={acc.id} value={acc.id}>
+                                    {acc.name} ({acc.code}) - Saldo: Rp{acc.balance.toLocaleString('id-ID')}
+                                </option>
+                            ))}
+                        </Select>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };
 
+// --- PAGE 8: Payment Terms Management Page (/pos/keuangan/tempo-bayar) ---
 export const PaymentTermsPage: React.FC = () => {
+    const { state, dispatch } = useAppContext();
+    const { paymentTerms = [] } = state || {};
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingTerm, setEditingTerm] = useState<PaymentTerm | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Form fields
+    const [name, setName] = useState('');
+    const [days, setDays] = useState('0');
+
+    const openCreateModal = () => {
+        setEditingTerm(null);
+        setName('');
+        setDays('0');
+        setIsModalOpen(true);
+    };
+
+    const openEditModal = (term: PaymentTerm) => {
+        setEditingTerm(term);
+        setName(term.name);
+        setDays(term.days.toString());
+        setIsModalOpen(true);
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!name.trim()) {
+            alert("Harap isi nama syarat tempo pembayaran.");
+            return;
+        }
+
+        const validDays = Math.max(0, parseInt(days) || 0);
+
+        if (editingTerm) {
+            dispatch({
+                type: 'settings/updatePaymentTerm',
+                payload: {
+                    ...editingTerm,
+                    name,
+                    days: validDays
+                }
+            });
+        } else {
+            dispatch({
+                type: 'settings/addPaymentTerm',
+                payload: {
+                    name,
+                    days: validDays
+                }
+            });
+        }
+        setIsModalOpen(false);
+    };
+
+    const handleDelete = (id: string, termName: string) => {
+        if (window.confirm(`Hapus syarat tempo pembayaran "${termName}"?`)) {
+            dispatch({ type: 'settings/deletePaymentTerm', payload: id });
+        }
+    };
+
+    const filteredTerms = useMemo(() => {
+        return paymentTerms.filter(pt => {
+            return (pt.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                   (pt.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                   pt.days.toString().includes(searchTerm);
+        });
+    }, [paymentTerms, searchTerm]);
+
+    // Metrics
+    const totalCount = paymentTerms.length;
+    const codCount = paymentTerms.filter(pt => pt.days === 0).length;
+    const shortTermCount = paymentTerms.filter(pt => pt.days > 0 && pt.days <= 14).length;
+    const longTermCount = paymentTerms.filter(pt => pt.days > 14).length;
+
     return (
-        <div className="p-8">
-            <h1 className="text-3xl font-bold">Tempo Pembayaran</h1>
-            <p className="mt-4 text-gray-500">Fitur ini sedang dalam pengembangan.</p>
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
+            {/* Header Bar - Row 1 */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+                        <Clock className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+                            Pengaturan Syarat & Tempo Pembayaran
+                        </h1>
+                        <p className="text-xs text-slate-500 dark:text-zinc-400">
+                            Kelola syarat tempo kredit jatuh tempo (Net 7, Net 30, COD, dll).
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-center">
+                    {/* Compact Stat Badges */}
+                    <div className="hidden md:flex items-center gap-1.5 text-xs">
+                        <div className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-medium">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">Total:</span>
+                            <span className="font-bold font-mono">{totalCount}</span>
+                        </div>
+                        <div className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-medium">
+                            <span className="text-[10px] uppercase font-bold">COD (0h):</span>
+                            <span className="font-bold font-mono">{codCount}</span>
+                        </div>
+                        <div className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-medium">
+                            <span className="text-[10px] uppercase font-bold">&le;14 Hari:</span>
+                            <span className="font-bold font-mono">{shortTermCount}</span>
+                        </div>
+                        <div className="px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-medium">
+                            <span className="text-[10px] uppercase font-bold">&gt;14 Hari:</span>
+                            <span className="font-bold font-mono">{longTermCount}</span>
+                        </div>
+                    </div>
+
+                    <Button onClick={openCreateModal} className="gap-1.5 text-xs py-2 shadow-xs shrink-0 whitespace-nowrap">
+                        <Plus className="w-4 h-4" /> Tambah Tempo Pembayaran
+                    </Button>
+                </div>
+            </div>
+
+            {/* Filter & Search Controls Bar - Row 2 */}
+            <div className="bg-white dark:bg-zinc-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+                <div className="flex-1 min-w-[200px]">
+                    <Input
+                        type="text"
+                        placeholder="Cari Syarat Tempo (Net 30, COD...)..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="text-xs py-1.5"
+                    />
+                </div>
+            </div>
+
+            {/* Table Container */}
+            <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col">
+                <div className="overflow-x-auto flex-1">
+                    <Table>
+                        <Thead>
+                            <Tr>
+                                <Th>ID</Th>
+                                <Th>Nama Syarat Tempo</Th>
+                                <Th className="text-center">Durasi (Hari)</Th>
+                                <Th>Status Syarat</Th>
+                                <Th className="text-right">Aksi</Th>
+                            </Tr>
+                        </Thead>
+                        <Tbody>
+                            {filteredTerms.length === 0 ? (
+                                <Tr>
+                                    <Td colSpan={5} className="text-center py-12 text-slate-400">
+                                        Tidak ada syarat tempo pembayaran yang ditemukan.
+                                    </Td>
+                                </Tr>
+                            ) : (
+                                filteredTerms.map(pt => (
+                                    <Tr key={pt.id}>
+                                        <Td className="font-mono text-xs text-slate-500 font-bold">{pt.id}</Td>
+                                        <Td className="font-extrabold text-slate-900 dark:text-white text-sm">
+                                            {pt.name}
+                                        </Td>
+                                        <Td className="text-center font-mono font-black text-sm text-primary-600 dark:text-primary-400">
+                                            {pt.days} Hari
+                                        </Td>
+                                        <Td>
+                                            {pt.days === 0 ? (
+                                                <Badge variant="success">Bayar Langsung / COD</Badge>
+                                            ) : (
+                                                <Badge variant="info">Kredit / Jatuh Tempo {pt.days} Hari</Badge>
+                                            )}
+                                        </Td>
+                                        <Td className="text-right">
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openEditModal(pt)}
+                                                    className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer"
+                                                    title="Edit Tempo"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDelete(pt.id, pt.name)}
+                                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                                                    title="Hapus Tempo"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </Td>
+                                    </Tr>
+                                ))
+                            )}
+                        </Tbody>
+                    </Table>
+                </div>
+            </div>
+
+            {/* Form Modal */}
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title={editingTerm ? "Edit Syarat Tempo Pembayaran" : "Tambah Syarat Tempo Pembayaran Baru"}
+                footer={
+                    <div className="flex gap-2 justify-end">
+                        <Button type="button" onClick={() => setIsModalOpen(false)} variant="secondary">Batal</Button>
+                        <Button onClick={handleSubmit}>Simpan</Button>
+                    </div>
+                }
+            >
+                <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+                    <div>
+                        <Label>Nama Syarat Tempo Pembayaran*</Label>
+                        <Input
+                            type="text"
+                            placeholder="Contoh: Net 30 Hari, Langsung / COD, Net 14 Hari..."
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <Label>Jumlah Hari (Durasi Jatuh Tempo)*</Label>
+                        <Input
+                            type="number"
+                            placeholder="Masukkan jumlah hari (0 untuk tunai/COD)"
+                            value={days}
+                            onChange={e => setDays(e.target.value)}
+                            min={0}
+                            required
+                        />
+                        <span className="text-[10px] text-slate-400 mt-1 block">
+                            Isi 0 untuk pembayaran langsung/COD, atau isi jumlah hari (misal 7, 14, 30, 60) untuk jatuh tempo kredit.
+                        </span>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };

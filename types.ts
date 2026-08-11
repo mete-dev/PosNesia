@@ -289,7 +289,38 @@ export interface CashierStation {
     allowedPaymentMethodIds: string[];
 }
 
-export interface Product { id: string; name: string; barcode?: string; imageUrl?: string; price: number; cost: number; description?: string; categoryId?: string; principalId?: string; brandId?: string; vendorId?: string; isTaxable: boolean; pricingType: 'manual' | 'auto'; status: Status; reorderPoint?: number; }
+export interface ProductUnitTier {
+  id: string;
+  unitName: string; // e.g. Pack, Box, Karton
+  conversionQty: number; // e.g. 12 (1 Box = 12 Pcs)
+  price: number; // Harga jual per satuan tingkat ini
+  cost?: number;
+  barcode?: string;
+}
+
+export interface Product { 
+  id: string; 
+  name: string; 
+  barcode?: string; 
+  sku?: string;
+  unit?: string;
+  unitTiers?: ProductUnitTier[];
+  imageUrl?: string; 
+  price: number; 
+  cost: number; 
+  wholesalePrice?: number;
+  wholesaleMinQty?: number;
+  initialStock?: number;
+  description?: string; 
+  categoryId?: string; 
+  principalId?: string; 
+  brandId?: string; 
+  vendorId?: string; 
+  isTaxable: boolean; 
+  pricingType: 'manual' | 'auto'; 
+  status: Status; 
+  reorderPoint?: number; 
+}
 export interface ProductTypeLocation { id: string; productId: string; locationTypeId: string; locationType: 'branch' | 'warehouse'; shelfId?: string; shelvingNumber?: string; }
 export interface CustomerAddress { id: string; label: string; province: string; city: string; district: string; village: string; detail: string; isPrimary: boolean; }
 export interface Customer { id: string; name: string; email: string; phone: string; joinDate: string; pin: string; customerType: 'Perorangan' | 'Perusahaan'; depositBalance: number; points: number; status: Status; addresses: CustomerAddress[]; companyDetails?: { companyName: string; taxId: string; address: string; }; }
@@ -319,7 +350,14 @@ export interface TaxRate { id: string; name: string; rate: number; isDefault?: b
 export interface Shelf { id: string; code: string; description?: string; shelvingCount: number; locationType: 'warehouse' | 'branch'; locationId: string; }
 export interface ProductCategory { id: string; name: string; parentId?: string; }
 export interface Principal { id: string; name: string; contactPerson?: string; email?: string; phone?: string; status: Status; }
-export interface PaymentMethod { id: string; name: string; type: 'cash' | 'bank' | 'customer_deposit' | 'accounts_receivable' | 'other'; linkedAccountId?: string; }
+export interface PaymentMethod { 
+  id: string; 
+  name: string; 
+  type: 'cash' | 'ewallet' | 'bank_transfer' | 'qris' | 'edc' | 'other' | 'bank' | 'customer_deposit' | 'accounts_receivable'; 
+  linkedAccountId?: string; 
+  adminFeeType?: 'fixed' | 'percentage';
+  adminFeeValue?: number;
+}
 export interface PaymentTerm { id: string; name: string; days: number; }
 export interface PosSession { id: string; startTime: string; endTime?: string; staffId: string; cashierStationId: string; branchId: string; startCash: number; }
 export interface PosSessionSummary { id: string; sessionId: string; date: string; branchId: string; cashierStationId: string; cashierId: string; cashierName: string; expectedCash: number; countedCash: number; variance: number; paymentBreakdown: Record<string, number>; status: 'pending' | 'verified'; verifiedBy?: string; verifiedDate?: string; depositToAccountId?: string; }
@@ -335,8 +373,28 @@ export interface InventoryLevel { locationId: string; productId: string; quantit
 export interface StockTransfer { id: string; requestDate: string; fromWarehouseId: string; toBranchId: string; items: { productId: string, quantity: number }[]; status: 'Pending' | 'Received' | 'Cancelled'; }
 export interface VendorBill { id: string; purchaseOrderId: string; vendorId: string; vendorName: string; billDate: string; dueDate: string; amount: number; status: 'Unpaid' | 'Paid'; paymentDate?: string; paymentAccountId?: string; }
 export interface CustomerBill { id: string; sourceType: 'Sale' | 'ElearningEnrollment' | 'EventTicketSale' | 'Deposit' | 'RoomOrder' | 'RentalOrder'; sourceId: string; description: string; customerId: string; customerName: string; billDate: string; dueDate: string; amount: number; status: 'Unpaid' | 'Paid'; paidDate?: string; paymentAccountId?: string; virtualAccountNumber?: string; }
-export interface ReturnOrderItem { productId: string; productName: string; quantity: number; price: number; }
-export interface ReturnOrder { id: string; date: string; type: 'Sale' | 'Purchase'; originalOrderId: string; items: ReturnOrderItem[]; returnLocationId: string; reason?: string; status: 'Pending' | 'Completed'; }
+export interface ReturnOrderItem { 
+  productId: string; 
+  productName: string; 
+  quantity: number; 
+  price: number; 
+  originalQty?: number;
+  condition?: string;
+}
+export interface ReturnOrder { 
+  id: string; 
+  date: string; 
+  type: 'Sale' | 'Purchase'; 
+  originalOrderId: string; 
+  customerOrVendorName?: string;
+  vendorId?: string;
+  items: ReturnOrderItem[]; 
+  returnLocationId: string; 
+  reason?: string; 
+  refundAccountId?: string;
+  totalRefundAmount?: number;
+  status: 'Pending' | 'Completed' | 'Rejected'; 
+}
 export interface PayrollSettings { payrollDate: number; }
 export interface PointsSettings { pointToRupiahExchangeRate: number; minPurchaseForRedemption: number; maxRedemptionType: 'points' | 'percentage'; maxRedemptionValue: number; }
 export interface Lead { id: string; name: string; contact: string; source: string; assignedToId?: string; status: 'New' | 'Contacted' | 'Qualified' | 'Lost'; }

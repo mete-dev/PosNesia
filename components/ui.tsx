@@ -274,7 +274,8 @@ export const DateRangeFilter: React.FC<{
     onFilter: (startDate: string, endDate: string) => void;
     title?: string;
     defaultRange?: number; // in days
-}> = ({ onFilter, title = "Periode Laporan", defaultRange = 30 }) => {
+    className?: string;
+}> = ({ onFilter, title = "Periode", defaultRange = 30, className = "" }) => {
     const today = new Date();
     const pastDate = new Date();
     pastDate.setDate(today.getDate() - defaultRange);
@@ -292,28 +293,23 @@ export const DateRangeFilter: React.FC<{
     }, []);
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{title}</h3>
-            <div className="flex flex-wrap items-end gap-4">
-                <div>
-                    <Label htmlFor="start_date">Tanggal Mulai</Label>
-                    <Input
-                        type="date"
-                        id="start_date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                    />
-                </div>
-                <div>
-                    <Label htmlFor="end_date">Tanggal Selesai</Label>
-                    <Input
-                        type="date"
-                        id="end_date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                    />
-                </div>
-                <Button onClick={handleApplyFilter} className="self-end">
+        <div className={`bg-white dark:bg-zinc-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs flex flex-nowrap items-center justify-between gap-2.5 overflow-x-auto shrink-0 ${className}`}>
+            <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs font-bold text-slate-700 dark:text-zinc-300 whitespace-nowrap">{title}:</span>
+                <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="text-xs py-1 px-2 w-32 shrink-0"
+                />
+                <span className="text-xs text-slate-400 shrink-0">s/d</span>
+                <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="text-xs py-1 px-2 w-32 shrink-0"
+                />
+                <Button onClick={handleApplyFilter} className="text-xs py-1 px-2.5 shadow-xs shrink-0 whitespace-nowrap">
                     Buat Laporan
                 </Button>
             </div>

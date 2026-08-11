@@ -428,7 +428,7 @@ const AppContext = createContext<{ state: AppState; dispatch: React.Dispatch<Act
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [state, dispatch] = useReducer(appReducer, initialState, (defaultState) => {
         try {
-            const saved = localStorage.getItem('posnesia_local_state_v2');
+            const saved = localStorage.getItem('posnesia_local_state_v3') || localStorage.getItem('posnesia_local_state_v2');
             if (saved) {
                 const parsed = JSON.parse(saved);
                 
@@ -458,9 +458,38 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     r.id === 'admin' ? { ...r, permissions: allPages } : r
                 );
 
+                // Migrate accounts state: reset to updated defaultState accounts if journalEntries is empty or contains old mock balances
+                let accounts = parsed.accounts || defaultState.accounts;
+                const hasOldMockBalances = accounts.some((a: any) => 
+                    a.name === 'Kas di Tangan (Pusat)' || 
+                    a.id === '1220' ||
+                    (a.id === '1010' && (a.balance > 0 || a.name !== 'Kasir')) || 
+                    (a.id === '1020' && (a.balance > 0 || a.name !== 'Brankas'))
+                );
+                
+                const hasNoJournalEntries = !parsed.journalEntries || parsed.journalEntries.length === 0;
+
+                if (hasOldMockBalances || hasNoJournalEntries) {
+                    accounts = defaultState.accounts;
+                }
+
+                // Migrate & sanitize paymentMethods (retain ONLY 'Tunai - Kasir' by default plus user custom methods)
+                let paymentMethods = (parsed.paymentMethods || defaultState.paymentMethods).map((pm: any) => {
+                    if (pm.id === 'pm1' || pm.name === 'Tunai' || pm.name === 'Tunai - Kasir') {
+                        return { ...pm, id: 'pm1', name: 'Tunai - Kasir', type: 'cash', linkedAccountId: '1010' };
+                    }
+                    return pm;
+                }).filter((pm: any) => pm.type !== 'customer_deposit' && !['pm2', 'pm3', 'pm4', 'pm5'].includes(pm.id));
+
+                if (!paymentMethods || paymentMethods.length === 0) {
+                    paymentMethods = defaultState.paymentMethods;
+                }
+
                 return { 
                     ...defaultState, 
                     ...parsed,
+                    accounts,
+                    paymentMethods,
                     roles: mergedRoles,
                     companyInfo,
                     websiteSettings: { ...defaultState.websiteSettings, ...(parsed.websiteSettings || {}) }
@@ -474,7 +503,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     
     useEffect(() => {
         try {
-            localStorage.setItem('posnesia_local_state_v2', JSON.stringify(state));
+            localStorage.setItem('posnesia_local_state_v3', JSON.stringify(state));
         } catch (e) {
             console.error('Failed to save local state to localStorage', e);
         }
@@ -1197,6 +1226,124 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
         case 'inventory/deleteShelf': {
             return { ...state, shelves: state.shelves.filter(s => s.id !== action.payload) };
+        }
+        // --- RETURNS MANAGEMENT ---
+        case 'returns/create': {
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+            const count = state.returnOrders.length + 1;
+            const newId = `RET-${dateStr}-${String(count).padStart(3, '0')}`;
+
+            const newReturn: ReturnOrder = {
+                ...action.payload,
+                id: newId,
+                date: new Date().toISOString(),
+                status: 'Pending',
+            };
+            return {
+                ...state,
+                returnOrders: [newReturn, ...state.returnOrders]
+            };
+        }
+        case 'returns/process': {
+            const { returnId } = action.payload;
+            const targetReturn = state.returnOrders.find(r => r.id === returnId);
+            if (!targetReturn || targetReturn.status === 'Completed') return state;
+
+            const totalRefund = targetReturn.totalRefundAmount || targetReturn.items.reduce((s, i) => s + (i.price * i.quantity), 0);
+
+            // 1. Update Return status to Completed
+            const updatedReturnOrders = state.returnOrders.map(r => 
+                r.id === returnId ? { ...r, status: 'Completed' as const } : r
+            );
+
+            // 2. Adjust inventory levels for returned items at returnLocationId
+            let updatedInventoryLevels = [...state.inventoryLevels];
+            const newStockMovements = [...state.stockMovements];
+
+            targetReturn.items.forEach(item => {
+                const existingInvIdx = updatedInventoryLevels.findIndex(
+                    inv => inv.productId === item.productId && inv.locationId === targetReturn.returnLocationId
+                );
+
+                if (existingInvIdx > -1) {
+                    const change = targetReturn.type === 'Sale' ? item.quantity : -item.quantity;
+                    updatedInventoryLevels[existingInvIdx] = {
+                        ...updatedInventoryLevels[existingInvIdx],
+                        quantity: Math.max(0, updatedInventoryLevels[existingInvIdx].quantity + change)
+                    };
+                } else if (targetReturn.type === 'Sale') {
+                    updatedInventoryLevels.push({
+                        id: generateId('inv', updatedInventoryLevels.length + Math.random()),
+                        productId: item.productId,
+                        locationId: targetReturn.returnLocationId,
+                        locationType: 'branch',
+                        quantity: item.quantity
+                    });
+                }
+
+                // Add Stock Movement log
+                newStockMovements.push({
+                    id: generateId('sm', newStockMovements.length + Math.random()),
+                    date: new Date().toISOString(),
+                    productId: item.productId,
+                    locationId: targetReturn.returnLocationId,
+                    type: targetReturn.type === 'Sale' ? 'Return_In' as const : 'Return_Out' as const,
+                    quantityChange: targetReturn.type === 'Sale' ? item.quantity : -item.quantity,
+                    referenceId: targetReturn.id,
+                    staffId: state.currentUser?.id || 'staff-1',
+                });
+            });
+
+            // 3. Financial Journal & Automatic Refund / Bill Deduction
+            let updatedVendorBills = [...state.vendorBills];
+            let updatedAccounts = [...state.accounts];
+
+            if (targetReturn.type === 'Sale') {
+                // Retur Penjualan: Potong dari refundAccountId pilihan user (atau default 1010 Kasir)
+                const targetAccId = targetReturn.refundAccountId || '1010';
+                const cashAccountIdx = updatedAccounts.findIndex(a => a.id === targetAccId || a.code === targetAccId || a.isCashAccount);
+                if (cashAccountIdx > -1) {
+                    updatedAccounts[cashAccountIdx] = {
+                        ...updatedAccounts[cashAccountIdx],
+                        balance: Math.max(0, updatedAccounts[cashAccountIdx].balance - totalRefund)
+                    };
+                }
+            } else {
+                // Retur Pembelian: Otomatis memotongkan ke Hutang Usaha / Vendor Bills
+                const vendorId = targetReturn.vendorId;
+                if (vendorId) {
+                    let remainingToDeduct = totalRefund;
+                    updatedVendorBills = updatedVendorBills.map(bill => {
+                        if (bill.vendorId === vendorId && bill.status === 'Unpaid' && remainingToDeduct > 0) {
+                            if (bill.amount <= remainingToDeduct) {
+                                remainingToDeduct -= bill.amount;
+                                return { ...bill, amount: 0, status: 'Paid' as const };
+                            } else {
+                                const newAmount = bill.amount - remainingToDeduct;
+                                remainingToDeduct = 0;
+                                return { ...bill, amount: newAmount };
+                            }
+                        }
+                        return bill;
+                    });
+                }
+            }
+
+            return {
+                ...state,
+                returnOrders: updatedReturnOrders,
+                inventoryLevels: updatedInventoryLevels,
+                stockMovements: newStockMovements,
+                vendorBills: updatedVendorBills,
+                accounts: updatedAccounts
+            };
+        }
+        case 'returns/delete': {
+            return {
+                ...state,
+                returnOrders: state.returnOrders.filter(r => r.id !== action.payload)
+            };
         }
         default: return state;
     }

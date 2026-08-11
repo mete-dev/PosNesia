@@ -23,6 +23,7 @@ import {
   Barcode, 
   Clock, 
   Camera,
+  RotateCcw,
   MapPin, 
   ChevronRight, 
   HelpCircle,
@@ -492,6 +493,7 @@ export const POSPage: React.FC = () => {
     const [isAddCustomerModalOpen, setAddCustomerModalOpen] = useState(false);
     const [isCustomerBillModalOpen, setCustomerBillModalOpen] = useState(false);
     const [isTransactionHistoryModalOpen, setTransactionHistoryModalOpen] = useState(false);
+    const [isPosReturnModalOpen, setPosReturnModalOpen] = useState(false);
     const [isCameraScannerOpen, setCameraScannerOpen] = useState(false);
     const [cameraError, setCameraError] = useState('');
     const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -1213,6 +1215,12 @@ export const POSPage: React.FC = () => {
                     <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0"><Clock className="w-3.5 h-3.5" /></div>
                     <span className="hidden lg:inline">Riwayat</span>
                   </button>
+                  <button type="button" onClick={() => setPosReturnModalOpen(true)}
+                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 text-orange-700 dark:text-orange-300 font-semibold text-xs border border-orange-200/70 dark:border-orange-800/40 transition-all active:scale-95 shrink-0"
+                    title="Retur Penjualan Kasir">
+                    <div className="w-6 h-6 rounded-lg bg-orange-500 text-white flex items-center justify-center shrink-0"><RotateCcw className="w-3.5 h-3.5" /></div>
+                    <span className="hidden lg:inline">Retur Penjualan</span>
+                  </button>
                 </div>
 
                 {/* RIGHT — System Controls */}
@@ -1250,6 +1258,11 @@ export const POSPage: React.FC = () => {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-semibold text-xs border border-emerald-200/70 dark:border-emerald-800/40 transition-all active:scale-95 shrink-0">
                 <div className="w-6 h-6 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0"><UserPlus className="w-3.5 h-3.5" /></div>
                 <span className="hidden sm:inline">+ Pelanggan</span>
+              </button>
+              <button type="button" onClick={() => setPosReturnModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 text-orange-700 dark:text-orange-300 font-semibold text-xs border border-orange-200/70 dark:border-orange-800/40 transition-all active:scale-95 shrink-0">
+                <div className="w-6 h-6 rounded-lg bg-orange-500 text-white flex items-center justify-center shrink-0"><RotateCcw className="w-3.5 h-3.5" /></div>
+                <span className="hidden sm:inline">Retur Penjualan</span>
               </button>
               <button type="button" onClick={() => setCustomerBillModalOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 text-purple-700 dark:text-purple-300 font-semibold text-xs border border-purple-200/70 dark:border-purple-800/40 transition-all active:scale-95 shrink-0">
@@ -2000,6 +2013,11 @@ export const POSPage: React.FC = () => {
                 }}
             />
 
+            <PosReturnModal
+                isOpen={isPosReturnModalOpen}
+                onClose={() => setPosReturnModalOpen(false)}
+            />
+
             {/* Camera Barcode Scanner Modal */}
             <Modal
                 isOpen={isCameraScannerOpen}
@@ -2034,5 +2052,197 @@ export const POSPage: React.FC = () => {
             </Modal>
 
         </div>
+    );
+};
+
+// --- POS Retur Penjualan Kasir Modal ---
+const PosReturnModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+}> = ({ isOpen, onClose }) => {
+    const { state, dispatch } = useAppContext();
+    const { sales = [], currentUser, branches = [] } = state || {};
+
+    const [selectedSaleId, setSelectedSaleId] = useState('');
+    const [itemSelections, setItemSelections] = useState<{
+        selected: boolean;
+        productId: string;
+        productName: string;
+        originalQty: number;
+        returnQty: number;
+        price: number;
+        condition: string;
+    }[]>([]);
+    const [reason, setReason] = useState('');
+
+    const targetBranchId = currentUser?.branchId || branches[0]?.id || 'CAB-JPSTNH01';
+
+    // Recent Sales
+    const recentSales = useMemo(() => {
+        return sales.slice(0, 30);
+    }, [sales]);
+
+    const handleSelectSale = (saleId: string) => {
+        setSelectedSaleId(saleId);
+        const sale = sales.find(s => s.id === saleId);
+        if (sale) {
+            setItemSelections(sale.items.map(item => ({
+                selected: true,
+                productId: item.productId,
+                productName: item.productName,
+                originalQty: item.quantity,
+                returnQty: item.quantity,
+                price: item.price,
+                condition: 'Barang Rusak / Defect'
+            })));
+        } else {
+            setItemSelections([]);
+        }
+    };
+
+    const totalRefund = useMemo(() => {
+        return itemSelections
+            .filter(item => item.selected)
+            .reduce((sum, item) => sum + (item.returnQty * item.price), 0);
+    }, [itemSelections]);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const selectedItems = itemSelections.filter(item => item.selected);
+        if (!selectedSaleId || selectedItems.length === 0) {
+            alert("Harap pilih Transaksi Penjualan dan minimal 1 item untuk diretur.");
+            return;
+        }
+
+        const sale = sales.find(s => s.id === selectedSaleId);
+        const count = (state.returnOrders || []).length + 1;
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+        const returId = `RET-${dateStr}-${String(count).padStart(3, '0')}`;
+
+        const returnPayload = {
+            type: 'Sale' as const,
+            originalOrderId: selectedSaleId,
+            customerOrVendorName: sale?.customerName || 'Pelanggan POS',
+            items: selectedItems.map(item => ({
+                productId: item.productId,
+                productName: item.productName,
+                quantity: item.returnQty,
+                originalQty: item.originalQty,
+                price: item.price,
+                condition: item.condition
+            })),
+            returnLocationId: targetBranchId,
+            refundAccountId: '1010', // Otomatis Tunai Kasir
+            totalRefundAmount: totalRefund,
+            reason
+        };
+
+        // 1. Create Return Order
+        dispatch({ type: 'returns/create', payload: returnPayload });
+        // 2. Instantly process return in POS session
+        dispatch({ type: 'returns/process', payload: { returnId: returId } });
+
+        alert(`Retur Penjualan #${returId} berhasil diproses! Stok dikembalikan ke Toko & Rp${totalRefund.toLocaleString('id-ID')} dipotong dari Kasir Tunai.`);
+        onClose();
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="🔄 Retur Penjualan (POS Kasir)"
+            maxWidth="max-w-3xl"
+            footer={
+                <div className="flex justify-between items-center w-full">
+                    <div className="text-left">
+                        <span className="text-xs text-zinc-500 block">Total Refund Tunai Kasir:</span>
+                        <span className="text-lg font-black text-rose-600 dark:text-rose-400 font-mono">
+                            Rp{totalRefund.toLocaleString('id-ID')}
+                        </span>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button type="button" onClick={onClose} variant="secondary">Batal</Button>
+                        <Button onClick={handleSubmit}>Proses Retur Kasir</Button>
+                    </div>
+                </div>
+            }
+        >
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-900/60 text-xs text-emerald-800 dark:text-emerald-300 font-semibold">
+                    ✓ Retur di POS Kasir otomatis mengembalikan stok ke Toko & mengembalikan uang Tunai dari Kasir.
+                </div>
+
+                <div>
+                    <Label>Pilih Transaksi Penjualan Asli*</Label>
+                    <Select value={selectedSaleId} onChange={e => handleSelectSale(e.target.value)} required>
+                        <option value="">-- Pilih Transaksi Penjualan --</option>
+                        {recentSales.map(s => (
+                            <option key={s.id} value={s.id}>
+                                #{s.id} - {s.customerName || 'Pelanggan'} (Rp{s.grandTotal.toLocaleString('id-ID')}) - {new Date(s.date).toLocaleTimeString('id-ID')}
+                            </option>
+                        ))}
+                    </Select>
+                </div>
+
+                {itemSelections.length > 0 && (
+                    <div className="border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 bg-zinc-50/50 dark:bg-zinc-800/40 space-y-2">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">Pilih Item & Jumlah Barang Diretur</Label>
+                        <div className="max-h-48 overflow-y-auto space-y-2">
+                            {itemSelections.map(item => (
+                                <div key={item.productId} className="flex items-center justify-between p-2.5 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs">
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={item.selected}
+                                            onChange={e => {
+                                                const checked = e.target.checked;
+                                                setItemSelections(prev => prev.map(i => i.productId === item.productId ? { ...i, selected: checked } : i));
+                                            }}
+                                            className="rounded text-primary-600 cursor-pointer"
+                                        />
+                                        <div>
+                                            <p className="font-bold text-zinc-900 dark:text-white">{item.productName}</p>
+                                            <p className="text-[10px] text-zinc-500 font-mono">Rp{item.price.toLocaleString('id-ID')} / unit</p>
+                                        </div>
+                                    </div>
+                                    {item.selected && (
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-20">
+                                                <Input 
+                                                    type="number" 
+                                                    value={item.returnQty} 
+                                                    onChange={e => {
+                                                        const q = Math.max(1, Math.min(Number(e.target.value), item.originalQty));
+                                                        setItemSelections(prev => prev.map(i => i.productId === item.productId ? { ...i, returnQty: q } : i));
+                                                    }} 
+                                                    min={1} 
+                                                    max={item.originalQty} 
+                                                />
+                                            </div>
+                                            <span className="font-bold font-mono text-rose-600 dark:text-rose-400">
+                                                Rp{(item.returnQty * item.price).toLocaleString('id-ID')}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <div>
+                    <Label>Alasan Retur Kasir</Label>
+                    <Input 
+                        type="text" 
+                        placeholder="Contoh: Barang cacat, ditukar pelanggan..." 
+                        value={reason} 
+                        onChange={e => setReason(e.target.value)} 
+                    />
+                </div>
+            </form>
+        </Modal>
     );
 };

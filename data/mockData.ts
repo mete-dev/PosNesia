@@ -148,26 +148,50 @@ export const initialCapitalTransactions: CapitalTransaction[] = [];
 export const initialProfitDistributions: ProfitDistribution[] = [];
 export const initialAttendance: AttendanceRecord[] = [];
 export const initialAccounts: Account[] = [
-    { id: '1010', name: 'Kas di Tangan (Pusat)', type: AccountType.Asset, balance: 10000000, isCashAccount: true, cashAccountType: 'Tunai' },
-    { id: '1020', name: 'Bank BCA', type: AccountType.Asset, balance: 50000000, isCashAccount: true, cashAccountType: 'Rekening' },
+    // ASET (ASSET) - Kode 1xxx
+    { id: '1010', name: 'Kasir', type: AccountType.Asset, balance: 0, isCashAccount: true, cashAccountType: 'Tunai' },
+    { id: '1020', name: 'Brankas', type: AccountType.Asset, balance: 0, isCashAccount: true, cashAccountType: 'Tunai' },
     { id: '1110', name: 'Piutang Usaha', type: AccountType.Asset, balance: 0 },
+    { id: '1120', name: 'Cadangan Kerugian Piutang', type: AccountType.Asset, balance: 0 },
     { id: '1210', name: 'Persediaan Barang Dagang', type: AccountType.Asset, balance: 0 },
-    { id: '1220', name: 'PPN Masukan', type: AccountType.Asset, balance: 0 },
+    { id: '1310', name: 'Perlengkapan Toko', type: AccountType.Asset, balance: 0 },
+    { id: '1320', name: 'Sewa Dibayar di Muka', type: AccountType.Asset, balance: 0 },
     { id: '1510', name: 'Aset Tetap - Peralatan Toko', type: AccountType.Asset, balance: 0 },
-    { id: '1520', name: 'Aset Tetap - Kendaraan', type: AccountType.Asset, balance: 0 },
+    { id: '1511', name: 'Akumulasi Penyusutan Peralatan', type: AccountType.Asset, balance: 0 },
+    { id: '1520', name: 'Aset Tetap - Kendaraan Operasional', type: AccountType.Asset, balance: 0 },
+    { id: '1521', name: 'Akumulasi Penyusutan Kendaraan', type: AccountType.Asset, balance: 0 },
+    { id: '1530', name: 'Aset Tetap - Bangunan Toko', type: AccountType.Asset, balance: 0 },
+
+    // LIABILITAS (LIABILITY / UTANG) - Kode 2xxx
     { id: '2010', name: 'Utang Usaha', type: AccountType.Liability, balance: 0 },
-    { id: '2020', name: 'Utang Gaji', type: AccountType.Liability, balance: 0 },
-    { id: '2110', name: 'Simpanan Pelanggan', type: AccountType.Liability, balance: 0 },
+    { id: '2020', name: 'Utang Gaji & Upah', type: AccountType.Liability, balance: 0 },
+    { id: '2030', name: 'Utang Beban Operasional', type: AccountType.Liability, balance: 0 },
+    { id: '2110', name: 'Simpanan Pelanggan (Deposit)', type: AccountType.Liability, balance: 0 },
     { id: '2210', name: 'PPN Keluaran', type: AccountType.Liability, balance: 0 },
-    { id: '3010', name: 'Modal Disetor', type: AccountType.Equity, balance: -60000000 },
-    { id: '3020', name: 'Laba Ditahan', type: AccountType.Equity, balance: 0 },
-    { id: '4010', name: 'Pendapatan Penjualan', type: AccountType.Revenue, balance: 0 },
+    { id: '2310', name: 'Utang Bank / Pinjaman Usaha', type: AccountType.Liability, balance: 0 },
+
+    // EKUITAS (EQUITY / MODAL) - Kode 3xxx
+    { id: '3010', name: 'Modal Disetor / Modal Pemilik', type: AccountType.Equity, balance: 0 },
+    { id: '3020', name: 'Prive Pemilik', type: AccountType.Equity, balance: 0 },
+    { id: '3030', name: 'Laba Ditahan', type: AccountType.Equity, balance: 0 },
+
+    // PENDAPATAN (REVENUE) - Kode 4xxx
+    { id: '4010', name: 'Pendapatan Penjualan Barang', type: AccountType.Revenue, balance: 0 },
+    { id: '4011', name: 'Diskon Penjualan', type: AccountType.Revenue, balance: 0 },
+    { id: '4012', name: 'Retur Penjualan', type: AccountType.Revenue, balance: 0 },
     { id: '4020', name: 'Keuntungan Penjualan Aset', type: AccountType.Revenue, balance: 0 },
-    { id: '4030', name: 'Pendapatan Ongkos Kirim', type: AccountType.Revenue, balance: 0 },
-    { id: '4050', name: 'Pendapatan Sewa', type: AccountType.Revenue, balance: 0 },
-    { id: '5010', name: 'Beban Pokok Penjualan', type: AccountType.Expense, balance: 0 },
-    { id: '5020', name: 'Beban Gaji', type: AccountType.Expense, balance: 0 },
-    { id: '5030', name: 'Kerugian Penjualan Aset', type: AccountType.Expense, balance: 0 }
+    { id: '4030', name: 'Pendapatan Ongkos Kirim / Jasa', type: AccountType.Revenue, balance: 0 },
+    { id: '4040', name: 'Pendapatan Lain-lain', type: AccountType.Revenue, balance: 0 },
+
+    // BEBAN (EXPENSE / BIAYA) - Kode 5xxx
+    { id: '5010', name: 'Beban Pokok Penjualan (HPP)', type: AccountType.Expense, balance: 0 },
+    { id: '5020', name: 'Beban Gaji & Bonus Staf', type: AccountType.Expense, balance: 0 },
+    { id: '5030', name: 'Beban Sewa Tempat / Toko', type: AccountType.Expense, balance: 0 },
+    { id: '5040', name: 'Beban Listrik, Air & Internet', type: AccountType.Expense, balance: 0 },
+    { id: '5050', name: 'Beban Pemasaran & Promo', type: AccountType.Expense, balance: 0 },
+    { id: '5060', name: 'Beban Penyusutan Aset Tetap', type: AccountType.Expense, balance: 0 },
+    { id: '5070', name: 'Kerugian Penjualan Aset', type: AccountType.Expense, balance: 0 },
+    { id: '5090', name: 'Beban Operasional Lainnya', type: AccountType.Expense, balance: 0 }
 ];
 export const initialJournalEntries: JournalEntry[] = [];
 export const initialTaxRates: TaxRate[] = [{ id: 'tax1', name: 'PPN', rate: 0.11, isDefault: true }];
@@ -176,11 +200,7 @@ export const initialProductCategories: ProductCategory[] = [];
 export const initialPrincipals: Principal[] = [];
 export const initialBrands: Brand[] = [];
 export const initialPaymentMethods: PaymentMethod[] = [
-    { id: 'pm1', name: 'Tunai', type: 'cash', linkedAccountId: '1010' },
-    { id: 'pm2', name: 'BCA Debit', type: 'bank', linkedAccountId: '1020' },
-    { id: 'pm3', name: 'QRIS', type: 'bank', linkedAccountId: '1020' },
-    { id: 'pm4', name: 'Saldo Deposit', type: 'customer_deposit', linkedAccountId: '2110' },
-    { id: 'pm5', name: 'Hutang (A/R)', type: 'accounts_receivable', linkedAccountId: '1110' },
+    { id: 'pm1', name: 'Tunai - Kasir', type: 'cash', linkedAccountId: '1010' }
 ];
 export const initialPaymentTerms: PaymentTerm[] = [{ id: 'pt1', name: 'Langsung', days: 0 }];
 export const initialEcommerceSettings: EcommerceSettings = { deliveryFeeStandard: 10000, deliveryFeeExpress: 25000, minTransactionForDelivery: 50000, maxDeliveryDistanceKm: 15 };
@@ -200,7 +220,7 @@ export const initialReportLayoutSettings: ReportLayoutSettings = {
     printCopies: 1
 };
 export const initialPosSessionSummaries: PosSessionSummary[] = [];
-export const initialBranches: Branch[] = [{ id: 'CAB-JPSTNH01', name: 'Toko Pusat Tanah Abang', branchTypeId: 'bt1', provinceId: 'prov1', cityId: 'city1', districtId: 'dist2', villageId: 'vill1', detail: 'Blok A Lt. 1 No. 1', safeAccountId: '1030' }];
+export const initialBranches: Branch[] = [{ id: 'CAB-JPSTNH01', name: 'Toko Pusat Tanah Abang', branchTypeId: 'bt1', provinceId: 'prov1', cityId: 'city1', districtId: 'dist2', villageId: 'vill1', detail: 'Blok A Lt. 1 No. 1', safeAccountId: '1020' }];
 export const initialCashierStations: CashierStation[] = [
     { id: 'station-1', name: 'Kasir 1', branchId: 'CAB-JPSTNH01', cashInHandAccountId: '1010', allowedPaymentMethodIds: ['pm1', 'pm2', 'pm3'] }
 ];
