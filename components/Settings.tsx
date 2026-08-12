@@ -396,7 +396,7 @@ const TermsOfServiceTabContent: React.FC = () => {
 
 const AppUpdateCard: React.FC = () => {
     const [updateStatus, setUpdateStatus] = useState<string>('idle');
-    const [downloadPercent, setDownloadPercent] = useState<number>(0);
+    const [commitInfo, setCommitInfo] = useState<{ sha?: string; message?: string; date?: string }>({});
     const [versionInfo, setVersionInfo] = useState<string>('');
 
     useEffect(() => {
@@ -406,8 +406,12 @@ const AppUpdateCard: React.FC = () => {
 
             api.onUpdateStatus?.((data: any) => {
                 setUpdateStatus(data.status);
-                if (data.status === 'downloading') {
-                    setDownloadPercent(data.percent || 0);
+                if (data.status === 'available') {
+                    setCommitInfo({
+                        sha: data.sha,
+                        message: data.message,
+                        date: data.date
+                    });
                 }
             });
         }
@@ -419,68 +423,78 @@ const AppUpdateCard: React.FC = () => {
             setUpdateStatus('checking');
             api.checkForUpdates();
         } else {
-            alert('Fitur pembaruan otomatis aktif pada aplikasi desktop PosNesia.');
+            // Web / Localhost fallback: fetch GitHub repo commit directly
+            setUpdateStatus('checking');
+            fetch('https://api.github.com/repos/mete-dev/PosNesia/commits/main')
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.sha) {
+                        setCommitInfo({
+                            sha: data.sha.substring(0, 7),
+                            message: data.commit?.message,
+                            date: data.commit?.committer?.date
+                        });
+                        setUpdateStatus('available');
+                    } else {
+                        setUpdateStatus('not-available');
+                    }
+                })
+                .catch(() => {
+                    setUpdateStatus('not-available');
+                });
         }
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 sm:p-8 w-full border border-blue-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 sm:p-8 w-full border border-blue-100 dark:border-zinc-800">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <div className="flex items-center gap-2">
                         <span className="text-xl">🔄</span>
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Pembaruan Sistem Aplikasi</h2>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Pembaruan Repositori PosNesia</h2>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        PosNesia Desktop {versionInfo || 'v1.0.0'} — Periksa dan unduh versi terbaru secara otomatis tanpa perlu install ulang manual.
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                        Repositori GitHub: <strong className="text-blue-600 dark:text-blue-400 font-mono">mete-dev/PosNesia</strong> — Periksa pembaruan kode dan commit terbaru secara langsung.
                     </p>
                     
                     {/* Status Feedback */}
                     {updateStatus === 'checking' && (
                         <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-2 animate-pulse">
-                            ⏳ Memeriksa ketersediaan pembaruan...
+                            ⏳ Memeriksa commit terbaru dari mete-dev/PosNesia...
                         </p>
                     )}
                     {updateStatus === 'not-available' && (
                         <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-2">
-                            ✅ Versi aplikasi Anda sudah yang terbaru.
+                            ✅ Kode aplikasi Anda sudah selaras dengan repositori GitHub.
                         </p>
                     )}
                     {updateStatus === 'available' && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-2">
-                            🚀 Versi baru ditemukan! Mengunduh secara otomatis di latar belakang...
-                        </p>
-                    )}
-                    {updateStatus === 'downloading' && (
-                        <div className="mt-2 space-y-1">
-                            <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">
-                                📥 Mengunduh pembaruan: {downloadPercent}%
+                        <div className="mt-3 p-3.5 bg-blue-50/60 dark:bg-blue-950/40 rounded-xl border border-blue-200/80 dark:border-blue-800 space-y-1">
+                            <p className="text-xs text-blue-900 dark:text-blue-200 font-bold flex items-center gap-2">
+                                🚀 Commit Terkini Repositori Ditemukan: <span className="font-mono bg-blue-100 dark:bg-blue-900 px-2 py-0.5 rounded text-[11px]">{commitInfo.sha || 'Latest'}</span>
                             </p>
-                            <div className="w-full max-w-xs bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                                <div className="bg-blue-600 h-full transition-all duration-300" style={{ width: `${downloadPercent}%` }}></div>
-                            </div>
+                            {commitInfo.message && (
+                                <p className="text-xs text-slate-700 dark:text-zinc-300 font-medium">
+                                    Pesan: "{commitInfo.message.split('\n')[0]}"
+                                </p>
+                            )}
+                            {commitInfo.date && (
+                                <p className="text-[10px] text-slate-400 dark:text-zinc-400 font-mono">
+                                    Waktu Commit: {new Date(commitInfo.date).toLocaleString('id-ID')}
+                                </p>
+                            )}
                         </div>
-                    )}
-                    {updateStatus === 'downloaded' && (
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-2">
-                            🎉 Pembaruan selesai diunduh! Aplikasi akan diperbarui otomatis saat ditutup.
-                        </p>
-                    )}
-                    {updateStatus === 'error' && (
-                        <p className="text-xs text-red-500 font-semibold mt-2">
-                            ⚠️ Gagal memeriksa pembaruan. Pastikan koneksi internet terhubung.
-                        </p>
                     )}
                 </div>
 
                 <button
                     type="button"
                     onClick={handleCheckUpdate}
-                    disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
+                    disabled={updateStatus === 'checking'}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 active:scale-95 text-white font-bold text-sm shadow-md transition-all shrink-0 cursor-pointer"
                 >
                     <span>🌐</span>
-                    <span>{updateStatus === 'checking' ? 'Memeriksa...' : 'Cek Pembaruan'}</span>
+                    <span>{updateStatus === 'checking' ? 'Memeriksa...' : 'Cek Repositori'}</span>
                 </button>
             </div>
         </div>

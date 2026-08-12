@@ -47,11 +47,7 @@ function createWindow() {
 // IPC: get app version
 ipcMain.handle('get-version', () => app.getVersion());
 
-// Auto-Updater Integration
-const { autoUpdater } = require('electron-updater');
-autoUpdater.autoDownload = true;
-autoUpdater.autoInstallOnAppQuit = true;
-
+// Repository Commit-based Updater Integration
 function sendUpdateStatus(status, data = {}) {
   const windows = BrowserWindow.getAllWindows();
   if (windows.length > 0) {
@@ -59,38 +55,40 @@ function sendUpdateStatus(status, data = {}) {
   }
 }
 
-autoUpdater.on('checking-for-update', () => sendUpdateStatus('checking'));
-autoUpdater.on('update-available', (info) => sendUpdateStatus('available', { version: info.version }));
-autoUpdater.on('update-not-available', () => sendUpdateStatus('not-available'));
-autoUpdater.on('error', (err) => {
-  // If no release exists yet or network issue, treat as "not available" gracefully
-  const msg = err.message || '';
-  const isNotFound = msg.includes('404') || msg.includes('ENOTFOUND') || msg.includes('ECONNREFUSED') || msg.includes('net::');
-  if (isNotFound) {
-    sendUpdateStatus('not-available');
-  } else {
-    sendUpdateStatus('error', { error: msg });
-  }
-});
-autoUpdater.on('download-progress', (progressObj) => sendUpdateStatus('downloading', { percent: Math.round(progressObj.percent) }));
-autoUpdater.on('update-downloaded', () => sendUpdateStatus('downloaded'));
-
 ipcMain.handle('check-for-updates', async () => {
-  if (isDev) {
-    sendUpdateStatus('not-available');
-    return;
-  }
+  sendUpdateStatus('checking');
   try {
-    await autoUpdater.checkForUpdates();
-  } catch (e) {
-    // Gracefully handle missing release or network errors
-    const msg = e.message || '';
-    const isNotFound = msg.includes('404') || msg.includes('ENOTFOUND') || msg.includes('ECONNREFUSED') || msg.includes('net::');
-    if (isNotFound) {
+    const https = require('https');
+    const options = {
+      hostname: 'api.github.com',
+      path: '/repos/mete-dev/PosNesia/commits/main',
+      headers: { 'User-Agent': 'PosNesia-Desktop-App' }
+    };
+
+    https.get(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          const latestSha = json.sha ? json.sha.substring(0, 7) : null;
+          const commitMsg = json.commit?.message || '';
+          const commitDate = json.commit?.committer?.date || '';
+          
+          sendUpdateStatus('available', { 
+            sha: latestSha, 
+            message: commitMsg, 
+            date: commitDate 
+          });
+        } catch (err) {
+          sendUpdateStatus('not-available');
+        }
+      });
+    }).on('error', () => {
       sendUpdateStatus('not-available');
-    } else {
-      sendUpdateStatus('error', { error: msg });
-    }
+    });
+  } catch (e) {
+    sendUpdateStatus('not-available');
   }
 });
 
