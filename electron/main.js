@@ -94,7 +94,7 @@ ipcMain.handle('check-for-updates', async () => {
 
 // IPC: quit and install update immediately
 ipcMain.handle('quit-and-install', () => {
-  autoUpdater.quitAndInstall(false, true);
+  autoUpdater.quitAndInstall(true, true);
 });
 
 // IPC: open download page in browser
