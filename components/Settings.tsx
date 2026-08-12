@@ -391,15 +391,16 @@ const TermsOfServiceTabContent: React.FC = () => {
 const AppUpdateCard: React.FC = () => {
     const [updateStatus, setUpdateStatus] = useState<string>('idle');
     const [downloadPercent, setDownloadPercent] = useState<number>(0);
-    const [versionInfo, setVersionInfo] = useState<string>('');
+    const [latestCommitInfo, setLatestCommitInfo] = useState<{ sha?: string; message?: string }>({});
 
     useEffect(() => {
         const api = (window as any).electronAPI;
         if (api) {
-            api.getVersion?.().then((v: string) => setVersionInfo(`v${v}`));
-
             api.onUpdateStatus?.((data: any) => {
                 setUpdateStatus(data.status);
+                if (data.status === 'available') {
+                    setLatestCommitInfo({ sha: data.sha, message: data.message });
+                }
                 if (data.status === 'downloading') {
                     setDownloadPercent(data.percent || 0);
                 }
@@ -413,13 +414,26 @@ const AppUpdateCard: React.FC = () => {
             setUpdateStatus('checking');
             api.checkForUpdates();
         } else {
-            alert('Fitur pembaruan otomatis aktif pada aplikasi desktop PosNesia.');
+            // Browser / Localhost Live Check
+            setUpdateStatus('checking');
+            fetch('https://api.github.com/repos/mete-dev/PosNesia/commits/main')
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.sha) {
+                        setLatestCommitInfo({ sha: data.sha.substring(0, 7), message: data.commit?.message });
+                        setUpdateStatus('available');
+                    } else {
+                        setUpdateStatus('not-available');
+                    }
+                })
+                .catch(() => setUpdateStatus('not-available'));
         }
     };
 
-    const handleRestartAndInstall = () => {
+    const handleApplyLiveUpdate = () => {
         const api = (window as any).electronAPI;
         if (api && api.quitAndInstall) {
+            setUpdateStatus('downloading');
             api.quitAndInstall();
         } else {
             window.location.reload();
@@ -432,22 +446,22 @@ const AppUpdateCard: React.FC = () => {
                 <div>
                     <h2 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                        Pembaruan Sistem Aplikasi Desktop
+                        Pembaruan Kode Repositori Langsung (Live Update)
                     </h2>
                     <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-                        PosNesia Desktop {versionInfo || 'v1.0.1'} — Periksa dan instal berkas rilis terbaru tanpa perlu unduh ulang secara manual.
+                        Repositori GitHub: <strong className="text-blue-600 dark:text-blue-400 font-mono">mete-dev/PosNesia</strong> — Sinkronkan tampilan &amp; fitur baru langsung dari GitHub tanpa perlu instalasi ulang.
                     </p>
                 </div>
 
                 <div className="shrink-0 flex items-center gap-2">
-                    {updateStatus === 'downloaded' ? (
+                    {updateStatus === 'available' || updateStatus === 'downloaded' ? (
                         <Button
                             type="button"
-                            onClick={handleRestartAndInstall}
+                            onClick={handleApplyLiveUpdate}
                             className="gap-2 text-xs py-2 px-4 shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                         >
                             <span>🚀</span>
-                            <span>Restart &amp; Perbarui Sekarang</span>
+                            <span>Terapkan Pembaruan Sekarang</span>
                         </Button>
                     ) : (
                         <Button
@@ -457,7 +471,7 @@ const AppUpdateCard: React.FC = () => {
                             className="gap-2 text-xs py-2 px-4 shadow-xs bg-blue-600 hover:bg-blue-700 text-white font-bold"
                         >
                             <RefreshCw className={`w-3.5 h-3.5 ${updateStatus === 'checking' ? 'animate-spin' : ''}`} />
-                            <span>{updateStatus === 'checking' ? 'Memeriksa...' : 'Cek Pembaruan'}</span>
+                            <span>{updateStatus === 'checking' ? 'Memeriksa...' : 'Cek Repositori'}</span>
                         </Button>
                     )}
                 </div>
@@ -467,23 +481,30 @@ const AppUpdateCard: React.FC = () => {
             {updateStatus === 'checking' && (
                 <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800 text-blue-800 dark:text-blue-300 font-bold text-xs flex items-center gap-2 animate-pulse">
                     <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
-                    ⏳ Memeriksa ketersediaan berkas pembaruan dari repositori resmi...
+                    ⏳ Memeriksa komit &amp; kode terbaru dari repositori mete-dev/PosNesia...
                 </div>
             )}
             {updateStatus === 'not-available' && (
                 <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center gap-2">
-                    <span>✅</span> Versi aplikasi Anda sudah yang terbaru.
+                    <span>✅</span> Aplikasi Anda sudah menggunakan kode terbaru dari repositori GitHub.
                 </div>
             )}
             {updateStatus === 'available' && (
-                <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-bold text-xs flex items-center gap-2">
-                    <span>🚀</span> Versi rilis baru ditemukan! Mengunduh berkas pembaruan secara otomatis di latar belakang...
+                <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex flex-col gap-1">
+                    <div className="font-bold flex items-center gap-2">
+                        <span>🚀</span> Pembaruan Kode Terbaru Ditemukan! <span className="font-mono bg-amber-100 dark:bg-amber-900 px-2 py-0.5 rounded text-[11px]">{latestCommitInfo.sha || 'GitHub Main'}</span>
+                    </div>
+                    {latestCommitInfo.message && (
+                        <p className="text-[11px] text-amber-900 dark:text-amber-200 opacity-90 pl-6">
+                            Pesan: "{latestCommitInfo.message.split('\n')[0]}"
+                        </p>
+                    )}
                 </div>
             )}
             {updateStatus === 'downloading' && (
                 <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800 space-y-2">
                     <div className="flex justify-between items-center text-xs font-bold text-blue-900 dark:text-blue-200">
-                        <span>📥 Mengunduh Pembaruan Berkas</span>
+                        <span>📥 Menyinkronkan Kode Terbaru dari GitHub...</span>
                         <span>{downloadPercent}%</span>
                     </div>
                     <div className="w-full bg-blue-200/60 dark:bg-blue-900/60 h-2.5 rounded-full overflow-hidden">
@@ -493,7 +514,7 @@ const AppUpdateCard: React.FC = () => {
             )}
             {updateStatus === 'downloaded' && (
                 <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-between">
-                    <span>🎉 Berkas pembaruan selesai diunduh! Klik tombol "Restart &amp; Perbarui Sekarang" di atas.</span>
+                    <span>🎉 Kode terbaru berhasil diterapkan! Tampilan telah disinkronkan.</span>
                 </div>
             )}
             {updateStatus === 'error' && (

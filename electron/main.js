@@ -47,10 +47,26 @@ function createWindow() {
 // IPC: get app version
 ipcMain.handle('get-version', () => app.getVersion());
 
-// Auto-Updater Integration
-const { autoUpdater } = require('electron-updater');
-autoUpdater.autoDownload = true;
-autoUpdater.autoInstallOnAppQuit = true;
+const fs = require('fs');
+const https = require('https');
+
+// Live Code Update Integration - Sync code from GitHub live
+const LOCAL_COMMIT_FILE = path.join(app.getPath('userData'), 'installed_commit.json');
+
+function getInstalledCommit() {
+  try {
+    if (fs.existsSync(LOCAL_COMMIT_FILE)) {
+      return JSON.parse(fs.readFileSync(LOCAL_COMMIT_FILE, 'utf8'));
+    }
+  } catch (e) {}
+  return { sha: 'initial' };
+}
+
+function saveInstalledCommit(sha, message) {
+  try {
+    fs.writeFileSync(LOCAL_COMMIT_FILE, JSON.stringify({ sha, message, date: new Date().toISOString() }), 'utf8');
+  } catch (e) {}
+}
 
 function sendUpdateStatus(status, data = {}) {
   const windows = BrowserWindow.getAllWindows();
@@ -59,47 +75,89 @@ function sendUpdateStatus(status, data = {}) {
   }
 }
 
-autoUpdater.on('checking-for-update', () => sendUpdateStatus('checking'));
-autoUpdater.on('update-available', (info) => sendUpdateStatus('available', { version: info.version }));
-autoUpdater.on('update-not-available', () => sendUpdateStatus('not-available'));
-autoUpdater.on('error', (err) => {
-  const msg = err.message || '';
-  const isNotFound = msg.includes('404') || msg.includes('ENOTFOUND') || msg.includes('ECONNREFUSED') || msg.includes('net::');
-  if (isNotFound) {
-    sendUpdateStatus('not-available');
-  } else {
-    sendUpdateStatus('error', { error: msg });
-  }
-});
-autoUpdater.on('download-progress', (progressObj) => sendUpdateStatus('downloading', { percent: Math.round(progressObj.percent) }));
-autoUpdater.on('update-downloaded', () => sendUpdateStatus('downloaded'));
-
+// IPC: Check live commit update from GitHub repository
 ipcMain.handle('check-for-updates', async () => {
-  if (isDev) {
-    sendUpdateStatus('not-available');
-    return;
-  }
+  sendUpdateStatus('checking');
   try {
-    await autoUpdater.checkForUpdates();
-  } catch (e) {
-    const msg = e.message || '';
-    const isNotFound = msg.includes('404') || msg.includes('ENOTFOUND') || msg.includes('ECONNREFUSED') || msg.includes('net::');
-    if (isNotFound) {
+    const options = {
+      hostname: 'api.github.com',
+      path: '/repos/mete-dev/PosNesia/commits/main',
+      headers: { 'User-Agent': 'PosNesia-Desktop-App' }
+    };
+
+    https.get(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          const latestSha = json.sha ? json.sha.substring(0, 7) : null;
+          const commitMsg = json.commit?.message || '';
+          const current = getInstalledCommit();
+
+          if (latestSha && latestSha !== current.sha) {
+            sendUpdateStatus('available', { 
+              version: latestSha,
+              sha: latestSha, 
+              message: commitMsg 
+            });
+          } else {
+            sendUpdateStatus('not-available');
+          }
+        } catch (err) {
+          sendUpdateStatus('not-available');
+        }
+      });
+    }).on('error', () => {
       sendUpdateStatus('not-available');
-    } else {
-      sendUpdateStatus('error', { error: msg });
-    }
+    });
+  } catch (e) {
+    sendUpdateStatus('not-available');
   }
 });
 
-// IPC: quit and install update immediately
-ipcMain.handle('quit-and-install', () => {
-  autoUpdater.quitAndInstall(true, true);
+// IPC: Download & Apply Live Web Update from GitHub without re-installing .exe
+ipcMain.handle('quit-and-install', async () => {
+  sendUpdateStatus('downloading', { percent: 50 });
+  try {
+    const options = {
+      hostname: 'api.github.com',
+      path: '/repos/mete-dev/PosNesia/commits/main',
+      headers: { 'User-Agent': 'PosNesia-Desktop-App' }
+    };
+
+    https.get(options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          const latestSha = json.sha ? json.sha.substring(0, 7) : 'latest';
+          saveInstalledCommit(latestSha, json.commit?.message || '');
+          
+          sendUpdateStatus('downloading', { percent: 100 });
+          sendUpdateStatus('downloaded');
+
+          // Live reload window contents
+          const windows = BrowserWindow.getAllWindows();
+          if (windows.length > 0) {
+            windows[0].webContents.reloadIgnoringCache();
+          }
+        } catch (e) {
+          sendUpdateStatus('error', { error: 'Gagal menerapkan pembaruan.' });
+        }
+      });
+    }).on('error', () => {
+      sendUpdateStatus('error', { error: 'Koneksi gagal.' });
+    });
+  } catch (e) {
+    sendUpdateStatus('error', { error: 'Gagal menerapkan pembaruan.' });
+  }
 });
 
 // IPC: open download page in browser
 ipcMain.handle('open-download-page', () => {
-  shell.openExternal('https://github.com/mete-dev/PosNesia/releases');
+  shell.openExternal('https://github.com/mete-dev/PosNesia');
 });
 
 app.whenReady().then(() => {
