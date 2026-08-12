@@ -3,7 +3,7 @@
   "description": "PosNesia POS & ERP Desktop Application",
   "author": "PosNesia Team",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "dekstop/electron/main.js",
   "scripts": {
     "dev": "vite",

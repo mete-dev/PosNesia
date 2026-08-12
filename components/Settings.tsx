@@ -280,7 +280,7 @@ const AboutTabContent: React.FC = () => {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 border-b border-slate-100 dark:border-zinc-800 pb-6">
                     <img src="logoposnesia.png" alt="PosNesia" className="h-14 object-contain" />
                     <div>
-                        <h2 className="text-xl font-black text-slate-900 dark:text-white">PosNesia Desktop v1.0.0</h2>
+                        <h2 className="text-xl font-black text-slate-900 dark:text-white">PosNesia Desktop v1.0.1</h2>
                         <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
                             Sistem Kasir POS &amp; Manajemen ERP Terintegrasi untuk UMKM &amp; Bisnis Modern
                         </p>
