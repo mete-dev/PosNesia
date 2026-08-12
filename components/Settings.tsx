@@ -192,7 +192,7 @@ export const AboutPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'about' | 'updates' | 'privacy' | 'terms'>('about');
 
     return (
-        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-6 overflow-y-auto bg-slate-50/50 dark:bg-zinc-950">
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-5 overflow-y-auto bg-slate-50/50 dark:bg-zinc-950">
             {/* Header Bar */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
                 <div className="flex items-center gap-3">
@@ -201,24 +201,21 @@ export const AboutPage: React.FC = () => {
                     </div>
                     <div>
                         <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
-                            Tentang PosNesia
+                            Tentang &amp; Pembaruan Aplikasi
                         </h1>
-                        <p className="text-xs text-slate-500 dark:text-zinc-400">
-                            Informasi sistem, lisensi, kebijakan privasi, ketentuan penggunaan, dan pembaruan aplikasi
-                        </p>
                     </div>
                 </div>
             </div>
 
-            {/* Navigation Tabs */}
-            <div className="flex border-b border-slate-200 dark:border-zinc-800 space-x-1 shrink-0 overflow-x-auto">
+            {/* Navigation Tabs Bar */}
+            <div className="bg-white dark:bg-zinc-900 p-1.5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs flex items-center gap-1.5 shrink-0 overflow-x-auto">
                 <button
                     type="button"
                     onClick={() => setActiveTab('about')}
-                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                         activeTab === 'about'
-                            ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 rounded-t-xl'
-                            : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
                     }`}
                 >
                     <Info className="w-4 h-4" />
@@ -227,22 +224,22 @@ export const AboutPage: React.FC = () => {
                 <button
                     type="button"
                     onClick={() => setActiveTab('updates')}
-                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                         activeTab === 'updates'
-                            ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 rounded-t-xl'
-                            : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
                     }`}
                 >
                     <RefreshCw className="w-4 h-4" />
-                    <span>Pembaruan Aplikasi</span>
+                    <span>Pembaruan Sistem</span>
                 </button>
                 <button
                     type="button"
                     onClick={() => setActiveTab('privacy')}
-                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                         activeTab === 'privacy'
-                            ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 rounded-t-xl'
-                            : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
                     }`}
                 >
                     <Shield className="w-4 h-4" />
@@ -251,10 +248,10 @@ export const AboutPage: React.FC = () => {
                 <button
                     type="button"
                     onClick={() => setActiveTab('terms')}
-                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                         activeTab === 'terms'
-                            ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 rounded-t-xl'
-                            : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800'
                     }`}
                 >
                     <FileText className="w-4 h-4" />
@@ -263,7 +260,7 @@ export const AboutPage: React.FC = () => {
             </div>
 
             {/* Tab Content */}
-            <div className="flex-1">
+            <div className="flex-1 min-h-0 space-y-4">
                 {activeTab === 'about' && <AboutTabContent />}
                 {activeTab === 'updates' && <AppUpdateCard />}
                 {activeTab === 'privacy' && <PrivacyPolicyTabContent />}
@@ -275,53 +272,62 @@ export const AboutPage: React.FC = () => {
 
 const AboutTabContent: React.FC = () => {
     return (
-        <div className="space-y-6">
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 sm:p-8 border border-slate-200/80 dark:border-zinc-800 shadow-2xs space-y-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 border-b border-slate-100 dark:border-zinc-800 pb-6">
-                    <img src="logoposnesia.png" alt="PosNesia" className="h-14 object-contain" />
-                    <div>
-                        <h2 className="text-xl font-black text-slate-900 dark:text-white">PosNesia Desktop v1.0.1</h2>
-                        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                            Sistem Kasir POS &amp; Manajemen ERP Terintegrasi untuk UMKM &amp; Bisnis Modern
+        <div className="space-y-4">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 p-6 shadow-2xs space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-zinc-800 pb-5">
+                    <div className="flex items-center gap-4">
+                        <img src="logoposnesia.png" alt="PosNesia" className="h-12 object-contain shrink-0" />
+                        <div>
+                            <h2 className="text-lg font-black text-slate-900 dark:text-white">PosNesia ERP &amp; POS Desktop</h2>
+                            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                                Sistem Manajemen Kasir, Stok, dan Keuangan Terintegrasi
+                            </p>
+                        </div>
+                    </div>
+                    <Badge variant="info">Versi 1.0.1 (Stable Build)</Badge>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-800/40 border border-slate-200/60 dark:border-zinc-700/60 space-y-1.5">
+                        <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm">
+                            ⚡
+                        </div>
+                        <h3 className="font-extrabold text-slate-900 dark:text-white text-xs">
+                            POS Kasir Cepat
+                        </h3>
+                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-normal">
+                            Transaksi kilat, barcode scanner, struk nota thermal 58mm/80mm, serta denah meja restoran.
+                        </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-800/40 border border-slate-200/60 dark:border-zinc-700/60 space-y-1.5">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm">
+                            📊
+                        </div>
+                        <h3 className="font-extrabold text-slate-900 dark:text-white text-xs">
+                            Keuangan &amp; Laba Rugi
+                        </h3>
+                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-normal">
+                            Laporan laba rugi, posisi keuangan, mutasi stok, serta pencatatan arus kas otomatis.
+                        </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-800/40 border border-slate-200/60 dark:border-zinc-700/60 space-y-1.5">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm">
+                            🔄
+                        </div>
+                        <h3 className="font-extrabold text-slate-900 dark:text-white text-xs">
+                            Auto Update
+                        </h3>
+                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-normal">
+                            Pembaruan fitur &amp; sistem otomatis dari repositori resmi tanpa perlu instalasi ulang manual.
                         </p>
                     </div>
                 </div>
 
-                <div className="space-y-4 text-xs text-slate-700 dark:text-zinc-300 leading-relaxed">
-                    <p>
-                        <strong>PosNesia</strong> adalah solusi perangkat lunak Point of Sale (POS) dan Enterprise Resource Planning (ERP) serba guna yang dirancang khusus untuk mempermudah operasional usaha ritel, restoran, jasa, hingga grosir.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                        <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/60 dark:border-zinc-700/60 space-y-1">
-                            <h3 className="font-extrabold text-slate-900 dark:text-white text-sm flex items-center gap-2">
-                                ⚡ POS Kasir Cepat
-                            </h3>
-                            <p className="text-[11px] text-slate-500 dark:text-zinc-400">
-                                Transaksi kilat, cetak nota thermal, dukungan meja &amp; dapur restoran.
-                            </p>
-                        </div>
-                        <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/60 dark:border-zinc-700/60 space-y-1">
-                            <h3 className="font-extrabold text-slate-900 dark:text-white text-sm flex items-center gap-2">
-                                📊 Keuangan &amp; Laporan
-                            </h3>
-                            <p className="text-[11px] text-slate-500 dark:text-zinc-400">
-                                Laporan laba rugi, posisi keuangan, stok barang, serta arus kas otomatis.
-                            </p>
-                        </div>
-                        <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/60 dark:border-zinc-700/60 space-y-1">
-                            <h3 className="font-extrabold text-slate-900 dark:text-white text-sm flex items-center gap-2">
-                                🔄 Auto Update
-                            </h3>
-                            <p className="text-[11px] text-slate-500 dark:text-zinc-400">
-                                Pembaruan fitur &amp; keamanan tanpa perlu instalasi ulang secara manual.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="border-t border-slate-100 dark:border-zinc-800 pt-4 flex flex-col sm:flex-row justify-between text-[11px] text-slate-400 dark:text-zinc-500 gap-2">
-                    <div>© 2026 PosNesia Team. Hak Cipta Dilindungi Undang-Undang.</div>
-                    <div>Pengembangan &amp; Lisensi Resmi PosNesia ID</div>
+                <div className="border-t border-slate-100 dark:border-zinc-800 pt-4 flex flex-col sm:flex-row justify-between items-center text-[11px] text-slate-400 dark:text-zinc-500 gap-2">
+                    <div>© 2026 PosNesia Team. Hak Cipta Dilindungi.</div>
+                    <div className="font-mono">Lisensi Resmi PosNesia ID</div>
                 </div>
             </div>
         </div>
@@ -330,30 +336,27 @@ const AboutTabContent: React.FC = () => {
 
 const PrivacyPolicyTabContent: React.FC = () => {
     return (
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 sm:p-8 border border-slate-200/80 dark:border-zinc-800 shadow-2xs space-y-4 text-xs text-slate-700 dark:text-zinc-300">
-            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-zinc-800 pb-3">
-                <Shield className="w-5 h-5 text-blue-600" /> Kebijakan Privasi (Privacy Policy)
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 p-6 shadow-2xs space-y-4 text-xs text-slate-700 dark:text-zinc-300">
+            <h2 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-zinc-800 pb-3">
+                <Shield className="w-4 h-4 text-blue-600" /> Kebijakan Privasi Data Usaha
             </h2>
-            <p className="leading-relaxed">
-                Kami di PosNesia berkomitmen penuh untuk melindungi privasi dan keamanan data usaha Anda. Kebijakan ini menjelaskan bagaimana data Anda dikelola dan dilindungi dalam aplikasi.
-            </p>
-            <div className="space-y-3 pt-2">
-                <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">1. Penyimpanan Data Lokal</h3>
-                    <p className="text-slate-500 dark:text-zinc-400 mt-0.5">
-                        Seluruh data transaksi, pelanggan, inventaris, dan pengaturan toko Anda disimpan secara lokal di perangkat komputer Anda dan tidak diunggah ke server pihak ketiga tanpa izin.
+            <div className="space-y-3">
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-800/40 border border-slate-200/60 dark:border-zinc-700/60">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-xs">1. Penyimpanan Data Lokal (On-Premise)</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-normal">
+                        Seluruh data transaksi, keuangan, stok barang, dan identitas toko Anda tersimpan secara lokal di perangkat komputer Anda dan tidak dijual atau dibagikan ke pihak manapun.
                     </p>
                 </div>
-                <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">2. Penggunaan Data untuk Pembaruan</h3>
-                    <p className="text-slate-500 dark:text-zinc-400 mt-0.5">
-                        Aplikasi PosNesia mengakses koneksi internet hanya untuk mengunduh berkas pembaruan perangkat lunak (auto-update) resmi dari repository resmi PosNesia.
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-800/40 border border-slate-200/60 dark:border-zinc-700/60">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-xs">2. Penggunaan Koneksi Internet</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-normal">
+                        Koneksi internet hanya digunakan untuk memeriksa ketersediaan berkas pembaruan perangkat lunak resmi dari repositori PosNesia.
                     </p>
                 </div>
-                <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">3. Keamanan Informasi</h3>
-                    <p className="text-slate-500 dark:text-zinc-400 mt-0.5">
-                        Kami menerapkan mekanisme enkripsi lokal dan proteksi hak akses berbasis PIN/Role untuk mencegah akses tidak sah oleh pihak lain di perangkat Anda.
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-800/40 border border-slate-200/60 dark:border-zinc-700/60">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-xs">3. Keamanan Hak Akses</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-normal">
+                        Fitur keamanan berbasis PIN kasir dan Manajemen Hak Akses Staf mengunci akses menu sensitif dari pengguna yang tidak berwenang.
                     </p>
                 </div>
             </div>
@@ -363,30 +366,21 @@ const PrivacyPolicyTabContent: React.FC = () => {
 
 const TermsOfServiceTabContent: React.FC = () => {
     return (
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 sm:p-8 border border-slate-200/80 dark:border-zinc-800 shadow-2xs space-y-4 text-xs text-slate-700 dark:text-zinc-300">
-            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-zinc-800 pb-3">
-                <FileText className="w-5 h-5 text-blue-600" /> Ketentuan Penggunaan (Terms of Service)
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 p-6 shadow-2xs space-y-4 text-xs text-slate-700 dark:text-zinc-300">
+            <h2 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-zinc-800 pb-3">
+                <FileText className="w-4 h-4 text-blue-600" /> Ketentuan Penggunaan Aplikasi
             </h2>
-            <p className="leading-relaxed">
-                Dengan menggunakan aplikasi PosNesia, Anda menyetujui ketentuan dan syarat penggunaan di bawah ini:
-            </p>
-            <div className="space-y-3 pt-2">
-                <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">1. Lisensi Penggunaan</h3>
-                    <p className="text-slate-500 dark:text-zinc-400 mt-0.5">
-                        PosNesia memberikan Anda lisensi non-eksklusif untuk menggunakan aplikasi ini pada perangkat usaha Anda sesuai dengan paket lisensi yang terdaftar.
+            <div className="space-y-3">
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-800/40 border border-slate-200/60 dark:border-zinc-700/60">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-xs">1. Hak Lisensi Penggunaan</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-normal">
+                        Pengguna mendapatkan lisensi resmi penggunaan perangkat lunak PosNesia untuk operasional toko atau tempat usaha sesuai paket perangkat yang terdaftar.
                     </p>
                 </div>
-                <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">2. Tanggung Jawab Data Usaha</h3>
-                    <p className="text-slate-500 dark:text-zinc-400 mt-0.5">
-                        Pengguna bertanggung jawab penuh atas keakuratan data transaksi serta melakukan pencadangan (backup) berkala melalui fitur Database yang tersedia.
-                    </p>
-                </div>
-                <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">3. Larangan Penggunaan</h3>
-                    <p className="text-slate-500 dark:text-zinc-400 mt-0.5">
-                        Dilarang melakukan rekayasa balik (reverse engineering), dekompilasi, atau mendistribusikan salinan yang telah dimodifikasi tanpa persetujuan tertulis dari PosNesia.
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-800/40 border border-slate-200/60 dark:border-zinc-700/60">
+                    <h3 className="font-bold text-slate-900 dark:text-white text-xs">2. Pencadangan Data Usaha</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-normal">
+                        Pengguna disarankan melakukan ekspor pencadangan (backup) database secara berkala melalui menu Database untuk mencegah kehilangan data akibat kerusakan perangkat keras.
                     </p>
                 </div>
             </div>
@@ -433,80 +427,80 @@ const AppUpdateCard: React.FC = () => {
     };
 
     return (
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 sm:p-8 w-full border border-blue-100 dark:border-zinc-800">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 p-6 shadow-2xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-zinc-800 pb-4">
                 <div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xl">🔄</span>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Pembaruan Sistem Aplikasi</h2>
-                    </div>
+                    <h2 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                        Pembaruan Sistem Aplikasi Desktop
+                    </h2>
                     <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-                        PosNesia Desktop {versionInfo || 'v1.0.0'} — Periksa dan unduh versi terbaru secara otomatis tanpa perlu install ulang manual.
+                        PosNesia Desktop {versionInfo || 'v1.0.1'} — Periksa dan instal berkas rilis terbaru tanpa perlu unduh ulang secara manual.
                     </p>
-                    
-                    {/* Status Feedback */}
-                    {updateStatus === 'checking' && (
-                        <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-2 animate-pulse">
-                            ⏳ Memeriksa ketersediaan pembaruan...
-                        </p>
-                    )}
-                    {updateStatus === 'not-available' && (
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-2">
-                            ✅ Versi aplikasi Anda sudah yang terbaru.
-                        </p>
-                    )}
-                    {updateStatus === 'available' && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-2">
-                            🚀 Versi baru ditemukan! Mengunduh secara otomatis di latar belakang...
-                        </p>
-                    )}
-                    {updateStatus === 'downloading' && (
-                        <div className="mt-2 space-y-1">
-                            <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">
-                                📥 Mengunduh pembaruan: {downloadPercent}%
-                            </p>
-                            <div className="w-full max-w-xs bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                                <div className="bg-blue-600 h-full transition-all duration-300" style={{ width: `${downloadPercent}%` }}></div>
-                            </div>
-                        </div>
-                    )}
-                    {updateStatus === 'downloaded' && (
-                        <div className="mt-2 space-y-2">
-                            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">
-                                🎉 Pembaruan selesai diunduh! Klik tombol di samping untuk langsung memperbarui &amp; restart aplikasi.
-                            </p>
-                        </div>
-                    )}
-                    {updateStatus === 'error' && (
-                        <p className="text-xs text-red-500 font-semibold mt-2">
-                            ⚠️ Gagal memeriksa pembaruan. Pastikan koneksi internet terhubung.
-                        </p>
-                    )}
                 </div>
 
                 <div className="shrink-0 flex items-center gap-2">
                     {updateStatus === 'downloaded' ? (
-                        <button
+                        <Button
                             type="button"
                             onClick={handleRestartAndInstall}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-sm shadow-md transition-all cursor-pointer animate-bounce"
+                            className="gap-2 text-xs py-2 px-4 shadow-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                         >
                             <span>🚀</span>
                             <span>Restart &amp; Perbarui Sekarang</span>
-                        </button>
+                        </Button>
                     ) : (
-                        <button
+                        <Button
                             type="button"
                             onClick={handleCheckUpdate}
                             disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 active:scale-95 text-white font-bold text-sm shadow-md transition-all cursor-pointer"
+                            className="gap-2 text-xs py-2 px-4 shadow-xs bg-blue-600 hover:bg-blue-700 text-white font-bold"
                         >
-                            <span>🌐</span>
+                            <RefreshCw className={`w-3.5 h-3.5 ${updateStatus === 'checking' ? 'animate-spin' : ''}`} />
                             <span>{updateStatus === 'checking' ? 'Memeriksa...' : 'Cek Pembaruan'}</span>
-                        </button>
+                        </Button>
                     )}
                 </div>
             </div>
+
+            {/* Status Feedback Banners */}
+            {updateStatus === 'checking' && (
+                <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800 text-blue-800 dark:text-blue-300 font-bold text-xs flex items-center gap-2 animate-pulse">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
+                    ⏳ Memeriksa ketersediaan berkas pembaruan dari repositori resmi...
+                </div>
+            )}
+            {updateStatus === 'not-available' && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center gap-2">
+                    <span>✅</span> Versi aplikasi Anda sudah yang terbaru.
+                </div>
+            )}
+            {updateStatus === 'available' && (
+                <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-bold text-xs flex items-center gap-2">
+                    <span>🚀</span> Versi rilis baru ditemukan! Mengunduh berkas pembaruan secara otomatis di latar belakang...
+                </div>
+            )}
+            {updateStatus === 'downloading' && (
+                <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800 space-y-2">
+                    <div className="flex justify-between items-center text-xs font-bold text-blue-900 dark:text-blue-200">
+                        <span>📥 Mengunduh Pembaruan Berkas</span>
+                        <span>{downloadPercent}%</span>
+                    </div>
+                    <div className="w-full bg-blue-200/60 dark:bg-blue-900/60 h-2.5 rounded-full overflow-hidden">
+                        <div className="bg-blue-600 h-full transition-all duration-300 rounded-full" style={{ width: `${downloadPercent}%` }}></div>
+                    </div>
+                </div>
+            )}
+            {updateStatus === 'downloaded' && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center justify-between">
+                    <span>🎉 Berkas pembaruan selesai diunduh! Klik tombol "Restart &amp; Perbarui Sekarang" di atas.</span>
+                </div>
+            )}
+            {updateStatus === 'error' && (
+                <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200/80 dark:border-red-800 text-red-800 dark:text-red-300 font-bold text-xs flex items-center gap-2">
+                    <span>⚠️</span> Gagal memeriksa pembaruan. Pastikan koneksi internet terhubung.
+                </div>
+            )}
         </div>
     );
 };
