@@ -276,7 +276,7 @@ const AboutTabContent: React.FC = () => {
             <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 p-6 shadow-2xs space-y-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-zinc-800 pb-5">
                     <div className="flex items-center gap-4">
-                        <img src="logoposnesia.png" alt="PosNesia" className="h-12 object-contain shrink-0" />
+                        <img src="/logoposnesia.png" alt="PosNesia" className="h-12 object-contain shrink-0" />
                         <div>
                             <h2 className="text-lg font-black text-slate-900 dark:text-white">PosNesia ERP &amp; POS Desktop</h2>
                             <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">

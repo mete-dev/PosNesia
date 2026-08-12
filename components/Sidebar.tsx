@@ -386,7 +386,7 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
                         title="Kembali ke Dashboard"
                     >
                         <img 
-                            src="logoposnesia.png" 
+                            src="/logoposnesia.png" 
                             alt={companyInfo.name || 'Pos Nesia'} 
                             className={effectiveCollapsed ? 'h-8 w-8 object-contain' : 'h-10 max-w-[200px] object-contain'} 
                         />

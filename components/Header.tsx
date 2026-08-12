@@ -138,7 +138,7 @@ export const Header: React.FC<{ onToggleMobileSidebar?: () => void }> = ({ onTog
                               className="focus:outline-none cursor-pointer hover:opacity-85 transition-opacity shrink-0"
                               title="Kembali ke Dashboard"
                           >
-                              <img src="logoposnesia.png" alt="PosNesia" className="h-7 sm:h-8 w-auto object-contain" />
+                              <img src="/logoposnesia.png" alt="PosNesia" className="h-7 sm:h-8 w-auto object-contain" />
                           </button>
                           <h1 className="text-xs sm:text-base font-semibold text-gray-900 dark:text-white truncate max-w-[120px] sm:max-w-none">{currentPage}</h1>
                     </div>

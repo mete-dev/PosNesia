@@ -101,7 +101,7 @@ export const LoginPage: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                     <div className="mb-3">
                         {displayLogo ? (
                             <img 
-                                src={(companyInfo.logoUrl === '/logo.png' || companyInfo.logoUrl === '/logo.svg' || !companyInfo.logoUrl) ? 'logoposnesia.png' : companyInfo.logoUrl} 
+                                src={(companyInfo.logoUrl === '/logo.png' || companyInfo.logoUrl === '/logo.svg' || !companyInfo.logoUrl) ? '/logoposnesia.png' : companyInfo.logoUrl} 
                                 alt={companyInfo.name || 'Pos Nesia'} 
                                 onError={() => setImgError(true)}
                                 className="h-16 max-w-[280px] object-contain mx-auto" 
