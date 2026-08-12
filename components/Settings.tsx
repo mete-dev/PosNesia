@@ -284,7 +284,7 @@ const AboutTabContent: React.FC = () => {
                             </p>
                         </div>
                     </div>
-                    <Badge variant="info">Versi 1.0.1 (Stable Build)</Badge>
+                    <Badge variant="info">Versi 1.0.2 (Stable Build)</Badge>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
