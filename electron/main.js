@@ -29,7 +29,13 @@ function createWindow() {
     win.loadURL('http://localhost:5173');
     win.webContents.openDevTools();
   } else {
-    win.loadFile(path.join(__dirname, '../dist/index.html'));
+    // Check if live web bundle exists or fallback to local dist
+    const liveBundlePath = path.join(app.getPath('userData'), 'live-web/index.html');
+    if (fs.existsSync(liveBundlePath)) {
+      win.loadFile(liveBundlePath);
+    } else {
+      win.loadFile(path.join(__dirname, '../dist/index.html'));
+    }
   }
 
   win.once('ready-to-show', () => {
