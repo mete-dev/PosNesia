@@ -620,6 +620,7 @@ const APP_ACTIVE_FEATURES: { page: Page; label: string; category: string }[] = [
     { page: Page.BackupRestore, label: 'Backup & Restore', category: 'Pengaturan' },
     { page: Page.DisplaySettings, label: 'Pengaturan Tampilan', category: 'Pengaturan' },
     { page: Page.ReportSizesSettings, label: 'Printer', category: 'Pengaturan' },
+    { page: Page.AppUpdate, label: 'Pembaruan Aplikasi', category: 'Pengaturan' },
 ];
 
 const RoleModal: React.FC<{

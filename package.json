@@ -4,15 +4,19 @@
   "author": "PosNesia Team",
   "private": true,
   "version": "1.0.0",
-  "main": "electron/main.js",
+  "main": "dekstop/electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "dist": "vite build && electron-builder --config build-config/electron-builder.yml",
+    "dist": "vite build && electron-builder --config dekstop/electron-builder.yml",
     "cap:build": "vite build && npx cap sync",
-    "cap:open": "npx cap open android"
+    "cap:open": "npx cap open android",
+    "apk:build": "npm run cap:build && cross-env CAPACITOR_ANDROID_STUDIO_PATH=\"C:\\Program Files\\Android\\Android Studio\\bin\\studio64.exe\" npx cap open android",
+    "apk:assemble": "npm run cap:build && cd android && .\\gradlew assembleDebug",
+    "apk:release": "npm run apk:assemble && move /Y android\\app\\build\\outputs\\apk\\debug\\app-debug.apk aplikasi\\PosNesia.apk",
+    "apk:update": "node src\\update.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

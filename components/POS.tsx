@@ -1173,7 +1173,7 @@ export const POSPage: React.FC = () => {
 
                 {/* LEFT — Logo + Store Info */}
                 <div className="flex items-center gap-3 shrink-0">
-                  <img src="/logoposnesia.png" alt="PosNesia" className="h-7 sm:h-8 w-auto object-contain" />
+                  <img src="logoposnesia.png" alt="PosNesia" className="h-7 sm:h-8 w-auto object-contain" />
                   <div className="hidden md:flex flex-col">
                     <span className="font-extrabold text-sm text-zinc-900 dark:text-zinc-100 leading-tight">{companyInfo.name}</span>
                     <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">

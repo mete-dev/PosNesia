@@ -184,12 +184,35 @@ export const CompanyInformationSettingsPage: React.FC = () => {
                     </div>
                 </form>
             </div>
+        </div>
+    );
+};
 
-            {/* Section Pembaruan Sistem Aplikasi */}
+export const AppUpdatePage: React.FC = () => {
+    return (
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-6 overflow-y-auto bg-slate-50/50 dark:bg-zinc-950">
+            {/* Header Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                        <RefreshCw className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                            Pembaruan Sistem Aplikasi
+                        </h1>
+                        <p className="text-xs text-slate-500 dark:text-zinc-400">
+                            Kelola dan periksa versi terbaru aplikasi PosNesia
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Update Card */}
             <AppUpdateCard />
         </div>
-    )
-}
+    );
+};
 
 const AppUpdateCard: React.FC = () => {
     const [updateStatus, setUpdateStatus] = useState<string>('idle');

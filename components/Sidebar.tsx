@@ -41,6 +41,7 @@ import {
     ArrowDownLeft,
     ArrowUpRight,
     Database,
+    RefreshCw,
     LogOut
 } from 'lucide-react';
 
@@ -342,6 +343,7 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
                 { label: 'Informasi Perusahaan', page: Page.CompanyInformationSettings, icon: <Building2 /> },
                 { label: 'Database', page: Page.BackupRestore, icon: <Database /> },
                 { label: 'Printer', page: Page.ReportSizesSettings, icon: <Printer /> },
+                { label: 'Pembaruan', page: Page.AppUpdate, icon: <RefreshCw /> },
             ]
         }
     ];
@@ -383,7 +385,7 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
                         title="Kembali ke Dashboard"
                     >
                         <img 
-                            src="/logoposnesia.png" 
+                            src="logoposnesia.png" 
                             alt={companyInfo.name || 'Pos Nesia'} 
                             className={effectiveCollapsed ? 'h-8 w-8 object-contain' : 'h-10 max-w-[200px] object-contain'} 
                         />
