@@ -42,6 +42,7 @@ import {
     ArrowUpRight,
     Database,
     RefreshCw,
+    Info,
     LogOut
 } from 'lucide-react';
 
@@ -343,7 +344,7 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
                 { label: 'Informasi Perusahaan', page: Page.CompanyInformationSettings, icon: <Building2 /> },
                 { label: 'Database', page: Page.BackupRestore, icon: <Database /> },
                 { label: 'Printer', page: Page.ReportSizesSettings, icon: <Printer /> },
-                { label: 'Pembaruan', page: Page.AppUpdate, icon: <RefreshCw /> },
+                { label: 'Tentang', page: Page.About, icon: <Info /> },
             ]
         }
     ];

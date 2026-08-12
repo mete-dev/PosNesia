@@ -66,7 +66,8 @@ export const PATH_TO_PAGE_MAP: Record<string, Page> = {
     'pengaturan/database': Page.BackupRestore,
     'pengaturan/printer': Page.ReportSizesSettings,
     'pengaturan/ukuran-report': Page.ReportSizesSettings,
-    'pengaturan/pembaruan': Page.AppUpdate,
+    'pengaturan/pembaruan': Page.About,
+    'pengaturan/tentang': Page.About,
 
     // Legacy Fallback Slugs
     'pos': Page.POS,
@@ -102,7 +103,8 @@ export const PATH_TO_PAGE_MAP: Record<string, Page> = {
     'informasi-perusahaan': Page.CompanyInformationSettings,
     'database': Page.BackupRestore,
     'ukuran-report': Page.ReportSizesSettings,
-    'pembaruan': Page.AppUpdate,
+    'pembaruan': Page.About,
+    'tentang': Page.About,
     'promosi': Page.Promotions,
     'cetak-label-harga': Page.PrintPriceLabels,
 };
@@ -156,7 +158,7 @@ export const PAGE_TO_PATH_MAP: Record<Page, string> = {
     [Page.BackupRestore]: 'pengaturan/database',
     [Page.ReportSizesSettings]: 'pengaturan/printer',
     [Page.DisplaySettings]: 'pengaturan/tampilan',
-    [Page.AppUpdate]: 'pengaturan/pembaruan',
+    [Page.About]: 'pengaturan/pembaruan',
     
     // Additional pages fallback
     [Page.Calendar]: 'kalender',

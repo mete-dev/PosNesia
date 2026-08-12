@@ -5,7 +5,7 @@ import { Dashboard } from './Dashboard';
 import { ProductListPage, SetPricingPage } from './components/Products';
 import { CustomerListPage } from './components/Customers';
 import { SalesListPage, OrderFulfillmentPage, CreateManualSalePage } from './components/Sales';
-import { CompanyInformationSettingsPage, DisplaySettingsPage, ReportSizesSettingsPage, BackupRestorePage, AppUpdatePage } from './components/Settings';
+import { CompanyInformationSettingsPage, DisplaySettingsPage, ReportSizesSettingsPage, BackupRestorePage, AboutPage } from './components/Settings';
 import { Page, Theme } from './types';
 import { Vendors } from './components/Vendors';
 import { PurchaseListPage, AddPurchasePage } from './components/Purchases';
@@ -140,7 +140,7 @@ export const App: React.FC = () => {
             case Page.BackupRestore: return <BackupRestorePage />;
             case Page.DisplaySettings: return <DisplaySettingsPage />;
             case Page.ReportSizesSettings: return <ReportSizesSettingsPage />;
-            case Page.AppUpdate: return <AppUpdatePage />;
+            case Page.About: return <AboutPage />;
             case Page.Vendors: return <Vendors />;
             case Page.PurchaseList: return <PurchaseListPage />;
             case Page.AddPurchase: return <AddPurchasePage />;

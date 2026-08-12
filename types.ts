@@ -174,7 +174,7 @@ export enum Page {
   BackupRestore = 'BackupRestore',
   DisplaySettings = 'DisplaySettings',
   ReportSizesSettings = 'ReportSizesSettings',
-  AppUpdate = 'AppUpdate',
+  About = 'About',
   // --- Document Pages (New) ---
   IncomingLetters = 'IncomingLetters',
   OutgoingLetters = 'OutgoingLetters',

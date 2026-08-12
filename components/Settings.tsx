@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Theme, CompanyInfo, ReportLayoutSettings, AccentColor, PaperSize, ThemeConfig, GradientTheme, SingleColorTheme } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
 import { gradientThemes } from '../utils/colors';
-import { Database, Download, Upload, ShieldCheck, RefreshCw, AlertTriangle, Printer, Save } from 'lucide-react';
+import { Database, Download, Upload, ShieldCheck, RefreshCw, AlertTriangle, Printer, Save, Info, Shield, FileText } from 'lucide-react';
 
 // --- Shared Components ---
 const Label: React.FC<{ htmlFor?: string, children: React.ReactNode, className?: string }> = ({ htmlFor, children, className }) => (
@@ -188,28 +188,208 @@ export const CompanyInformationSettingsPage: React.FC = () => {
     );
 };
 
-export const AppUpdatePage: React.FC = () => {
+export const AboutPage: React.FC = () => {
+    const [activeTab, setActiveTab] = useState<'about' | 'updates' | 'privacy' | 'terms'>('about');
+
     return (
         <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-6 overflow-y-auto bg-slate-50/50 dark:bg-zinc-950">
             {/* Header Bar */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
-                        <RefreshCw className="w-5 h-5" />
+                        <Info className="w-5 h-5" />
                     </div>
                     <div>
                         <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
-                            Pembaruan Sistem Aplikasi
+                            Tentang PosNesia
                         </h1>
                         <p className="text-xs text-slate-500 dark:text-zinc-400">
-                            Kelola dan periksa versi terbaru aplikasi PosNesia
+                            Informasi sistem, lisensi, kebijakan privasi, ketentuan penggunaan, dan pembaruan aplikasi
                         </p>
                     </div>
                 </div>
             </div>
 
-            {/* Main Update Card */}
-            <AppUpdateCard />
+            {/* Navigation Tabs */}
+            <div className="flex border-b border-slate-200 dark:border-zinc-800 space-x-1 shrink-0 overflow-x-auto">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('about')}
+                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                        activeTab === 'about'
+                            ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 rounded-t-xl'
+                            : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                >
+                    <Info className="w-4 h-4" />
+                    <span>Tentang PosNesia</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('updates')}
+                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                        activeTab === 'updates'
+                            ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 rounded-t-xl'
+                            : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                >
+                    <RefreshCw className="w-4 h-4" />
+                    <span>Pembaruan Aplikasi</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('privacy')}
+                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                        activeTab === 'privacy'
+                            ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 rounded-t-xl'
+                            : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                >
+                    <Shield className="w-4 h-4" />
+                    <span>Kebijakan Privasi</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('terms')}
+                    className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                        activeTab === 'terms'
+                            ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30 rounded-t-xl'
+                            : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                >
+                    <FileText className="w-4 h-4" />
+                    <span>Ketentuan Penggunaan</span>
+                </button>
+            </div>
+
+            {/* Tab Content */}
+            <div className="flex-1">
+                {activeTab === 'about' && <AboutTabContent />}
+                {activeTab === 'updates' && <AppUpdateCard />}
+                {activeTab === 'privacy' && <PrivacyPolicyTabContent />}
+                {activeTab === 'terms' && <TermsOfServiceTabContent />}
+            </div>
+        </div>
+    );
+};
+
+const AboutTabContent: React.FC = () => {
+    return (
+        <div className="space-y-6">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 sm:p-8 border border-slate-200/80 dark:border-zinc-800 shadow-2xs space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 border-b border-slate-100 dark:border-zinc-800 pb-6">
+                    <img src="logoposnesia.png" alt="PosNesia" className="h-14 object-contain" />
+                    <div>
+                        <h2 className="text-xl font-black text-slate-900 dark:text-white">PosNesia Desktop v1.0.0</h2>
+                        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                            Sistem Kasir POS &amp; Manajemen ERP Terintegrasi untuk UMKM &amp; Bisnis Modern
+                        </p>
+                    </div>
+                </div>
+
+                <div className="space-y-4 text-xs text-slate-700 dark:text-zinc-300 leading-relaxed">
+                    <p>
+                        <strong>PosNesia</strong> adalah solusi perangkat lunak Point of Sale (POS) dan Enterprise Resource Planning (ERP) serba guna yang dirancang khusus untuk mempermudah operasional usaha ritel, restoran, jasa, hingga grosir.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                        <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/60 dark:border-zinc-700/60 space-y-1">
+                            <h3 className="font-extrabold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                                ⚡ POS Kasir Cepat
+                            </h3>
+                            <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                                Transaksi kilat, cetak nota thermal, dukungan meja &amp; dapur restoran.
+                            </p>
+                        </div>
+                        <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/60 dark:border-zinc-700/60 space-y-1">
+                            <h3 className="font-extrabold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                                📊 Keuangan &amp; Laporan
+                            </h3>
+                            <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                                Laporan laba rugi, posisi keuangan, stok barang, serta arus kas otomatis.
+                            </p>
+                        </div>
+                        <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/60 dark:border-zinc-700/60 space-y-1">
+                            <h3 className="font-extrabold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                                🔄 Auto Update
+                            </h3>
+                            <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                                Pembaruan fitur &amp; keamanan tanpa perlu instalasi ulang secara manual.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="border-t border-slate-100 dark:border-zinc-800 pt-4 flex flex-col sm:flex-row justify-between text-[11px] text-slate-400 dark:text-zinc-500 gap-2">
+                    <div>© 2026 PosNesia Team. Hak Cipta Dilindungi Undang-Undang.</div>
+                    <div>Pengembangan &amp; Lisensi Resmi PosNesia ID</div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const PrivacyPolicyTabContent: React.FC = () => {
+    return (
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 sm:p-8 border border-slate-200/80 dark:border-zinc-800 shadow-2xs space-y-4 text-xs text-slate-700 dark:text-zinc-300">
+            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-zinc-800 pb-3">
+                <Shield className="w-5 h-5 text-blue-600" /> Kebijakan Privasi (Privacy Policy)
+            </h2>
+            <p className="leading-relaxed">
+                Kami di PosNesia berkomitmen penuh untuk melindungi privasi dan keamanan data usaha Anda. Kebijakan ini menjelaskan bagaimana data Anda dikelola dan dilindungi dalam aplikasi.
+            </p>
+            <div className="space-y-3 pt-2">
+                <div>
+                    <h3 className="font-bold text-slate-900 dark:text-white">1. Penyimpanan Data Lokal</h3>
+                    <p className="text-slate-500 dark:text-zinc-400 mt-0.5">
+                        Seluruh data transaksi, pelanggan, inventaris, dan pengaturan toko Anda disimpan secara lokal di perangkat komputer Anda dan tidak diunggah ke server pihak ketiga tanpa izin.
+                    </p>
+                </div>
+                <div>
+                    <h3 className="font-bold text-slate-900 dark:text-white">2. Penggunaan Data untuk Pembaruan</h3>
+                    <p className="text-slate-500 dark:text-zinc-400 mt-0.5">
+                        Aplikasi PosNesia mengakses koneksi internet hanya untuk mengunduh berkas pembaruan perangkat lunak (auto-update) resmi dari repository resmi PosNesia.
+                    </p>
+                </div>
+                <div>
+                    <h3 className="font-bold text-slate-900 dark:text-white">3. Keamanan Informasi</h3>
+                    <p className="text-slate-500 dark:text-zinc-400 mt-0.5">
+                        Kami menerapkan mekanisme enkripsi lokal dan proteksi hak akses berbasis PIN/Role untuk mencegah akses tidak sah oleh pihak lain di perangkat Anda.
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const TermsOfServiceTabContent: React.FC = () => {
+    return (
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 sm:p-8 border border-slate-200/80 dark:border-zinc-800 shadow-2xs space-y-4 text-xs text-slate-700 dark:text-zinc-300">
+            <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-zinc-800 pb-3">
+                <FileText className="w-5 h-5 text-blue-600" /> Ketentuan Penggunaan (Terms of Service)
+            </h2>
+            <p className="leading-relaxed">
+                Dengan menggunakan aplikasi PosNesia, Anda menyetujui ketentuan dan syarat penggunaan di bawah ini:
+            </p>
+            <div className="space-y-3 pt-2">
+                <div>
+                    <h3 className="font-bold text-slate-900 dark:text-white">1. Lisensi Penggunaan</h3>
+                    <p className="text-slate-500 dark:text-zinc-400 mt-0.5">
+                        PosNesia memberikan Anda lisensi non-eksklusif untuk menggunakan aplikasi ini pada perangkat usaha Anda sesuai dengan paket lisensi yang terdaftar.
+                    </p>
+                </div>
+                <div>
+                    <h3 className="font-bold text-slate-900 dark:text-white">2. Tanggung Jawab Data Usaha</h3>
+                    <p className="text-slate-500 dark:text-zinc-400 mt-0.5">
+                        Pengguna bertanggung jawab penuh atas keakuratan data transaksi serta melakukan pencadangan (backup) berkala melalui fitur Database yang tersedia.
+                    </p>
+                </div>
+                <div>
+                    <h3 className="font-bold text-slate-900 dark:text-white">3. Larangan Penggunaan</h3>
+                    <p className="text-slate-500 dark:text-zinc-400 mt-0.5">
+                        Dilarang melakukan rekayasa balik (reverse engineering), dekompilasi, atau mendistribusikan salinan yang telah dimodifikasi tanpa persetujuan tertulis dari PosNesia.
+                    </p>
+                </div>
+            </div>
         </div>
     );
 };
