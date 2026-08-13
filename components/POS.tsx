@@ -1952,23 +1952,26 @@ export const POSPage: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="p-3 bg-white rounded-2xl border-2 border-emerald-500 shadow-xl relative flex flex-col items-center max-w-[320px]">
-                      {/* Render exact uploaded QRIS image or generated QR code */}
-                      <div className="relative overflow-hidden rounded-xl bg-white p-1 border border-zinc-200">
+                    <div className="p-3 bg-white rounded-2xl border-2 border-emerald-500 shadow-xl relative flex flex-col items-center max-w-[340px]">
+                      {/* Render exact uploaded QRIS poster image with floating dynamic amount badge overlay */}
+                      <div className="relative overflow-hidden rounded-xl bg-white border border-zinc-200 shadow-inner">
                         <img 
                           src={qrisDisplayImg} 
-                          alt="QRIS Pembayaran" 
-                          className="max-h-[350px] w-auto object-contain rounded-lg mx-auto" 
+                          alt="Poster QRIS Pembayaran" 
+                          className="max-h-[380px] w-auto object-contain rounded-lg mx-auto" 
                         />
-                        {/* Dynamic Amount Ribbon / Overlay Badge directly on the QRIS image */}
-                        <div className="w-full bg-emerald-600 text-white py-1.5 px-3 text-center shadow-md rounded-b-lg mt-1">
-                          <p className="text-[9px] uppercase font-bold tracking-wider opacity-90">NOMINAL TAGIHAN TRANSAKSI SEKARANG</p>
-                          <p className="text-base font-black font-mono">Rp{finalAmount.toLocaleString('id-ID')}</p>
+                        {/* Stamped Dynamic Amount Floating Overlay Badge */}
+                        <div className="absolute bottom-3 left-3 right-3 bg-gradient-to-r from-emerald-700 via-emerald-600 to-teal-700 text-white py-2 px-3 text-center shadow-2xl rounded-xl border border-white/40 backdrop-blur-md animate-pulse">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100">TOTAL BAYAR (NOMINAL TERKUNCI)</p>
+                          <p className="text-xl font-black font-mono tracking-tight drop-shadow-md">
+                            Rp{finalAmount.toLocaleString('id-ID')}
+                          </p>
                         </div>
                       </div>
                       
-                      <div className="mt-2 text-[10px] font-mono text-zinc-600 font-bold">
-                        {companyInfo.name || 'KEDAI 05'} · Ref: {Date.now().toString().slice(-8)}
+                      <div className="mt-2 text-[10px] font-mono text-zinc-600 font-bold flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                        <span>{companyInfo.name || 'KEDAI 05'} · Ref ID: {Date.now().toString().slice(-8)}</span>
                       </div>
                     </div>
 
