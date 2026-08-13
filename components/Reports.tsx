@@ -973,8 +973,8 @@ export const ProductPerformanceReportPage: React.FC = () => {
 };
 
 export const CashierDepositReportPage: React.FC = () => {
-    const { state } = useAppContext();
-    const { posSessionSummaries, currentUser } = state;
+    const { state, dispatch } = useAppContext();
+    const { posSessionSummaries, accounts, currentUser } = state;
     const [filteredSummaries, setFilteredSummaries] = useState<PosSessionSummary[]>([]);
 
     const today = new Date().toISOString().split('T')[0];
@@ -984,7 +984,12 @@ export const CashierDepositReportPage: React.FC = () => {
     const [endDate, setEndDate] = useState(today);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+    // Modal verification state
+    const [selectedSummary, setSelectedSummary] = useState<PosSessionSummary | null>(null);
+    const [targetAccountId, setTargetAccountId] = useState<string>('');
+
     const userIsCashier = currentUser?.roleId === 'kasir.toko';
+    const cashAccounts = useMemo(() => accounts.filter(a => a.isCashAccount && a.id !== '1010'), [accounts]);
 
     const handleFilter = (start: string, end: string) => {
         const startD = new Date(start);
@@ -1006,10 +1011,26 @@ export const CashierDepositReportPage: React.FC = () => {
         setIsFilterOpen(false);
     };
 
+    const handleOpenVerifyModal = (summary: PosSessionSummary) => {
+        setSelectedSummary(summary);
+        setTargetAccountId(summary.depositToAccountId || cashAccounts[0]?.id || '1020');
+    };
+
+    const handleConfirmVerification = () => {
+        if (!selectedSummary) return;
+        dispatch({
+            type: 'finance/verifyCashierDeposit',
+            payload: {
+                summaryId: selectedSummary.id,
+                depositToAccountId: targetAccountId
+            }
+        });
+        setSelectedSummary(null);
+    };
+
     React.useEffect(() => {
         handleFilter(startDate, endDate);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [posSessionSummaries, startDate, endDate]);
 
     return (
         <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
@@ -1045,31 +1066,54 @@ export const CashierDepositReportPage: React.FC = () => {
                                 <Th className="text-right">Kas Dihitung</Th>
                                 <Th className="text-right">Kas Seharusnya</Th>
                                 <Th className="text-right">Selisih</Th>
+                                <Th className="text-center">Tujuan Dompet / Kas</Th>
                                 <Th className="text-center">Status</Th>
+                                <Th className="text-right">Aksi</Th>
                             </Tr>
                         </Thead>
                         <Tbody>
                             {filteredSummaries.length === 0 ? (
                                 <Tr>
-                                    <Td colSpan={6} className="text-center py-12 text-slate-400">
+                                    <Td colSpan={8} className="text-center py-12 text-slate-400">
                                         Tidak ada data setoran kasir pada periode ini. Klik "Buat Laporan / Filter" untuk memilih periode.
                                     </Td>
                                 </Tr>
                             ) : (
-                                filteredSummaries.map(s => (
-                                    <Tr key={s.id}>
-                                        <Td className="text-slate-600 dark:text-slate-400">{new Date(s.date).toLocaleString('id-ID')}</Td>
-                                        <Td className="font-semibold text-slate-800 dark:text-zinc-200">{s.cashierName}</Td>
-                                        <Td className="text-right font-mono">Rp{s.countedCash.toLocaleString('id-ID')}</Td>
-                                        <Td className="text-right font-mono">Rp{s.expectedCash.toLocaleString('id-ID')}</Td>
-                                        <Td className={`text-right font-mono font-bold ${s.variance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                                            Rp{s.variance.toLocaleString('id-ID')}
-                                        </Td>
-                                        <Td className="text-center">
-                                            {s.status === 'verified' ? <Badge variant="success">Terverifikasi</Badge> : <Badge variant="warning">Pending</Badge>}
-                                        </Td>
-                                    </Tr>
-                                ))
+                                filteredSummaries.map(s => {
+                                    const destAccount = accounts.find(a => a.id === s.depositToAccountId);
+                                    return (
+                                        <Tr key={s.id}>
+                                            <Td className="text-slate-600 dark:text-slate-400">{new Date(s.date).toLocaleString('id-ID')}</Td>
+                                            <Td className="font-semibold text-slate-800 dark:text-zinc-200">{s.cashierName}</Td>
+                                            <Td className="text-right font-mono font-bold">Rp{s.countedCash.toLocaleString('id-ID')}</Td>
+                                            <Td className="text-right font-mono text-slate-500">Rp{s.expectedCash.toLocaleString('id-ID')}</Td>
+                                            <Td className={`text-right font-mono font-bold ${s.variance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                                Rp{s.variance.toLocaleString('id-ID')}
+                                            </Td>
+                                            <Td className="text-center text-xs font-medium">
+                                                {destAccount ? (
+                                                    <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-mono">
+                                                        🏦 {destAccount.name}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-400 italic">-</span>
+                                                )}
+                                            </Td>
+                                            <Td className="text-center">
+                                                {s.status === 'verified' ? <Badge variant="success">Terverifikasi</Badge> : <Badge variant="warning">Pending</Badge>}
+                                            </Td>
+                                            <Td className="text-right">
+                                                <Button 
+                                                    onClick={() => handleOpenVerifyModal(s)}
+                                                    variant={s.status === 'verified' ? 'secondary' : 'primary'}
+                                                    className="text-[11px] py-1 px-2.5 shadow-2xs"
+                                                >
+                                                    {s.status === 'verified' ? 'Ubah Dompet' : 'Validasi Setoran'}
+                                                </Button>
+                                            </Td>
+                                        </Tr>
+                                    );
+                                })
                             )}
                         </Tbody>
                     </Table>
@@ -1107,6 +1151,62 @@ export const CashierDepositReportPage: React.FC = () => {
                         </div>
                     </div>
                 </div>
+            </Modal>
+
+            {/* Verification / Wallet Adjust Modal */}
+            <Modal
+                isOpen={!!selectedSummary}
+                onClose={() => setSelectedSummary(null)}
+                title="Validasi & Adjust Dompet Setoran Kasir"
+                maxWidth="max-w-md"
+                footer={
+                    <div className="flex justify-end gap-2 w-full">
+                        <Button variant="secondary" onClick={() => setSelectedSummary(null)}>Batal</Button>
+                        <Button onClick={handleConfirmVerification} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
+                            <CheckCircle2 className="w-4 h-4" />
+                            Simpan & Validasi
+                        </Button>
+                    </div>
+                }
+            >
+                {selectedSummary && (
+                    <div className="space-y-4 text-xs">
+                        <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 space-y-1.5">
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Kasir:</span>
+                                <span className="font-bold text-slate-900 dark:text-white">{selectedSummary.cashierName}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Tanggal Sesi:</span>
+                                <span className="font-mono text-slate-700 dark:text-zinc-300">{new Date(selectedSummary.date).toLocaleString('id-ID')}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Nominal Kas Dihitung:</span>
+                                <span className="font-mono font-black text-emerald-600 dark:text-emerald-400">Rp{selectedSummary.countedCash.toLocaleString('id-ID')}</span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="font-bold text-slate-800 dark:text-zinc-200">
+                                Pilih Dompet / Rekening Tujuan Penyetoran
+                            </Label>
+                            <Select
+                                value={targetAccountId}
+                                onChange={e => setTargetAccountId(e.target.value)}
+                                className="w-full text-xs py-2"
+                            >
+                                {cashAccounts.map(account => (
+                                    <option key={account.id} value={account.id}>
+                                        🏦 {account.name} ({account.cashAccountType || 'Kas'})
+                                    </option>
+                                ))}
+                            </Select>
+                            <p className="text-[11px] text-slate-500 italic">
+                                Uang tunai setoran kasir akan otomatis disesuaikan (*adjust*) dan dibukukan ke akun/dompet yang dipilih di atas.
+                            </p>
+                        </div>
+                    </div>
+                )}
             </Modal>
         </div>
     );

@@ -1098,6 +1098,16 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 posSessionSummaries: [...state.posSessionSummaries, newSummary],
             };
         }
+        case 'finance/verifyCashierDeposit': {
+            const { summaryId, depositToAccountId } = action.payload;
+            const updatedSummaries = state.posSessionSummaries.map(s => 
+                s.id === summaryId ? { ...s, status: 'verified' as const, depositToAccountId, verifiedDate: new Date().toISOString() } : s
+            );
+            return {
+                ...state,
+                posSessionSummaries: updatedSummaries,
+            };
+        }
         case 'finance/addJournalEntry': {
             const { description, lines, reference, posSessionId } = action.payload;
             const branchId = state.currentUser?.branchId || state.branches[0]?.id || 'CAB-JPSTNH01';
