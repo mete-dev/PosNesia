@@ -1852,11 +1852,11 @@ export const POSPage: React.FC = () => {
 
 
 
-            {/* --- Dedicated QRIS Pop Up Modal --- */}
+            {/* --- Dedicated Dynamic QRIS Pop Up Modal --- */}
             <Modal
               isOpen={isQrisModalOpen}
               onClose={() => setIsQrisModalOpen(false)}
-              title="Pembayaran QRIS Statis / Dinamis"
+              title="Pembayaran QRIS Dinamis Otomatis"
               maxWidth="max-w-md"
               footer={
                 <div className="flex justify-end gap-2 w-full">
@@ -1874,7 +1874,6 @@ export const POSPage: React.FC = () => {
               }
             >
               {(() => {
-                const selectedPm = state.paymentMethods.find(m => m.id === paymentMethodId);
                 const finalAmount = cartTotals.grandTotal - safeDepositToUse;
 
                 // Function to compute EMVCo Standard Dynamic QRIS String with CRC16 Checksum
@@ -1914,34 +1913,33 @@ export const POSPage: React.FC = () => {
                 };
 
                 const emvCoData = generateEMVCoQRIS(finalAmount, companyInfo.name || 'POSNESIA STORE');
-                const dynamicQrImage = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(emvCoData)}`;
-                const qrisImg = (selectedPm?.qrisImageUrl && selectedPm.qrisImageUrl.length > 5) ? selectedPm.qrisImageUrl : dynamicQrImage;
+                const dynamicQrImage = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(emvCoData)}`;
 
                 return (
                   <div className="flex flex-col items-center justify-center py-2 space-y-4 text-center">
                     <div className="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl border border-emerald-200/60 dark:border-emerald-900/50 w-full space-y-1">
                       <div className="flex items-center justify-center gap-1.5 text-emerald-700 dark:text-emerald-300">
                         <Sparkles className="w-3.5 h-3.5" />
-                        <span className="text-[11px] font-extrabold uppercase tracking-wider">QRIS Dinamis EMVCo Otomatis</span>
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider">QRIS Dinamis Terkunci</span>
                       </div>
                       <p className="text-3xl font-black text-emerald-900 dark:text-emerald-100 font-mono">
                         Rp{finalAmount.toLocaleString('id-ID')}
                       </p>
                     </div>
 
-                    <div className="p-4 bg-white rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-lg relative group">
+                    <div className="p-4 bg-white rounded-2xl border-2 border-emerald-500 shadow-xl relative group flex flex-col items-center">
                       <img 
-                        src={qrisImg} 
+                        src={dynamicQrImage} 
                         alt="QRIS Dinamis EMVCo" 
-                        className="w-60 h-60 object-contain rounded-lg mx-auto" 
+                        className="w-64 h-64 object-contain rounded-lg mx-auto" 
                       />
-                      <div className="mt-2 text-[10px] font-mono text-zinc-500 font-bold">
-                        NM: {companyInfo.name || 'POSNESIA STORE'} · AMT: Rp{finalAmount.toLocaleString('id-ID')}
+                      <div className="mt-3 px-3 py-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 rounded-full text-xs font-mono font-bold">
+                        {companyInfo.name || 'POSNESIA STORE'} · Nominal: Rp{finalAmount.toLocaleString('id-ID')}
                       </div>
                     </div>
 
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-xs">
-                      QR Code ini merupakan standar <strong>QRIS Dinamis EMVCo Indonesia</strong>. Nominal <strong className="text-emerald-700 dark:text-emerald-300 font-mono">Rp{finalAmount.toLocaleString('id-ID')}</strong> akan otomatis terkunci di HP pembeli saat di-scan.
+                      QR Code ini merupakan <strong>QRIS Dinamis Otomatis Real-Time</strong>. Nominal <strong className="text-emerald-700 dark:text-emerald-300 font-mono">Rp{finalAmount.toLocaleString('id-ID')}</strong> langsung terkunci saat di-scan oleh pembeli.
                     </p>
                   </div>
                 );
