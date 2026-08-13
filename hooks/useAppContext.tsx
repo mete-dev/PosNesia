@@ -1098,6 +1098,57 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 posSessionSummaries: [...state.posSessionSummaries, newSummary],
             };
         }
+        case 'finance/addCashAccount': {
+            const { name, initialBalance, sourceAccountId, cashAccountType } = action.payload;
+            const newAccId = (1020 + state.accounts.filter(a => a.isCashAccount).length).toString();
+            const newAccount: Account = {
+                id: newAccId,
+                name,
+                type: AccountType.Asset,
+                isCashAccount: true,
+                cashAccountType: cashAccountType || 'Rekening',
+                balance: initialBalance || 0,
+            };
+
+            let updatedAccounts = [...state.accounts, newAccount];
+            let updatedJournal = [...state.journalEntries];
+
+            if (initialBalance > 0 && sourceAccountId) {
+                const sourceAcc = updatedAccounts.find(a => a.id === sourceAccountId);
+                if (sourceAcc) {
+                    const branchId = state.currentUser?.branchId || state.branches[0]?.id || 'CAB-JPSTNH01';
+                    const journalResult = journalService.createJournalEntry(
+                        updatedAccounts,
+                        updatedJournal,
+                        branchId,
+                        `Saldo awal pos kas ${name}`,
+                        [
+                            { accountId: newAccId, type: 'debit', amount: initialBalance },
+                            { accountId: sourceAccountId, type: 'credit', amount: initialBalance }
+                        ],
+                        `INIT-${newAccId}`
+                    );
+                    updatedAccounts = journalResult.accounts;
+                    updatedJournal = journalResult.journalEntries;
+                }
+            }
+
+            return {
+                ...state,
+                accounts: updatedAccounts,
+                journalEntries: updatedJournal,
+            };
+        }
+        case 'finance/updateCashAccount': {
+            const { accountId, name } = action.payload;
+            const updatedAccounts = state.accounts.map(a => 
+                a.id === accountId ? { ...a, name } : a
+            );
+            return {
+                ...state,
+                accounts: updatedAccounts,
+            };
+        }
         case 'finance/verifyCashierDeposit': {
             const { summaryId, depositToAccountId } = action.payload;
             const updatedSummaries = state.posSessionSummaries.map(s => 

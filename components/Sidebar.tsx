@@ -33,18 +33,20 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
     const { state, dispatch } = useAppContext();
     const { currentUser, companyInfo } = state;
 
-    // Track open submenus. By default, auto-expand module matching currentPage.
-    const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
-        'Penjualan': true,
-        'Pembelian': true,
-        'Inventaris': true,
-        'Keuangan': true,
-        'Laporan': true,
-        'Pengaturan': true,
+    // Single accordion open behavior (only 1 menu open at a time)
+    const [openMenuLabel, setOpenMenuLabel] = useState<string | null>(() => {
+        // Auto-expand module matching currentPage initially
+        if ([Page.SalesList, Page.CustomerList, Page.Promotions, Page.PromotionsVoucher, Page.PromotionsPoints].includes(currentPage)) return 'Penjualan';
+        if ([Page.PurchaseList, Page.Vendors].includes(currentPage)) return 'Pembelian';
+        if ([Page.ProductList, Page.InventoryAdjustment, Page.GoodsReceipt, Page.ReturnManagement, Page.ProductCategories].includes(currentPage)) return 'Inventaris';
+        if ([Page.ChartOfAccounts, Page.CashAccountList, Page.CashTransaction, Page.CashTransfer, Page.VendorBillList, Page.CustomerBillList, Page.Capital, Page.PaymentMethods, Page.PaymentTerms].includes(currentPage)) return 'Keuangan';
+        if ([Page.SalesReport, Page.PurchaseReport, Page.GoodsReport, Page.FinancialInventoryReport, Page.CashierDepositReport, Page.IncomeStatementReport, Page.FinancialPositionReport].includes(currentPage)) return 'Laporan';
+        if ([Page.CompanyInformationSettings, Page.BackupRestore, Page.ReportSizesSettings, Page.About].includes(currentPage)) return 'Pengaturan';
+        return 'Penjualan';
     });
 
     const toggleSubMenu = (label: string) => {
-        setOpenMenus(prev => ({ ...prev, [label]: !prev[label] }));
+        setOpenMenuLabel(prev => prev === label ? null : label);
     };
 
     const handlePosClick = () => {
@@ -100,6 +102,8 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
             pages: [Page.ChartOfAccounts, Page.CashAccountList, Page.CashTransaction, Page.CashTransfer, Page.VendorBillList, Page.CustomerBillList, Page.Capital, Page.PaymentMethods, Page.PaymentTerms],
             subItems: [
                 { label: 'Dompet & Kas', page: Page.CashAccountList },
+                { label: 'Catat Pemasukan / Pengeluaran', page: Page.CashTransaction },
+                { label: 'Transfer Kas / Antar Dompet', page: Page.CashTransfer },
                 { label: 'Tagihan Vendor', page: Page.VendorBillList },
                 { label: 'Tagihan Pelanggan', page: Page.CustomerBillList },
                 { label: 'Bagan Akun', page: Page.ChartOfAccounts },
@@ -161,7 +165,7 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
                 {menuItems.map((item) => {
                     const hasSub = item.subItems && item.subItems.length > 0;
                     const isParentActive = item.pages ? item.pages.includes(currentPage) : currentPage === item.page;
-                    const isOpen = openMenus[item.label] ?? isParentActive;
+                    const isOpen = openMenuLabel === item.label;
 
                     if (!hasSub) {
                         return (
