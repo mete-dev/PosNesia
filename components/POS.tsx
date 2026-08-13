@@ -1937,47 +1937,43 @@ export const POSPage: React.FC = () => {
                 };
 
                 const emvCoDynamicData = buildEMVCoDynamicQRIS(finalAmount, companyInfo.name || 'KEDAI 05');
-                const dynamicQrImage = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(emvCoDynamicData)}`;
+                const generatedQrImage = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(emvCoDynamicData)}`;
+                const qrisDisplayImg = (uploadedQrisImg && uploadedQrisImg.length > 5) ? uploadedQrisImg : generatedQrImage;
 
                 return (
                   <div className="flex flex-col items-center justify-center py-2 space-y-4 text-center">
                     <div className="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl border border-emerald-200/60 dark:border-emerald-900/50 w-full space-y-1">
                       <div className="flex items-center justify-center gap-1.5 text-emerald-700 dark:text-emerald-300">
                         <Sparkles className="w-3.5 h-3.5" />
-                        <span className="text-[11px] font-extrabold uppercase tracking-wider">QRIS Dinamis Terkonversi Otomatis</span>
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider">Metode QRIS Dinamis Otomatis</span>
                       </div>
                       <p className="text-3xl font-black text-emerald-900 dark:text-emerald-100 font-mono">
                         Rp{finalAmount.toLocaleString('id-ID')}
                       </p>
                     </div>
 
-                    <div className="p-3.5 bg-white rounded-2xl border-2 border-emerald-500 shadow-xl relative flex flex-col items-center max-w-[320px]">
-                      {/* Dynamic Generated QR Matrix with embedded Nominal */}
-                      <div className="relative overflow-hidden rounded-xl bg-white p-2 border border-zinc-200">
+                    <div className="p-3 bg-white rounded-2xl border-2 border-emerald-500 shadow-xl relative flex flex-col items-center max-w-[320px]">
+                      {/* Render exact uploaded QRIS image or generated QR code */}
+                      <div className="relative overflow-hidden rounded-xl bg-white p-1 border border-zinc-200">
                         <img 
-                          src={dynamicQrImage} 
-                          alt="QRIS Dinamis Otomatis" 
-                          className="w-64 h-64 object-contain rounded-lg mx-auto" 
+                          src={qrisDisplayImg} 
+                          alt="QRIS Pembayaran" 
+                          className="max-h-[350px] w-auto object-contain rounded-lg mx-auto" 
                         />
+                        {/* Dynamic Amount Ribbon / Overlay Badge directly on the QRIS image */}
                         <div className="w-full bg-emerald-600 text-white py-1.5 px-3 text-center shadow-md rounded-b-lg mt-1">
-                          <p className="text-[9px] uppercase font-bold tracking-wider opacity-90">NOMINAL TERKUNCI OTOMATIS</p>
+                          <p className="text-[9px] uppercase font-bold tracking-wider opacity-90">NOMINAL TAGIHAN TRANSAKSI SEKARANG</p>
                           <p className="text-base font-black font-mono">Rp{finalAmount.toLocaleString('id-ID')}</p>
                         </div>
                       </div>
                       
-                      {uploadedQrisImg && (
-                        <div className="mt-2.5 flex items-center gap-2 px-2.5 py-1 bg-zinc-100 rounded-lg text-[10px] text-zinc-600 font-bold">
-                          <span>Gambar Brosur Terdeteksi & Dikonversi ke QRIS Dinamis</span>
-                        </div>
-                      )}
-                      
-                      <div className="mt-1 text-[10px] font-mono text-zinc-600 font-bold">
-                        NM: {companyInfo.name || 'KEDAI 05'} · REF: {Date.now().toString().slice(-8)}
+                      <div className="mt-2 text-[10px] font-mono text-zinc-600 font-bold">
+                        {companyInfo.name || 'KEDAI 05'} · Ref: {Date.now().toString().slice(-8)}
                       </div>
                     </div>
 
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-xs">
-                      Sistem PosNesia secara otomatis mengonversi QRIS Statis gambar Anda menjadi <strong>QRIS Dinamis EMVCo</strong>. Pelanggan cukup scan QR Code di atas dan nominal <strong className="text-emerald-700 dark:text-emerald-300 font-mono">Rp{finalAmount.toLocaleString('id-ID')}</strong> akan otomatis terisi di HP tanpa perlu mengetik manual.
+                      Silakan Minta Pelanggan melakukan Scan QRIS di atas dengan total tagihan pas <strong className="text-emerald-700 dark:text-emerald-300 font-mono">Rp{finalAmount.toLocaleString('id-ID')}</strong>.
                     </p>
                   </div>
                 );
