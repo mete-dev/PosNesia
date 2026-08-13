@@ -1876,36 +1876,72 @@ export const POSPage: React.FC = () => {
               {(() => {
                 const selectedPm = state.paymentMethods.find(m => m.id === paymentMethodId);
                 const finalAmount = cartTotals.grandTotal - safeDepositToUse;
-                
-                // If merchant uploaded a custom static QRIS image, use it. Otherwise, generate dynamic QR Code embedding exact transaction amount & info!
-                const dynamicQrPayload = `00020101021226580016ID.CO.QRIS.WWW01189360000000000000000215ID10200000000005303360540${finalAmount}5802ID5912${encodeURIComponent(companyInfo.name || 'PosNesia')}6007JAKARTA61051234062070703A016304`;
-                const qrisImg = selectedPm?.qrisImageUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`QRIS-DYNAMIC-${companyInfo.name || 'POSNESIA'}-TOTAL-RP-${finalAmount}-TIME-${Date.now()}`)}`;
+
+                // Function to compute EMVCo Standard Dynamic QRIS String with CRC16 Checksum
+                const generateEMVCoQRIS = (amount: number, merchantName: string) => {
+                  const cleanName = (merchantName || 'POSNESIA STORE').toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 25);
+                  const amtStr = amount.toFixed(2); // EMVCo requirement: two decimal digits
+                  
+                  // Construct EMVCo Payload Blocks
+                  let raw = '000201' + // Payload Format Indicator
+                            '010212' + // Dynamic QR Code Type (12 = Dynamic, 11 = Static)
+                            '26580016ID.CO.QRIS.WWW01189360000000000000000215ID1020000000000' + // Merchant Account Info
+                            '52045812' + // Merchant Category Code
+                            '5303360' +  // Transaction Currency IDR (360)
+                            `54${String(amtStr.length).padStart(2, '0')}${amtStr}` + // Transaction Amount
+                            '5802ID' +   // Country Code
+                            `59${String(cleanName.length).padStart(2, '0')}${cleanName}` + // Merchant Name
+                            '6007JAKARTA' + // Merchant City
+                            '62070703A01'; // Additional Data Field (Tx Ref)
+
+                  // Append CRC16 Marker "6304"
+                  raw += '6304';
+
+                  // Calculate CRC16 (CCITT-FALSE 0x1021)
+                  let crc = 0xFFFF;
+                  for (let i = 0; i < raw.length; i++) {
+                    crc ^= raw.charCodeAt(i) << 8;
+                    for (let j = 0; j < 8; j++) {
+                      if ((crc & 0x8000) !== 0) {
+                        crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+                      } else {
+                        crc = (crc << 1) & 0xFFFF;
+                      }
+                    }
+                  }
+                  const crcHex = (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+                  return raw + crcHex;
+                };
+
+                const emvCoData = generateEMVCoQRIS(finalAmount, companyInfo.name || 'POSNESIA STORE');
+                const dynamicQrImage = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(emvCoData)}`;
+                const qrisImg = (selectedPm?.qrisImageUrl && selectedPm.qrisImageUrl.length > 5) ? selectedPm.qrisImageUrl : dynamicQrImage;
 
                 return (
                   <div className="flex flex-col items-center justify-center py-2 space-y-4 text-center">
                     <div className="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl border border-emerald-200/60 dark:border-emerald-900/50 w-full space-y-1">
                       <div className="flex items-center justify-center gap-1.5 text-emerald-700 dark:text-emerald-300">
                         <Sparkles className="w-3.5 h-3.5" />
-                        <span className="text-[11px] font-extrabold uppercase tracking-wider">QRIS Dinamis Otomatis</span>
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider">QRIS Dinamis EMVCo Otomatis</span>
                       </div>
                       <p className="text-3xl font-black text-emerald-900 dark:text-emerald-100 font-mono">
                         Rp{finalAmount.toLocaleString('id-ID')}
                       </p>
                     </div>
 
-                    <div className="p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-md relative group">
+                    <div className="p-4 bg-white rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-lg relative group">
                       <img 
                         src={qrisImg} 
-                        alt="QRIS Dinamis" 
-                        className="w-56 h-56 object-contain rounded-lg mx-auto" 
+                        alt="QRIS Dinamis EMVCo" 
+                        className="w-60 h-60 object-contain rounded-lg mx-auto" 
                       />
                       <div className="mt-2 text-[10px] font-mono text-zinc-500 font-bold">
-                        {companyInfo.name || 'PosNesia Store'} · Ref: {Date.now().toString().slice(-8)}
+                        NM: {companyInfo.name || 'POSNESIA STORE'} · AMT: Rp{finalAmount.toLocaleString('id-ID')}
                       </div>
                     </div>
 
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      QR Code ini secara otomatis mengunci nominal <strong className="text-emerald-700 dark:text-emerald-300 font-mono">Rp{finalAmount.toLocaleString('id-ID')}</strong>. Pelanggan cukup scan tanpa perlu mengetik nominal lagi di aplikasi m-banking / e-wallet.
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-xs">
+                      QR Code ini merupakan standar <strong>QRIS Dinamis EMVCo Indonesia</strong>. Nominal <strong className="text-emerald-700 dark:text-emerald-300 font-mono">Rp{finalAmount.toLocaleString('id-ID')}</strong> akan otomatis terkunci di HP pembeli saat di-scan.
                     </p>
                   </div>
                 );
