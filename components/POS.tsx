@@ -41,7 +41,9 @@ import {
   Sparkles,
   Settings,
   Banknote,
-  CreditCard
+  CreditCard,
+  QrCode,
+  Wallet
 } from 'lucide-react';
 
 type PosView = 'transaction' | 'info' | 'register' | 'report' | 'pay_bill';
