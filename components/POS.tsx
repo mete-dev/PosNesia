@@ -1513,47 +1513,40 @@ export const POSPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Quick cash shortcuts */}
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { label: 'Uang Pas', val: cartTotals.grandTotal },
-                      { label: 'Rp 50rb', val: 50000 },
-                      { label: 'Rp 100rb', val: 100000 }
-                    ].map(item => (
-                      <button
-                        key={item.label}
-                        type="button"
-                        onClick={() => {
-                          setPaymentMethodId('pm1'); // Tunai
-                          setAmountPaid(item.val.toString());
-                        }}
-                        disabled={posCart.length === 0}
-                        className="py-2.5 rounded-xl text-[11px] font-bold bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-300 disabled:opacity-30 transition-all shadow-sm cursor-pointer"
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Inline Payment Method Select */}
-                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 shadow-sm space-y-3">
+                  {/* Block Tiles for Payment Methods Selection */}
+                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-3.5 shadow-sm space-y-3">
                     <div>
-                      <Label htmlFor="sidePaymentMethod" className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5 block">Metode Pembayaran</Label>
-                      <Select 
-                        id="sidePaymentMethod" 
-                        value={paymentMethodId} 
-                        onChange={e => setPaymentMethodId(e.target.value)}
-                        className="w-full h-10 text-xs border-zinc-200 dark:border-zinc-800 rounded-xl"
-                      >
-                        {state.paymentMethods.map(pm => (
-                          <option key={pm.id} value={pm.id}>{pm.name}</option>
-                        ))}
-                      </Select>
+                      <Label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-2 block">Pilih Metode Pembayaran</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {state.paymentMethods.map(pm => {
+                          const isSelected = paymentMethodId === pm.id;
+                          let IconComp = Banknote;
+                          if (pm.type === 'qris') IconComp = QrCode;
+                          else if (pm.type === 'edc' || pm.type === 'bank' || pm.type === 'bank_transfer') IconComp = CreditCard;
+                          else if (pm.type === 'ewallet') IconComp = Wallet;
+
+                          return (
+                            <button
+                              key={pm.id}
+                              type="button"
+                              onClick={() => setPaymentMethodId(pm.id)}
+                              className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all cursor-pointer text-center ${
+                                isSelected 
+                                  ? 'border-emerald-600 bg-emerald-50/70 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-500 shadow-sm scale-[1.02]' 
+                                  : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-700'
+                              }`}
+                            >
+                              <IconComp className={`w-5 h-5 mb-1 ${isSelected ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500'}`} />
+                              <span className="text-[11px] font-bold truncate max-w-full leading-tight">{pm.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     {/* Cash payment amount input & change display */}
                     {state.paymentMethods.find(m => m.id === paymentMethodId)?.type === 'cash' && (
-                      <div className="space-y-2 pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                      <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
                         <Label htmlFor="sideAmountPaid" className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 block">Uang Diterima (Cash)</Label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 font-semibold text-xs">Rp</span>
