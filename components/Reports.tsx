@@ -531,8 +531,7 @@ export const SalesReport: React.FC = () => {
     
     React.useEffect(() => {
         applyAllFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [sales, currentBranchId, dateRange, saleChannel, cashierId, customerType]);
 
     const reportData = useMemo(() => {
         const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.grandTotal, 0);
@@ -711,8 +710,7 @@ export const PurchaseReportPage: React.FC = () => {
 
     React.useEffect(() => {
         handleFilter(startDate, endDate);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [state.purchases, startDate, endDate]);
 
     const totalPurchaseValue = filteredPurchases.reduce((sum, p) => sum + p.grandTotal, 0);
 
