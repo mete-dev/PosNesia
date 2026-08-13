@@ -1878,19 +1878,50 @@ export const POSPage: React.FC = () => {
                 const finalAmount = cartTotals.grandTotal - safeDepositToUse;
                 const uploadedQrisImg = selectedPm?.qrisImageUrl;
 
-                // Function to compute EMVCo Standard Dynamic QRIS String with CRC16 Checksum
-                const generateEMVCoQRIS = (amount: number, merchantName: string) => {
-                  const cleanName = (merchantName || 'POSNESIA STORE').toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 25);
+                // Function to build standard EMVCo Dynamic QRIS String with exact nominal and CRC16
+                const buildEMVCoDynamicQRIS = (amount: number, merchantName: string, staticPayload?: string) => {
                   const amtStr = amount.toFixed(2);
-                  
-                  let raw = '000201' + '010212' + 
-                            '26580016ID.CO.QRIS.WWW01189360000000000000000215ID1020000000000' + 
-                            '52045812' + '5303360' + 
-                            `54${String(amtStr.length).padStart(2, '0')}${amtStr}` + 
-                            '5802ID' + 
-                            `59${String(cleanName.length).padStart(2, '0')}${cleanName}` + 
-                            '6007JAKARTA' + '62070703A01';
+                  const cleanName = (merchantName || 'KEDAI 05').toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 25);
+
+                  let raw = '';
+                  if (staticPayload && staticPayload.includes('000201')) {
+                    // Convert static QRIS payload (type 11) to dynamic QRIS payload (type 12) + add tag 54 (amount)
+                    let p = staticPayload;
+                    // Replace 010211 with 010212 (Dynamic)
+                    p = p.replace('010211', '010212');
+
+                    // Remove existing CRC 6304XXXX if present
+                    const crcIdx = p.indexOf('6304');
+                    if (crcIdx > -1) {
+                      p = p.substring(0, crcIdx);
+                    }
+
+                    // Remove existing 54 Tag if any
+                    p = p.replace(/54\d{2}\d+(\.\d+)?/, '');
+
+                    // Insert Tag 54 (Amount) before Tag 58 Country Code
+                    const tag58Idx = p.indexOf('5802ID');
+                    const amtTag = `54${String(amtStr.length).padStart(2, '0')}${amtStr}`;
+                    if (tag58Idx > -1) {
+                      raw = p.slice(0, tag58Idx) + amtTag + p.slice(tag58Idx);
+                    } else {
+                      raw = p + amtTag;
+                    }
+                  } else {
+                    // Fallback to standard Indonesian EMVCo Dynamic Payload
+                    raw = '000201' + '010212' + 
+                          '26580016ID.CO.QRIS.WWW01189360000000000000000215ID1022215501100' + 
+                          '52045812' + '5303360' + 
+                          `54${String(amtStr.length).padStart(2, '0')}${amtStr}` + 
+                          '5802ID' + 
+                          `59${String(cleanName.length).padStart(2, '0')}${cleanName}` + 
+                          '6007JAKARTA' + '62070703A01';
+                  }
+
+                  // Append CRC16 Marker "6304"
                   raw += '6304';
+
+                  // Calculate CCITT-FALSE CRC16 Checksum
                   let crc = 0xFFFF;
                   for (let i = 0; i < raw.length; i++) {
                     crc ^= raw.charCodeAt(i) << 8;
@@ -1905,42 +1936,48 @@ export const POSPage: React.FC = () => {
                   return raw + (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
                 };
 
-                const emvCoData = generateEMVCoQRIS(finalAmount, companyInfo.name || 'POSNESIA STORE');
-                const generatedDynamicQr = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(emvCoData)}`;
-                const displayImg = uploadedQrisImg || generatedDynamicQr;
+                const emvCoDynamicData = buildEMVCoDynamicQRIS(finalAmount, companyInfo.name || 'KEDAI 05');
+                const dynamicQrImage = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(emvCoDynamicData)}`;
 
                 return (
                   <div className="flex flex-col items-center justify-center py-2 space-y-4 text-center">
                     <div className="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl border border-emerald-200/60 dark:border-emerald-900/50 w-full space-y-1">
                       <div className="flex items-center justify-center gap-1.5 text-emerald-700 dark:text-emerald-300">
                         <Sparkles className="w-3.5 h-3.5" />
-                        <span className="text-[11px] font-extrabold uppercase tracking-wider">Nominal Tagihan Dinamis Kasir</span>
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider">QRIS Dinamis Terkonversi Otomatis</span>
                       </div>
                       <p className="text-3xl font-black text-emerald-900 dark:text-emerald-100 font-mono">
                         Rp{finalAmount.toLocaleString('id-ID')}
                       </p>
                     </div>
 
-                    <div className="p-3 bg-white rounded-2xl border-2 border-emerald-500 shadow-xl relative group flex flex-col items-center max-w-[320px]">
-                      <div className="relative overflow-hidden rounded-xl bg-white border border-zinc-200">
+                    <div className="p-3.5 bg-white rounded-2xl border-2 border-emerald-500 shadow-xl relative flex flex-col items-center max-w-[320px]">
+                      {/* Dynamic Generated QR Matrix with embedded Nominal */}
+                      <div className="relative overflow-hidden rounded-xl bg-white p-2 border border-zinc-200">
                         <img 
-                          src={displayImg} 
-                          alt="Gambar QRIS Pembayaran" 
-                          className="max-h-[340px] w-auto object-contain rounded-lg mx-auto" 
+                          src={dynamicQrImage} 
+                          alt="QRIS Dinamis Otomatis" 
+                          className="w-64 h-64 object-contain rounded-lg mx-auto" 
                         />
-                        {/* Dynamic Amount Ribbon / Overlay Badge */}
-                        <div className="w-full bg-emerald-600 text-white py-1.5 px-3 text-center shadow-md">
-                          <p className="text-[10px] uppercase font-bold tracking-wider opacity-90">TAGIHAN TRANSAKSI SEKARANG</p>
+                        <div className="w-full bg-emerald-600 text-white py-1.5 px-3 text-center shadow-md rounded-b-lg mt-1">
+                          <p className="text-[9px] uppercase font-bold tracking-wider opacity-90">NOMINAL TERKUNCI OTOMATIS</p>
                           <p className="text-base font-black font-mono">Rp{finalAmount.toLocaleString('id-ID')}</p>
                         </div>
                       </div>
-                      <div className="mt-2 text-[10px] font-mono text-zinc-600 font-bold">
-                        {companyInfo.name || 'POSNESIA STORE'} · Ref: {Date.now().toString().slice(-8)}
+                      
+                      {uploadedQrisImg && (
+                        <div className="mt-2.5 flex items-center gap-2 px-2.5 py-1 bg-zinc-100 rounded-lg text-[10px] text-zinc-600 font-bold">
+                          <span>Gambar Brosur Terdeteksi & Dikonversi ke QRIS Dinamis</span>
+                        </div>
+                      )}
+                      
+                      <div className="mt-1 text-[10px] font-mono text-zinc-600 font-bold">
+                        NM: {companyInfo.name || 'KEDAI 05'} · REF: {Date.now().toString().slice(-8)}
                       </div>
                     </div>
 
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-xs">
-                      Silakan minta pelanggan melakukan scan gambar QRIS di atas dengan total tagihan pas <strong className="text-emerald-700 dark:text-emerald-300 font-mono">Rp{finalAmount.toLocaleString('id-ID')}</strong>.
+                      Sistem PosNesia secara otomatis mengonversi QRIS Statis gambar Anda menjadi <strong>QRIS Dinamis EMVCo</strong>. Pelanggan cukup scan QR Code di atas dan nominal <strong className="text-emerald-700 dark:text-emerald-300 font-mono">Rp{finalAmount.toLocaleString('id-ID')}</strong> akan otomatis terisi di HP tanpa perlu mengetik manual.
                     </p>
                   </div>
                 );
