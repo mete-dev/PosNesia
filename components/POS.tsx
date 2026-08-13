@@ -488,6 +488,15 @@ export const POSPage: React.FC = () => {
     const [paymentMethodId, setPaymentMethodId] = useState('pm1'); // cash as default
     const [amountPaid, setAmountPaid] = useState('');
     const [depositToUse, setDepositToUse] = useState('');
+
+    useEffect(() => {
+        if (state.paymentMethods && state.paymentMethods.length > 0) {
+            const exists = state.paymentMethods.some(pm => pm.id === paymentMethodId);
+            if (!exists) {
+                setPaymentMethodId(state.paymentMethods[0].id);
+            }
+        }
+    }, [state.paymentMethods, paymentMethodId]);
     const [edcRefNumber, setEdcRefNumber] = useState('');
     const [isQrisModalOpen, setIsQrisModalOpen] = useState(false);
     const [isSaleReceiptOpen, setSaleReceiptOpen] = useState(false);
@@ -1520,7 +1529,7 @@ export const POSPage: React.FC = () => {
                     <div>
                       <Label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-2 block">Pilih Metode Pembayaran</Label>
                       <div className="grid grid-cols-2 gap-2">
-                        {state.paymentMethods.map(pm => {
+                        {(state.paymentMethods || []).map(pm => {
                           const isSelected = paymentMethodId === pm.id;
                           let IconComp = Banknote;
                           if (pm.type === 'qris') IconComp = QrCode;
