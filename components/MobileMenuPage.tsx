@@ -72,7 +72,6 @@ export const MOBILE_MENU_CATEGORIES: MenuCategory[] = [
             { label: 'Penerimaan Barang', page: Page.GoodsReceipt, icon: <Ico d="M5 13l4 4L19 7" /> },
             { label: 'Manajemen Retur', page: Page.ReturnManagement, icon: <Ico d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /> },
             { label: 'Kategori Produk', page: Page.ProductCategories, icon: <Ico d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /> },
-            { label: 'Cetak Label Harga', page: Page.PrintPriceLabels, icon: <Ico d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /> },
         ],
     },
     {

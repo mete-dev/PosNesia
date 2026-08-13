@@ -27,6 +27,15 @@
         --color-gradient-from: 14 165 233;
         --color-gradient-to: 125 211 252;
       }
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
     </style>
     <script>
       tailwind.config = {

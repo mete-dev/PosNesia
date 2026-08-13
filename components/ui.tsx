@@ -95,7 +95,7 @@ export const ActionsDropdown: React.FC<{ children: React.ReactNode }> = ({ child
                 </svg>
             </button>
             {isOpen && (
-                <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black dark:ring-gray-700 ring-opacity-5 z-20">
+                <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-xl shadow-xl bg-white dark:bg-gray-800 ring-1 ring-black dark:ring-gray-700 ring-opacity-5 z-50 border border-slate-100 dark:border-gray-700">
                     <div className="py-1" role="menu" aria-orientation="vertical">
                         {children}
                     </div>
@@ -265,8 +265,8 @@ export const Tr: React.FC<{ children: React.ReactNode; className?: string }> = (
         {children}
     </tr>
 );
-export const Th: React.FC<React.ThHTMLAttributes<HTMLTableCellElement>> = ({ children, className, ...props }) => <th scope="col" {...props} className={`px-6 py-3 ${className}`}>{children}</th>;
-export const Td: React.FC<React.TdHTMLAttributes<HTMLTableCellElement>> = ({ children, className, ...props }) => <td {...props} className={`px-6 py-4 ${className}`}>{children}</td>;
+export const Th: React.FC<React.ThHTMLAttributes<HTMLTableCellElement>> = ({ children, className, ...props }) => <th scope="col" {...props} className={`px-3 py-2 text-xs font-extrabold uppercase tracking-wider ${className}`}>{children}</th>;
+export const Td: React.FC<React.TdHTMLAttributes<HTMLTableCellElement>> = ({ children, className, ...props }) => <td {...props} className={`px-3 py-1.5 text-xs ${className}`}>{children}</td>;
 
 
 // --- Moved from Reports.tsx ---

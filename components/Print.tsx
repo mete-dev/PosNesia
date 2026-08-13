@@ -3,6 +3,7 @@ import { useAppContext } from '../hooks/useAppContext';
 import { Product, Promotion, Shelf, Page, ProductTypeLocation } from '../types';
 import { PrintLayout, Button, PageHeader } from './ui';
 import { StoreIcon } from './icons';
+import { Printer } from 'lucide-react';
 
 const PriceLabel: React.FC<{
     product: Product;
@@ -137,12 +138,7 @@ export const PrintPriceLabelsPage: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const { printSelection, products, promotions, currentBranchId } = state;
 
-    useEffect(() => {
-        // Clear the selection when the component unmounts
-        return () => {
-            dispatch({ type: 'ui/clearPrintSelection' });
-        };
-    }, [dispatch]);
+    // Do not clear printSelection on unmount automatically so state stays intact when navigating
 
     const { itemsToPrint, promotion } = useMemo(() => {
         if (!printSelection) return { itemsToPrint: [], promotion: null };
@@ -178,8 +174,34 @@ export const PrintPriceLabelsPage: React.FC = () => {
         return (
             <div className="p-8">
                 <PageHeader title="Cetak Label Harga" />
-                <p>Tidak ada produk yang dipilih untuk dicetak. Silakan kembali ke halaman Data Produk atau Promosi dan pilih item.</p>
-                <Button onClick={() => dispatch({ type: 'ui/setPage', payload: Page.ProductList })} className="mt-4">Kembali</Button>
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm text-center max-w-xl mx-auto my-8">
+                    <div className="w-16 h-16 bg-sky-100 dark:bg-sky-900/40 text-sky-600 dark:text-sky-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Printer className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Belum Ada Produk Dipilih</h3>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm mb-6">
+                        Pilih produk yang ingin dicetak dari daftar produk di bawah ini, atau cetak semua label harga produk sekaligus.
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-3">
+                        <Button 
+                            onClick={() => {
+                                const allIds = (products || []).map(p => p.id);
+                                if (allIds.length > 0) {
+                                    dispatch({ type: 'ui/setPrintSelection', payload: { type: 'products', ids: allIds } });
+                                }
+                            }} 
+                            variant="primary"
+                        >
+                            Cetak Semua Produk ({products?.length || 0})
+                        </Button>
+                        <Button 
+                            onClick={() => dispatch({ type: 'ui/setPage', payload: Page.ProductList })} 
+                            variant="secondary"
+                        >
+                            Pilih Manual dari Data Produk
+                        </Button>
+                    </div>
+                </div>
             </div>
         );
     }

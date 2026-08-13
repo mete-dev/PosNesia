@@ -1,0 +1,14 @@
+{
+  "appId": "com.posnesia.app",
+  "appName": "PosNesia",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "plugins": {},
+  "android": {
+    "allowMixedContent": true,
+    "webContentsDebuggingEnabled": true,
+    "resourceDirectory": "public",
+    "backgroundColor": "#ffffff"
+  },
+  "icon": "public/pwa-icon.png"
+}

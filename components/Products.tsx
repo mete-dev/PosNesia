@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
-import { Camera, Plus, Trash2, Layers, Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Camera, Plus, Trash2, Layers, Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle, Printer } from 'lucide-react';
 import { Product, Page, InventoryLevel, Status, BranchType, WarehouseType, Branch, Warehouse, ProductUnitTier } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
 import { Input, Select, Textarea, Label, Button, ActionsDropdown, DropdownItem, Modal, Badge, Table, Thead, Tbody, Tr, Th, Td } from './ui';
@@ -779,6 +779,9 @@ export const ProductListPage: React.FC = () => {
         dispatch({ type: 'ui/setPage', payload: Page.PrintPriceLabels });
     };
 
+    const [page, setPageNum] = useState(1);
+    const pageSize = 50;
+
     const handleSelectProduct = (productId: string, checked: boolean) => {
         const newSet = new Set(selectedProductIds);
         if (checked) {
@@ -791,7 +794,7 @@ export const ProductListPage: React.FC = () => {
     
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            setSelectedProductIds(new Set((filteredProducts || []).map(p => p.id)));
+            setSelectedProductIds(new Set((paginatedProducts || []).map(p => p.id)));
         } else {
             setSelectedProductIds(new Set());
         }
@@ -799,69 +802,110 @@ export const ProductListPage: React.FC = () => {
 
     const productStockMap = useMemo(() => {
         const map = new Map<string, number>();
-        (inventoryLevels || [])
-            .filter(inv => inv && (!currentBranchId || inv.locationId === currentBranchId))
-            .forEach(inv => {
-                if (inv && inv.productId) {
-                    map.set(inv.productId, (map.get(inv.productId) || 0) + (inv.quantity || 0));
-                }
-            });
+        if (!inventoryLevels || inventoryLevels.length === 0) return map;
+        for (let i = 0; i < inventoryLevels.length; i++) {
+            const inv = inventoryLevels[i];
+            if (inv && inv.productId && (!currentBranchId || inv.locationId === currentBranchId)) {
+                map.set(inv.productId, (map.get(inv.productId) || 0) + (inv.quantity || 0));
+            }
+        }
         return map;
     }, [inventoryLevels, currentBranchId]);
 
     const brandMap = useMemo(() => new Map((brands || []).map(b => [b.id, b.name])), [brands]);
 
+    const lowerSearchTerm = useMemo(() => (searchTerm || '').trim().toLowerCase(), [searchTerm]);
+
     const filteredProducts = useMemo(() => {
-        if (!Array.isArray(products)) return [];
+        if (!Array.isArray(products) || products.length === 0) return [];
+        if (!lowerSearchTerm && categoryFilter === 'all') return products;
+
         return products.filter(product => {
             if (!product) return false;
-            const lowercasedFilter = (searchTerm || '').toLowerCase();
+            if (categoryFilter !== 'all' && product.categoryId !== categoryFilter) return false;
+            if (!lowerSearchTerm) return true;
+            
             const productName = (product.name || '').toLowerCase();
             const productBarcode = (product.barcode || '').toLowerCase();
-            const matchesSearch = productName.includes(lowercasedFilter) || productBarcode.includes(lowercasedFilter);
-            const matchesCategory = categoryFilter === 'all' || product.categoryId === categoryFilter;
-            return matchesSearch && matchesCategory;
+            return productName.includes(lowerSearchTerm) || productBarcode.includes(lowerSearchTerm);
         });
-    }, [products, searchTerm, categoryFilter]);
+    }, [products, lowerSearchTerm, categoryFilter]);
+
+    // Reset to page 1 when filter changes
+    React.useEffect(() => { setPageNum(1); }, [lowerSearchTerm, categoryFilter]);
+
+    const totalPages = Math.ceil(filteredProducts.length / pageSize);
+    const paginatedProducts = useMemo(() => filteredProducts.slice((page - 1) * pageSize, page * pageSize), [filteredProducts, page, pageSize]);
 
     return (
-        <div className="p-8 h-full flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Data Produk</h1>
-                <div className="flex gap-2">
-                    <Button onClick={() => setIsImportModalOpen(true)} variant="secondary" className="gap-1.5">
-                        <Upload className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> Import Excel
-                    </Button>
-                    <Button onClick={handlePrintSelected} disabled={selectedProductIds.size === 0} variant="secondary">
-                        Cetak Label Harga ({selectedProductIds.size})
-                    </Button>
-                    <Button onClick={() => handleOpenModal(null)}>Tambah Produk</Button>
+        <div className="p-3 md:p-5 h-full flex flex-col gap-3">
+            {/* Top Navbar Header Control Bar */}
+            <header className="bg-white dark:bg-zinc-900 px-4 py-2.5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
+                {/* Title & Item Count */}
+                <div className="flex items-center gap-3 shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center font-black text-sm">
+                        📦
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-base font-black text-gray-900 dark:text-white tracking-tight">Data Produk</h1>
+                            <span className="bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded-full font-mono">
+                                {filteredProducts.length}
+                            </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Kelola & cetak label barang</p>
+                    </div>
                 </div>
-            </div>
+
+                {/* Navbar Controls (Search, Filter, Actions) */}
+                <div className="flex flex-wrap md:flex-nowrap items-center gap-2 flex-1 max-w-full md:max-w-3xl justify-end">
+                    <div className="flex-1 min-w-[180px]">
+                        <Input 
+                            type="text"
+                            placeholder="Cari nama produk / barcode..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="h-8 text-xs bg-slate-50/50 dark:bg-zinc-800/50 border-slate-200 dark:border-zinc-700/80 focus:bg-white"
+                        />
+                    </div>
+                    <div className="w-36 shrink-0">
+                        <Select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="h-8 text-xs bg-slate-50/50 dark:bg-zinc-800/50 border-slate-200 dark:border-zinc-700/80">
+                            <option value="all">Semua Kategori</option>
+                            {(productCategories || []).map(cat => (
+                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                        </Select>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        <Button 
+                            onClick={handlePrintSelected} 
+                            variant="secondary"
+                            className="gap-1.5 text-xs h-8 px-2.5 border-sky-200 dark:border-sky-800/50 bg-sky-50/50 hover:bg-sky-100 text-sky-700 dark:bg-sky-950/30 dark:text-sky-300"
+                        >
+                            <Printer className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                            <span className="hidden lg:inline">Label</span> {selectedProductIds.size > 0 ? `(${selectedProductIds.size})` : ''}
+                        </Button>
+                        <Button onClick={() => setIsImportModalOpen(true)} variant="secondary" className="gap-1.5 text-xs h-8 px-2.5">
+                            <Upload className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            <span className="hidden lg:inline">Import</span>
+                        </Button>
+                        <Button onClick={() => handleOpenModal(null)} className="gap-1 text-xs h-8 px-3 font-bold whitespace-nowrap bg-primary-600 hover:bg-primary-700 text-white">
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Tambah Produk</span>
+                        </Button>
+                    </div>
+                </div>
+            </header>
+
             {/* Modal Import Excel */}
             <ImportProductModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} />
-            <div className="mb-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input 
-                        type="text"
-                        placeholder="Cari berdasarkan nama atau barcode..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    <Select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
-                        <option value="all">Semua Kategori</option>
-                        {(productCategories || []).map(cat => (
-                            <option key={cat.id} value={cat.id}>{cat.name}</option>
-                        ))}
-                    </Select>
-                </div>
-            </div>
-            {/* DESKTOP TABLE VIEW (Tablet & Desktop) */}
-            <div className="hidden sm:block overflow-x-auto bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
+
+            {/* Full-Page Free-Standing Data Table Container */}
+            <div className="hidden sm:block flex-1 min-h-0 overflow-y-auto bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
                 <Table>
                     <Thead>
                         <Tr>
-                            <Th className="w-10">
+                            <Th className="w-10 text-center py-2.5">
                                 <input
                                     type="checkbox"
                                     checked={selectedProductIds.size > 0 && selectedProductIds.size === filteredProducts.length}
@@ -869,58 +913,59 @@ export const ProductListPage: React.FC = () => {
                                     className="rounded text-primary-600 w-4 h-4 cursor-pointer"
                                 />
                             </Th>
-                            <Th>Nama Produk</Th>
-                            <Th>Barcode</Th>
-                            <Th>Merk</Th>
-                            <Th>Harga Jual</Th>
-                            <Th className="text-center">Stok Available</Th>
-                            <Th>Status</Th>
-                            <Th className="text-right">Aksi</Th>
+                            <Th className="py-2.5 text-xs">Nama Produk</Th>
+                            <Th className="py-2.5 text-xs">Barcode</Th>
+                            <Th className="py-2.5 text-xs">Merk</Th>
+                            <Th className="py-2.5 text-xs">Harga Jual</Th>
+                            <Th className="text-center py-2.5 text-xs">Stok Tersedia</Th>
+                            <Th className="py-2.5 text-xs">Status</Th>
+                            <Th className="text-right py-2.5 text-xs">Aksi</Th>
                         </Tr>
                     </Thead>
                     <Tbody>
-                        {filteredProducts.map(product => {
+                        {paginatedProducts.map(product => {
                             const stock = productStockMap.get(product.id) || 0;
                             const priceFormatted = (product.price || 0).toLocaleString('id-ID');
+                            const isSelected = selectedProductIds.has(product.id);
                             return (
-                                <Tr key={product.id}>
-                                    <Td>
+                                <Tr key={product.id} className={`hover:bg-slate-50/70 dark:hover:bg-zinc-800/40 transition-colors ${isSelected ? 'bg-sky-50/40 dark:bg-sky-950/20' : ''}`}>
+                                    <Td className="text-center py-1 px-2">
                                         <input
                                             type="checkbox"
-                                            checked={selectedProductIds.has(product.id)}
+                                            checked={isSelected}
                                             onChange={e => handleSelectProduct(product.id, e.target.checked)}
-                                            className="rounded text-primary-600 w-4 h-4 cursor-pointer"
+                                            className="rounded text-primary-600 w-3.5 h-3.5 cursor-pointer"
                                         />
                                     </Td>
-                                    <Td>
-                                        <div className="font-extrabold text-zinc-900 dark:text-white text-sm">
+                                    <Td className="py-1 px-2">
+                                        <div className="font-bold text-zinc-900 dark:text-white text-[11px] leading-tight">
                                             {product.name || 'Tanpa Nama'}
                                         </div>
                                     </Td>
-                                    <Td>
-                                        <span className="font-mono text-xs text-zinc-500">{product.barcode || '-'}</span>
+                                    <Td className="py-1 px-2">
+                                        <span className="font-mono text-[10px] text-zinc-500 bg-slate-100 dark:bg-zinc-800 px-1 py-0.5 rounded">{product.barcode || '-'}</span>
                                     </Td>
-                                    <Td>
-                                        <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+                                    <Td className="py-1 px-2">
+                                        <span className="text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
                                             {product.brandId ? brandMap.get(product.brandId) || '-' : '-'}
                                         </span>
                                     </Td>
-                                    <Td>
-                                        <span className="font-black text-emerald-600 dark:text-emerald-400 text-sm font-mono">
+                                    <Td className="py-1 px-2">
+                                        <span className="font-black text-emerald-600 dark:text-emerald-400 text-[11px] font-mono">
                                             Rp{priceFormatted}
                                         </span>
                                     </Td>
-                                    <Td className="text-center">
-                                        <span className={`font-extrabold font-mono text-sm px-2.5 py-0.5 rounded-md ${
-                                            stock > 5 ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200' : stock > 0 ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40' : 'bg-red-50 text-red-600 dark:bg-red-950/40'
+                                    <Td className="text-center py-1 px-2">
+                                        <span className={`font-black font-mono text-[11px] px-1.5 py-0.2 rounded inline-block ${
+                                            stock > 5 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : stock > 0 ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40' : 'bg-red-50 text-red-600 dark:bg-red-950/40'
                                         }`}>
                                             {stock}
                                         </span>
                                     </Td>
-                                    <Td>
-                                        <Badge variant={product.status === 'active' ? 'success' : 'neutral'}>{product.status || 'active'}</Badge>
+                                    <Td className="py-1 px-2">
+                                        <Badge variant={product.status === 'active' ? 'success' : 'neutral'} className="text-[9px] px-1.5 py-0">{product.status || 'active'}</Badge>
                                     </Td>
-                                    <Td className="text-right">
+                                    <Td className="text-right py-1 px-2">
                                         <ActionsDropdown>
                                             <DropdownItem onClick={() => handleOpenDetailsModal(product)}>Lihat Detail</DropdownItem>
                                             <DropdownItem onClick={() => handleOpenModal(product)}>Ubah</DropdownItem>
@@ -939,18 +984,18 @@ export const ProductListPage: React.FC = () => {
             </div>
 
             {/* MOBILE CARD GRID BLOCKS (Mobile screens only) */}
-            <div className="grid grid-cols-1 gap-4 sm:hidden overflow-y-auto pb-4">
-                {filteredProducts.map(product => {
+            <div className="grid grid-cols-1 gap-3 sm:hidden overflow-y-auto pb-4">
+                {paginatedProducts.map(product => {
                     const stock = productStockMap.get(product.id) || 0;
                     return (
-                        <div key={product.id} className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col justify-between relative">
-                            <div className="flex items-start justify-between gap-2 mb-3">
+                        <div key={product.id} className="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-zinc-200/80 dark:border-zinc-800 shadow-2xs flex flex-col justify-between relative">
+                            <div className="flex items-start justify-between gap-2 mb-2">
                                 <div className="flex items-center gap-2">
                                     <input
                                         type="checkbox"
                                         checked={selectedProductIds.has(product.id)}
                                         onChange={e => handleSelectProduct(product.id, e.target.checked)}
-                                        className="rounded text-primary-600 w-4 h-4 mt-0.5"
+                                        className="rounded text-primary-600 w-4 h-4"
                                     />
                                     <Badge variant={product.status === 'active' ? 'success' : 'neutral'}>{product.status || 'active'}</Badge>
                                 </div>
@@ -965,8 +1010,8 @@ export const ProductListPage: React.FC = () => {
                                 </ActionsDropdown>
                             </div>
 
-                            <div className="space-y-1 mb-4">
-                                <h3 className="font-bold text-gray-900 dark:text-white text-base leading-snug line-clamp-2">{product.name}</h3>
+                            <div className="space-y-1 mb-3">
+                                <h3 className="font-bold text-gray-900 dark:text-white text-sm leading-snug line-clamp-2">{product.name}</h3>
                                 {product.brandId && (
                                     <p className="text-xs font-medium text-slate-500 dark:text-gray-400">Merk: {brandMap.get(product.brandId)}</p>
                                 )}
@@ -975,20 +1020,42 @@ export const ProductListPage: React.FC = () => {
                                 )}
                             </div>
 
-                            <div className="pt-3 border-t border-slate-100 dark:border-gray-700/60 flex items-center justify-between mt-auto">
+                            <div className="pt-2 border-t border-slate-100 dark:border-gray-700/60 flex items-center justify-between mt-auto">
                                 <div>
                                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Harga Jual</span>
-                                    <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">Rp{product.price.toLocaleString('id-ID')}</p>
+                                    <p className="text-base font-black text-emerald-600 dark:text-emerald-400">Rp{product.price.toLocaleString('id-ID')}</p>
                                 </div>
                                 <div className="text-right">
                                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Stok</span>
-                                    <p className={`text-base font-black ${stock > 5 ? 'text-slate-800 dark:text-white' : stock > 0 ? 'text-amber-500' : 'text-red-500'}`}>{stock}</p>
+                                    <p className={`text-sm font-black ${stock > 5 ? 'text-slate-800 dark:text-white' : stock > 0 ? 'text-amber-500' : 'text-red-500'}`}>{stock}</p>
                                 </div>
                             </div>
                         </div>
                     );
                 })}
             </div>
+
+            {/* Pagination Bar */}
+            {totalPages > 1 && (
+                <div className="shrink-0 flex items-center justify-between gap-3 px-2 py-2 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200/80 dark:border-zinc-800">
+                    <span className="text-[11px] text-slate-400 font-medium">
+                        {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, filteredProducts.length)} dari {filteredProducts.length} produk
+                    </span>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setPageNum(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >‹ Prev</button>
+                        <span className="text-[11px] font-bold text-slate-500 px-2">{page} / {totalPages}</span>
+                        <button
+                            onClick={() => setPageNum(p => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                            className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >Next ›</button>
+                    </div>
+                </div>
+            )}
             <ProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} existingProduct={editingProduct} />
             <ProductDetailsModal isOpen={isDetailsModalOpen} onClose={() => setDetailsModalOpen(false)} product={editingProduct} />
         </div>

@@ -381,62 +381,88 @@ export const SalesListPage: React.FC = () => {
     };
     
     return (
-        <div className="p-8 h-full flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Data Penjualan</h1>
-                <Button onClick={() => setCreateModalOpen(true)}>+ Buat Penjualan Manual</Button>
-            </div>
-            <div className="mb-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Input 
-                        placeholder="Cari ID Faktur atau Nama Pelanggan..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                    />
-                    <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}>
-                        <option value="all">Semua Status Bayar</option>
-                        <option value="Paid">Paid</option>
-                        <option value="Unpaid">Unpaid</option>
-                        <option value="Cancelled">Cancelled</option>
-                    </Select>
-                     <Select value={channelFilter} onChange={e => setChannelFilter(e.target.value as any)}>
-                        <option value="all">Semua Kanal</option>
-                        <option value="E-commerce">E-commerce</option>
-                        <option value="Manual">Manual</option>
-                    </Select>
+        <div className="p-3 md:p-5 h-full flex flex-col gap-3">
+            {/* Top Navbar Header Control Bar */}
+            <header className="bg-white dark:bg-zinc-900 px-4 py-2.5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
+                {/* Title & Count */}
+                <div className="flex items-center gap-3 shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-sm">
+                        🛒
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-base font-black text-gray-900 dark:text-white tracking-tight">Data Penjualan</h1>
+                            <span className="bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded-full font-mono">
+                                {filteredSales.length}
+                            </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Faktur & riwayat transaksi</p>
+                    </div>
                 </div>
-            </div>
-            <div className="flex-grow bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-y-auto">
-                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
+
+                {/* Navbar Controls */}
+                <div className="flex flex-wrap md:flex-nowrap items-center gap-2 flex-1 max-w-full md:max-w-3xl justify-end">
+                    <div className="flex-1 min-w-[180px]">
+                        <Input 
+                            placeholder="Cari ID Faktur / Pelanggan..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="h-8 text-xs bg-slate-50/50 dark:bg-zinc-800/50 border-slate-200 dark:border-zinc-700/80 focus:bg-white"
+                        />
+                    </div>
+                    <div className="w-36 shrink-0">
+                        <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="h-8 text-xs bg-slate-50/50 dark:bg-zinc-800/50 border-slate-200 dark:border-zinc-700/80">
+                            <option value="all">Status Bayar</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Unpaid">Unpaid</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </Select>
+                    </div>
+                    <div className="w-32 shrink-0">
+                        <Select value={channelFilter} onChange={e => setChannelFilter(e.target.value as any)} className="h-8 text-xs bg-slate-50/50 dark:bg-zinc-800/50 border-slate-200 dark:border-zinc-700/80">
+                            <option value="all">Semua Kanal</option>
+                            <option value="E-commerce">E-commerce</option>
+                            <option value="Manual">Manual</option>
+                        </Select>
+                    </div>
+                    <Button onClick={() => setCreateModalOpen(true)} className="gap-1 text-xs h-8 px-3 font-bold whitespace-nowrap bg-primary-600 hover:bg-primary-700 text-white shrink-0">
+                        <span>+ Penjualan Manual</span>
+                    </Button>
+                </div>
+            </header>
+
+            {/* Full-Page Free-Standing Data Table Container */}
+            <div className="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
+                <table className="w-full text-xs text-left text-gray-500 dark:text-gray-400">
+                    <thead className="text-[11px] font-extrabold text-gray-700 uppercase bg-slate-50 dark:bg-zinc-800/60 dark:text-gray-400 sticky top-0 border-b border-zinc-200/80 dark:border-zinc-800">
                         <tr>
-                            <th scope="col" className="px-6 py-3">ID Faktur</th>
-                            <th scope="col" className="px-6 py-3">Tanggal</th>
-                            <th scope="col" className="px-6 py-3">Pelanggan</th>
-                            <th scope="col" className="px-6 py-3">Kanal</th>
-                            <th scope="col" className="px-6 py-3">Status Bayar</th>
-                            <th scope="col" className="px-6 py-3">Status Kirim</th>
-                            {isTaxEnabled && <th scope="col" className="px-6 py-3 text-right">Pajak</th>}
-                            <th scope="col" className="px-6 py-3 text-right">Total</th>
-                            <th scope="col" className="px-6 py-3 text-center">Aksi</th>
+                            <th scope="col" className="px-3 py-2">ID Faktur</th>
+                            <th scope="col" className="px-3 py-2">Tanggal</th>
+                            <th scope="col" className="px-3 py-2">Pelanggan</th>
+                            <th scope="col" className="px-3 py-2">Kanal</th>
+                            <th scope="col" className="px-3 py-2">Status Bayar</th>
+                            <th scope="col" className="px-3 py-2">Status Kirim</th>
+                            {isTaxEnabled && <th scope="col" className="px-3 py-2 text-right">Pajak</th>}
+                            <th scope="col" className="px-3 py-2 text-right">Total</th>
+                            <th scope="col" className="px-3 py-2 text-center">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
                         {filteredSales.map((sale) => (
-                            <tr key={sale.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{sale.id}</td>
-                                <td className="px-6 py-4">{new Date(sale.date).toLocaleDateString()}</td>
-                                <td className="px-6 py-4">{sale.customerName}</td>
-                                <td className="px-6 py-4">{sale.saleChannel || 'Manual'}</td>
-                                <td className="px-6 py-4">
-                                    <Badge variant={sale.status === 'Paid' ? 'success' : sale.status === 'Unpaid' ? 'warning' : 'danger'}>{sale.status}</Badge>
+                            <tr key={sale.id} className="hover:bg-slate-50/70 dark:hover:bg-zinc-800/40 transition-colors">
+                                <td className="px-3 py-1.5 font-bold font-mono text-gray-900 dark:text-white text-[11px]">{sale.id}</td>
+                                <td className="px-3 py-1.5 text-[11px] text-slate-500">{new Date(sale.date).toLocaleDateString('id-ID')}</td>
+                                <td className="px-3 py-1.5 font-semibold text-slate-800 dark:text-slate-200 text-[11px]">{sale.customerName}</td>
+                                <td className="px-3 py-1.5 text-[11px] text-slate-500">{sale.saleChannel || 'Manual'}</td>
+                                <td className="px-3 py-1.5">
+                                    <Badge variant={sale.status === 'Paid' ? 'success' : sale.status === 'Unpaid' ? 'warning' : 'danger'} className="text-[9px] px-1.5 py-0">{sale.status}</Badge>
                                 </td>
-                                 <td className="px-6 py-4">
-                                    <Badge variant={sale.fulfillmentStatus === 'Delivered' ? 'success' : 'info'}>{sale.fulfillmentStatus || 'N/A'}</Badge>
+                                 <td className="px-3 py-1.5">
+                                    <Badge variant={sale.fulfillmentStatus === 'Delivered' ? 'success' : 'info'} className="text-[9px] px-1.5 py-0">{sale.fulfillmentStatus || 'N/A'}</Badge>
                                 </td>
-                                {isTaxEnabled && <td className="px-6 py-4 text-right">Rp{sale.taxAmount.toLocaleString('id-ID')}</td>}
-                                <td className="px-6 py-4 font-semibold text-right">Rp{sale.grandTotal.toLocaleString('id-ID')}</td>
-                                <td className="px-6 py-4 text-center">
+                                {isTaxEnabled && <td className="px-3 py-1.5 text-right font-mono text-[11px]">Rp{sale.taxAmount.toLocaleString('id-ID')}</td>}
+                                <td className="px-3 py-1.5 font-black text-right text-emerald-600 dark:text-emerald-400 font-mono text-[11px]">Rp{sale.grandTotal.toLocaleString('id-ID')}</td>
+                                <td className="px-3 py-1.5 text-center">
                                      <ActionsDropdown>
                                         <DropdownItem onClick={() => handleViewClick(sale)}>Lihat Detail</DropdownItem>
                                         <DropdownItem onClick={() => handlePrintClick(sale)}>Cetak Nota</DropdownItem>

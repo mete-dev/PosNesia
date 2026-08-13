@@ -285,90 +285,114 @@ export const CustomerListPage: React.FC = () => {
     };
 
   return (
-    <div className="p-8 h-full flex flex-col">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Data Pelanggan</h1>
-        <Button onClick={() => handleOpenCustomerModal(null)}>Tambah Pelanggan</Button>
-      </div>
-      <div className="mb-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input 
-                placeholder="Cari nama, telepon, atau email..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-            />
-             <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}>
-                <option value="all">Semua Status</option>
-                <option value="active">Aktif</option>
-                <option value="inactive">Non-Aktif</option>
-                <option value="archived">Diarsipkan</option>
-            </Select>
-            <Select value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)}>
-                <option value="all">Semua Tipe</option>
-                <option value="Perorangan">Perorangan</option>
-                <option value="Perusahaan">Perusahaan</option>
-            </Select>
+    <div className="p-3 md:p-5 h-full flex flex-col gap-3">
+      {/* Top Navbar Header Control Bar */}
+      <header className="bg-white dark:bg-zinc-900 px-4 py-2.5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
+        {/* Title & Count */}
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-pink-500/10 text-pink-600 dark:text-pink-400 flex items-center justify-center font-black text-sm">
+            👥
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-base font-black text-gray-900 dark:text-white tracking-tight">Data Pelanggan</h1>
+              <span className="bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded-full font-mono">
+                {filteredCustomers.length}
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Manajemen anggota & pelanggan</p>
+          </div>
         </div>
-      </div>
-      {/* CUSTOMER CARD GRID BLOCKS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto pb-4">
-        {filteredCustomers.map((customer) => {
-          const displayName = customer.customerType === 'Perusahaan' ? customer.companyDetails?.companyName || customer.name : customer.name;
-          return (
-            <div key={customer.id} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-slate-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative group">
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-rose-600 text-white font-black flex items-center justify-center text-sm shadow-md">
-                    {displayName.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white text-base leading-snug truncate max-w-[150px]">{displayName}</h3>
-                    <span className="inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full bg-pink-50 dark:bg-pink-950/50 text-pink-600 dark:text-pink-400">
+
+        {/* Navbar Controls */}
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-2 flex-1 max-w-full md:max-w-3xl justify-end">
+          <div className="flex-1 min-w-[180px]">
+            <Input 
+              placeholder="Cari nama, hp, atau email..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="h-8 text-xs bg-slate-50/50 dark:bg-zinc-800/50 border-slate-200 dark:border-zinc-700/80 focus:bg-white"
+            />
+          </div>
+          <div className="w-32 shrink-0">
+            <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="h-8 text-xs bg-slate-50/50 dark:bg-zinc-800/50 border-slate-200 dark:border-zinc-700/80">
+              <option value="all">Semua Status</option>
+              <option value="active">Aktif</option>
+              <option value="inactive">Non-Aktif</option>
+              <option value="archived">Diarsipkan</option>
+            </Select>
+          </div>
+          <div className="w-32 shrink-0">
+            <Select value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)} className="h-8 text-xs bg-slate-50/50 dark:bg-zinc-800/50 border-slate-200 dark:border-zinc-700/80">
+              <option value="all">Semua Tipe</option>
+              <option value="Perorangan">Perorangan</option>
+              <option value="Perusahaan">Perusahaan</option>
+            </Select>
+          </div>
+          <Button onClick={() => handleOpenCustomerModal(null)} className="gap-1 text-xs h-8 px-3 font-bold whitespace-nowrap bg-primary-600 hover:bg-primary-700 text-white shrink-0">
+            <span>+ Tambah Pelanggan</span>
+          </Button>
+        </div>
+      </header>
+      {/* DESKTOP TABLE VIEW */}
+      <div className="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
+        <table className="w-full text-xs text-left text-gray-500 dark:text-gray-400">
+          <thead className="text-[11px] font-extrabold text-gray-700 uppercase bg-slate-50 dark:bg-zinc-800/60 dark:text-gray-400 sticky top-0 border-b border-zinc-200/80 dark:border-zinc-800">
+            <tr>
+              <th scope="col" className="px-3 py-2">Pelanggan</th>
+              <th scope="col" className="px-3 py-2">Tipe</th>
+              <th scope="col" className="px-3 py-2">Telepon / HP</th>
+              <th scope="col" className="px-3 py-2">Email</th>
+              <th scope="col" className="px-3 py-2">Status</th>
+              <th scope="col" className="px-3 py-2 text-center">Poin</th>
+              <th scope="col" className="px-3 py-2 text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
+            {filteredCustomers.map((customer) => {
+              const displayName = customer.customerType === 'Perusahaan' ? customer.companyDetails?.companyName || customer.name : customer.name;
+              return (
+                <tr key={customer.id} className="hover:bg-slate-50/70 dark:hover:bg-zinc-800/40 transition-colors">
+                  <td className="px-3 py-1.5 font-bold text-gray-900 dark:text-white text-[11px]">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-pink-500 to-rose-600 text-white font-black flex items-center justify-center text-[10px] shrink-0">
+                        {displayName.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="truncate max-w-[200px]">{displayName}</span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <span className="inline-block text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-pink-50 dark:bg-pink-950/50 text-pink-600 dark:text-pink-400">
                       {customer.customerType}
                     </span>
-                  </div>
-                </div>
-                <ActionsDropdown>
-                  <DropdownItem onClick={() => handleOpenDetailsModal(customer)}>Lihat Detail</DropdownItem>
-                  <DropdownItem onClick={() => handleOpenCustomerModal(customer)}>Ubah</DropdownItem>
-                  <DropdownItem onClick={() => handleOpenDepositModal(customer)}>Tambah Deposit</DropdownItem>
-                  {customer.status !== 'archived' && (
-                    <DropdownItem onClick={() => handleSetStatus(customer.id, customer.status === 'active' ? 'inactive' : 'active')}>
-                      {customer.status === 'active' ? 'Non-aktifkan' : 'Aktifkan'}
-                    </DropdownItem>
-                  )}
-                </ActionsDropdown>
-              </div>
-
-              <div className="space-y-1.5 py-3 border-t border-slate-100 dark:border-gray-700/60 text-xs text-slate-600 dark:text-gray-300">
-                <p className="flex items-center gap-2 truncate">
-                  <span className="opacity-60">✉️</span> {customer.email || '-'}
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="opacity-60">📞</span> {customer.phone || '-'}
-                </p>
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 dark:border-gray-700/60 flex items-center justify-between mt-auto">
-                <div>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Deposit</span>
-                  <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">Rp{customer.depositBalance.toLocaleString('id-ID')}</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Poin</span>
-                  <p className="text-sm font-black text-indigo-600 dark:text-indigo-400">⭐ {customer.points}</p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+                  </td>
+                  <td className="px-3 py-1.5 font-mono text-[11px] text-slate-700 dark:text-slate-300">{customer.phone || '-'}</td>
+                  <td className="px-3 py-1.5 text-[11px] text-slate-500 truncate max-w-[180px]">{customer.email || '-'}</td>
+                  <td className="px-3 py-1.5">
+                    <Badge variant={customer.status === 'active' ? 'success' : 'danger'} className="text-[9px] px-1.5 py-0">
+                      {customer.status === 'active' ? 'Aktif' : 'Non-Aktif'}
+                    </Badge>
+                  </td>
+                  <td className="px-3 py-1.5 text-center font-bold text-indigo-600 dark:text-indigo-400 font-mono text-[11px]">
+                    ⭐ {customer.points}
+                  </td>
+                  <td className="px-3 py-1.5 text-center">
+                    <ActionsDropdown>
+                      <DropdownItem onClick={() => handleOpenDetailsModal(customer)}>Lihat Detail</DropdownItem>
+                      <DropdownItem onClick={() => handleOpenCustomerModal(customer)}>Ubah</DropdownItem>
+                      {customer.status !== 'archived' && (
+                        <DropdownItem onClick={() => handleSetStatus(customer.id, customer.status === 'active' ? 'inactive' : 'active')}>
+                          {customer.status === 'active' ? 'Non-aktifkan' : 'Aktifkan'}
+                        </DropdownItem>
+                      )}
+                    </ActionsDropdown>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-      <DepositModal 
-        isOpen={isDepositModalOpen} 
-        onClose={() => setDepositModalOpen(false)}
-        customer={selectedCustomer}
-        onSave={handleSaveDeposit}
-      />
       <CustomerDetailsModal
         isOpen={isDetailsModalOpen}
         onClose={() => setDetailsModalOpen(false)}
