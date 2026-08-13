@@ -458,19 +458,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     r.id === 'admin' ? { ...r, permissions: allPages } : r
                 );
 
-                // Migrate accounts state: reset to updated defaultState accounts if journalEntries is empty or contains old mock balances
+                // Migrate accounts state: preserve user-created accounts & wallets
                 let accounts = parsed.accounts || defaultState.accounts;
                 const hasOldMockBalances = accounts.some((a: any) => 
                     a.name === 'Kas di Tangan (Pusat)' || 
-                    a.id === '1220' ||
-                    (a.id === '1010' && (a.balance > 0 || a.name !== 'Kasir')) || 
-                    (a.id === '1020' && (a.balance > 0 || a.name !== 'Brankas'))
+                    a.id === '1220'
                 );
-                
-                const hasNoJournalEntries = !parsed.journalEntries || parsed.journalEntries.length === 0;
 
-                if (hasOldMockBalances || hasNoJournalEntries) {
-                    accounts = defaultState.accounts;
+                if (hasOldMockBalances) {
+                    // Retain user newly created cash accounts (id starting with 1020 or isCashAccount) while cleaning legacy mock names
+                    accounts = defaultState.accounts.concat(
+                        accounts.filter((a: any) => !defaultState.accounts.some(d => d.id === a.id))
+                    );
                 }
 
                 // Migrate & sanitize paymentMethods (retain ONLY 'Tunai - Kasir' by default plus user custom methods)
