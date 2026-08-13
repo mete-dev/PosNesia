@@ -1938,13 +1938,14 @@ export const POSPage: React.FC = () => {
 
                 const emvCoDynamicData = buildEMVCoDynamicQRIS(finalAmount, companyInfo.name || 'KEDAI 05');
                 const dynamicQrMatrixImg = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(emvCoDynamicData)}`;
+                const displayImg = (uploadedQrisImg && uploadedQrisImg.length > 5) ? uploadedQrisImg : dynamicQrMatrixImg;
 
                 return (
                   <div className="flex flex-col items-center justify-center py-2 space-y-4 text-center">
                     <div className="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl border border-emerald-200/60 dark:border-emerald-900/50 w-full space-y-1">
                       <div className="flex items-center justify-center gap-1.5 text-emerald-700 dark:text-emerald-300">
                         <Sparkles className="w-4 h-4" />
-                        <span className="text-[11px] font-extrabold uppercase tracking-wider">QRIS Dinamis EMVCo (Nominal Terkunci)</span>
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider">Pembayaran QRIS Kasir</span>
                       </div>
                       <p className="text-3xl font-black text-emerald-900 dark:text-emerald-100 font-mono">
                         Rp{finalAmount.toLocaleString('id-ID')}
@@ -1952,15 +1953,14 @@ export const POSPage: React.FC = () => {
                     </div>
 
                     <div className="p-4 bg-white rounded-2xl border-2 border-emerald-500 shadow-2xl relative flex flex-col items-center max-w-[340px] w-full">
-                      {/* Dynamic EMVCo QR Code Matrix (Tipe 12) rendered directly by POS Kasir System */}
-                      <div className="relative overflow-hidden rounded-xl bg-white p-3 border border-zinc-200 shadow-inner w-full flex flex-col items-center">
+                      <div className="relative overflow-hidden rounded-xl bg-white p-2 border border-zinc-200 shadow-inner w-full flex flex-col items-center">
                         <img 
-                          src={dynamicQrMatrixImg} 
-                          alt="QRIS Dinamis EMVCo Matriks" 
-                          className="w-64 h-64 object-contain rounded-lg mx-auto" 
+                          src={displayImg} 
+                          alt="QRIS Pembayaran Kasir" 
+                          className="max-h-[360px] w-auto object-contain rounded-lg mx-auto" 
                         />
                         <div className="w-full bg-emerald-600 text-white py-2 px-3 text-center shadow-md rounded-xl mt-3">
-                          <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100">NOMINAL DISCAN AUTOMATIS</p>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-emerald-100">NOMINAL TAGIHAN SEKARANG</p>
                           <p className="text-xl font-black font-mono tracking-tight">
                             Rp{finalAmount.toLocaleString('id-ID')}
                           </p>
@@ -1969,12 +1969,12 @@ export const POSPage: React.FC = () => {
                       
                       <div className="mt-3 text-[10px] font-mono text-zinc-600 font-bold flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-                        <span>{companyInfo.name || 'KEDAI 05'} · Dynamic Tx Ref: {Date.now().toString().slice(-8)}</span>
+                        <span>{companyInfo.name || 'KEDAI 05'} · Ref ID: {Date.now().toString().slice(-8)}</span>
                       </div>
                     </div>
 
                     <p className="text-xs text-zinc-600 dark:text-zinc-400 max-w-xs leading-relaxed">
-                      QR Code ini digenerate secara otomatis oleh sistem Kasir PosNesia (<strong>Tipe 12 - Dynamic QRIS EMVCo</strong>). Saat di-scan di aplikasi M-Banking (BCA, Mandiri, BRI, BNI) atau E-Wallet (GoPay, OVO, ShopeePay, Dana, dll), nominal <strong className="text-emerald-700 dark:text-emerald-300 font-mono">Rp{finalAmount.toLocaleString('id-ID')}</strong> akan <strong>LANGSUNG TERKUNCI OTOMATIS</strong> di HP pembeli!
+                      Silakan minta pelanggan melakukan scan QRIS di atas dengan total pembayaran tepat <strong className="text-emerald-700 dark:text-emerald-300 font-mono">Rp{finalAmount.toLocaleString('id-ID')}</strong>.
                     </p>
                   </div>
                 );
