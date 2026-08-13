@@ -1526,7 +1526,6 @@ export const POSPage: React.FC = () => {
                         onClick={() => {
                           setPaymentMethodId('pm1'); // Tunai
                           setAmountPaid(item.val.toString());
-                          setCheckoutOpen(true);
                         }}
                         disabled={posCart.length === 0}
                         className="py-2.5 rounded-xl text-[11px] font-bold bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-300 disabled:opacity-30 transition-all shadow-sm cursor-pointer"
@@ -1536,33 +1535,63 @@ export const POSPage: React.FC = () => {
                     ))}
                   </div>
 
-                  {/* Payment method quick select */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPaymentMethodId('pm1'); // Tunai
-                        setCheckoutOpen(true);
-                      }}
-                      disabled={posCart.length === 0}
-                      className="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-700 hover:border-zinc-900 dark:hover:border-zinc-400 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all disabled:opacity-30 shadow-sm group cursor-pointer"
-                    >
-                      <Banknote className="w-5 h-5 text-emerald-600 group-hover:scale-110 transition-transform" />
-                      <span className="text-[11px] font-bold">Tunai</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const nonCash = state.paymentMethods.find(m => m.type !== 'cash')?.id || 'pm2';
-                        setPaymentMethodId(nonCash); // Non-Tunai / Bank / QRIS
-                        setCheckoutOpen(true);
-                      }}
-                      disabled={posCart.length === 0}
-                      className="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-700 hover:border-zinc-900 dark:hover:border-zinc-400 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all disabled:opacity-30 shadow-sm group cursor-pointer"
-                    >
-                      <CreditCard className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
-                      <span className="text-[11px] font-bold">Non-Tunai</span>
-                    </button>
+                  {/* Inline Payment Method Select */}
+                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 shadow-sm space-y-3">
+                    <div>
+                      <Label htmlFor="sidePaymentMethod" className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5 block">Metode Pembayaran</Label>
+                      <Select 
+                        id="sidePaymentMethod" 
+                        value={paymentMethodId} 
+                        onChange={e => setPaymentMethodId(e.target.value)}
+                        className="w-full h-10 text-xs border-zinc-200 dark:border-zinc-800 rounded-xl"
+                      >
+                        {state.paymentMethods.map(pm => (
+                          <option key={pm.id} value={pm.id}>{pm.name}</option>
+                        ))}
+                      </Select>
+                    </div>
+
+                    {/* Cash payment amount input & change display */}
+                    {state.paymentMethods.find(m => m.id === paymentMethodId)?.type === 'cash' && (
+                      <div className="space-y-2 pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                        <Label htmlFor="sideAmountPaid" className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 block">Uang Diterima (Cash)</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 font-semibold text-xs">Rp</span>
+                          <Input 
+                            id="sideAmountPaid" 
+                            type="number" 
+                            value={amountPaid} 
+                            onChange={e => setAmountPaid(e.target.value)} 
+                            className="pl-8 h-10 text-xs border-zinc-200 dark:border-zinc-800 rounded-xl font-extrabold"
+                            placeholder="0" 
+                          />
+                        </div>
+
+                        {/* Kembalian */}
+                        <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-950/30 p-2.5 rounded-xl border border-emerald-200/60 dark:border-emerald-900/40">
+                          <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase">Kembalian:</span>
+                          <span className="text-sm font-black font-mono text-emerald-900 dark:text-emerald-200">
+                            Rp{Math.max(0, (parseFloat(amountPaid) || 0) - (cartTotals.grandTotal - safeDepositToUse)).toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Customer Deposit Use Option */}
+                    {selectedCustomerObj && selectedCustomerObj.depositBalance > 0 && (
+                      <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                        <Label htmlFor="sideDepositUsed" className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1 block">Gunakan Deposit (Maks: Rp{maxDepositToUse.toLocaleString('id-ID')})</Label>
+                        <Input 
+                          id="sideDepositUsed"
+                          type="number"
+                          value={depositToUse}
+                          onChange={e => setDepositToUse(e.target.value)}
+                          placeholder="0"
+                          max={maxDepositToUse}
+                          className="h-9 text-xs border-zinc-200 dark:border-zinc-800 rounded-xl"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Checkout button */}
@@ -1817,130 +1846,7 @@ export const POSPage: React.FC = () => {
               </Modal>
             )}
 
-            {/* --- Premium Standard Checkout Modal --- */}
-            <Modal 
-              isOpen={isCheckoutOpen} 
-              onClose={() => setCheckoutOpen(false)} 
-              title="Selesaikan Pembayaran" 
-              footer={<><Button onClick={() => setCheckoutOpen(false)} variant="secondary">Kembali</Button><Button onClick={handleCheckout} disabled={posCart.length === 0} className={preset.themeClasses.primaryBtn}>Bayar & Selesai</Button></>}
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-                
-                {/* Invoice Totals Breakdown */}
-                <div className="space-y-4">
-                  <div className="bg-zinc-50 dark:bg-zinc-850 p-5 rounded-2xl border border-zinc-200/50 dark:border-zinc-800">
-                    <h3 className="font-bold text-xs uppercase tracking-wider text-zinc-400 mb-3">Ringkasan Tagihan</h3>
-                    
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between text-zinc-650">
-                        <span>Total Belanja</span>
-                        <span className="font-semibold text-zinc-800 dark:text-zinc-200">Rp{cartTotals.subtotal.toLocaleString('id-ID')}</span>
-                      </div>
-                      {cartTotals.discount > 0 && (
-                        <div className="flex justify-between text-green-600 font-semibold">
-                          <span>Diskon Grosir</span>
-                          <span>-Rp{cartTotals.discount.toLocaleString('id-ID')}</span>
-                        </div>
-                      )}
 
-                      
-                      {/* Loyalty Balance deduction info */}
-                      {selectedCustomerObj && safeDepositToUse > 0 && (
-                        <div className="flex justify-between text-indigo-650 font-semibold">
-                          <span>Gunakan Saldo Deposit</span>
-                          <span>-Rp{safeDepositToUse.toLocaleString('id-ID')}</span>
-                        </div>
-                      )}
-
-                      <div className="flex justify-between text-zinc-900 dark:text-zinc-50 text-lg font-black border-t border-dashed border-zinc-200 dark:border-zinc-700 pt-3 mt-2">
-                        <span>Total Tagihan</span>
-                        <span>Rp{(cartTotals.grandTotal - safeDepositToUse).toLocaleString('id-ID')}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Cash Change logic */}
-                  {paymentMethodId === 'pm1' && (
-                    <div className="bg-blue-50/50 dark:bg-zinc-950/20 border border-blue-100 dark:border-zinc-900 p-4 rounded-xl">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 block mb-1">Kembalian Uang Tunai</span>
-                      <p className="text-xl font-black text-blue-900 dark:text-blue-200">
-                        Rp{Math.max(0, (parseFloat(amountPaid) || 0) - (cartTotals.grandTotal - safeDepositToUse)).toLocaleString('id-ID')}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Form Controls */}
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="paymentMethod" className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1.5 block">Pilih Metode Pembayaran</Label>
-                    <Select 
-                      id="paymentMethod" 
-                      value={paymentMethodId} 
-                      onChange={e => setPaymentMethodId(e.target.value)}
-                      className="w-full h-11 border-zinc-200 dark:border-zinc-800 rounded-xl"
-                    >
-                      {state.paymentMethods.map(pm => (
-                        <option key={pm.id} value={pm.id}>{pm.name}</option>
-                      ))}
-                    </Select>
-                  </div>
-
-                  {/* Cash payment exact change options */}
-                  {paymentMethodId === 'pm1' && (
-                    <div className="space-y-2">
-                      <Label htmlFor="amountPaid" className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1.5 block">Jumlah Uang Diterima (Cash)</Label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 font-semibold text-sm">Rp</span>
-                        <Input 
-                          id="amountPaid" 
-                          type="number" 
-                          value={amountPaid} 
-                          onChange={e => setAmountPaid(e.target.value)} 
-                          className="pl-10 h-11 border-zinc-200 dark:border-zinc-800 rounded-xl font-extrabold"
-                          placeholder="0" 
-                          required 
-                        />
-                      </div>
-                      
-                      {/* Quick payments shortcuts */}
-                      <div className="grid grid-cols-3 gap-1.5 pt-1">
-                        {[
-                          cartTotals.grandTotal - safeDepositToUse,
-                          20000, 50000, 100000
-                        ].filter(v => v > 0).slice(0, 3).map((val) => (
-                          <button
-                            key={val}
-                            type="button"
-                            onClick={() => setAmountPaid(String(Math.ceil(val)))}
-                            className="py-1 px-2 text-[10px] font-bold bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded border border-zinc-200/50 dark:border-zinc-700 whitespace-nowrap"
-                          >
-                            Rp{val.toLocaleString('id-ID')}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Loyalty deposit deduction input */}
-                  {selectedCustomerObj && selectedCustomerObj.depositBalance > 0 && (
-                    <div>
-                      <Label htmlFor="depositUsed" className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1.5 block">Debet Saldo Deposit Pelanggan (Maks: Rp{maxDepositToUse.toLocaleString('id-ID')})</Label>
-                      <Input 
-                        id="depositUsed"
-                        type="number"
-                        value={depositToUse}
-                        onChange={e => setDepositToUse(e.target.value)}
-                        placeholder="0"
-                        max={maxDepositToUse}
-                        className="h-11 border-zinc-200 dark:border-zinc-800 rounded-xl"
-                      />
-                    </div>
-                  )}
-
-                </div>
-              </div>
-            </Modal>
 
             {/* --- Dedicated QRIS Pop Up Modal --- */}
             <Modal
