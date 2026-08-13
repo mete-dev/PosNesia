@@ -748,7 +748,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
         case 'settings/deletePaymentTerm': return { ...state, paymentTerms: state.paymentTerms.filter(pt => pt.id !== action.payload) };
         // --- PRODUCT ---
         case 'products/add': {
-            const { productData, typeLocations } = action.payload;
+            const { productData, typeLocations, initialStocks } = action.payload;
             const updatedProducts = productService.addProduct(state.products, productData as Omit<Product, 'id' | 'imageUrl'>);
             const newProduct = updatedProducts[updatedProducts.length - 1];
             
@@ -758,10 +758,30 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 productId: newProduct.id,
             }));
 
+            // Auto-create inventory level for branches
+            const targetBranchId = state.currentBranchId || state.branches[0]?.id || 'CAB-JPSTNH01';
+            const initialQty = Number(productData.initialStock) || 0;
+            
+            let updatedInventoryLevels = [...state.inventoryLevels];
+            const existingInvIndex = updatedInventoryLevels.findIndex(inv => inv.locationId === targetBranchId && inv.productId === newProduct.id);
+            if (existingInvIndex > -1) {
+                updatedInventoryLevels[existingInvIndex] = {
+                    ...updatedInventoryLevels[existingInvIndex],
+                    quantity: updatedInventoryLevels[existingInvIndex].quantity + initialQty
+                };
+            } else {
+                updatedInventoryLevels.push({
+                    locationId: targetBranchId,
+                    productId: newProduct.id,
+                    quantity: initialQty
+                });
+            }
+
             return { 
                 ...state, 
                 products: updatedProducts, 
                 productTypeLocations: [...state.productTypeLocations, ...newProductTypeLocations],
+                inventoryLevels: updatedInventoryLevels,
             };
         }
         case 'products/update': {

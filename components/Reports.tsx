@@ -1154,7 +1154,9 @@ export const ProductStockReport: React.FC = () => {
                 return mDate >= startD && mDate <= endD;
             });
 
-            const startStock = movementsBefore.reduce((sum, m) => sum + m.quantityChange, 0);
+            // Base stock is initialStock or total movement history
+            const baseStock = product.initialStock || 0;
+            const startStock = baseStock + movementsBefore.reduce((sum, m) => sum + m.quantityChange, 0);
             const stockIn = movementsDuring.filter(m => m.quantityChange > 0).reduce((sum, m) => sum + m.quantityChange, 0);
             const stockOut = movementsDuring.filter(m => m.quantityChange < 0).reduce((sum, m) => sum + m.quantityChange, 0);
             const endStock = startStock + stockIn + stockOut;
@@ -1177,8 +1179,7 @@ export const ProductStockReport: React.FC = () => {
 
     React.useEffect(() => {
         handleFilter(startDate, endDate);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [products, stockMovements, currentBranchId, startDate, endDate]);
     
     return (
         <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
