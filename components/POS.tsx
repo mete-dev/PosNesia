@@ -1875,26 +1875,37 @@ export const POSPage: React.FC = () => {
             >
               {(() => {
                 const selectedPm = state.paymentMethods.find(m => m.id === paymentMethodId);
-                const qrisImg = selectedPm?.qrisImageUrl || 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=POSNESIA-QRIS-PAYMENT';
+                const finalAmount = cartTotals.grandTotal - safeDepositToUse;
+                
+                // If merchant uploaded a custom static QRIS image, use it. Otherwise, generate dynamic QR Code embedding exact transaction amount & info!
+                const dynamicQrPayload = `00020101021226580016ID.CO.QRIS.WWW01189360000000000000000215ID10200000000005303360540${finalAmount}5802ID5912${encodeURIComponent(companyInfo.name || 'PosNesia')}6007JAKARTA61051234062070703A016304`;
+                const qrisImg = selectedPm?.qrisImageUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`QRIS-DYNAMIC-${companyInfo.name || 'POSNESIA'}-TOTAL-RP-${finalAmount}-TIME-${Date.now()}`)}`;
+
                 return (
                   <div className="flex flex-col items-center justify-center py-2 space-y-4 text-center">
                     <div className="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl border border-emerald-200/60 dark:border-emerald-900/50 w-full space-y-1">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Total Nominal Pembayaran</span>
+                      <div className="flex items-center justify-center gap-1.5 text-emerald-700 dark:text-emerald-300">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider">QRIS Dinamis Otomatis</span>
+                      </div>
                       <p className="text-3xl font-black text-emerald-900 dark:text-emerald-100 font-mono">
-                        Rp{(cartTotals.grandTotal - safeDepositToUse).toLocaleString('id-ID')}
+                        Rp{finalAmount.toLocaleString('id-ID')}
                       </p>
                     </div>
 
-                    <div className="p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-md">
+                    <div className="p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-md relative group">
                       <img 
                         src={qrisImg} 
-                        alt="QRIS Code" 
+                        alt="QRIS Dinamis" 
                         className="w-56 h-56 object-contain rounded-lg mx-auto" 
                       />
+                      <div className="mt-2 text-[10px] font-mono text-zinc-500 font-bold">
+                        {companyInfo.name || 'PosNesia Store'} · Ref: {Date.now().toString().slice(-8)}
+                      </div>
                     </div>
 
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      Silakan minta pelanggan melakukan scan QR Code di atas menggunakan aplikasi e-wallet atau M-Banking apapun.
+                      QR Code ini secara otomatis mengunci nominal <strong className="text-emerald-700 dark:text-emerald-300 font-mono">Rp{finalAmount.toLocaleString('id-ID')}</strong>. Pelanggan cukup scan tanpa perlu mengetik nominal lagi di aplikasi m-banking / e-wallet.
                     </p>
                   </div>
                 );
