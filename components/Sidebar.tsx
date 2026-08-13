@@ -137,9 +137,9 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
     ];
 
     return (
-        <aside className="w-52 flex-shrink-0 h-full max-h-screen bg-white dark:bg-zinc-900 border-r border-slate-200/80 dark:border-zinc-800 flex flex-col shadow-2xs z-20">
+        <aside className="w-56 flex-shrink-0 h-full max-h-screen bg-white dark:bg-zinc-900 border-r border-slate-200/80 dark:border-zinc-800 flex flex-col shadow-2xs z-20">
             {/* BRAND HEADER */}
-            <div className="h-14 px-3 border-b border-slate-100 dark:border-zinc-800/80 flex items-center justify-between shrink-0">
+            <div className="h-14 px-3.5 border-b border-slate-100 dark:border-zinc-800/80 flex items-center justify-between shrink-0">
                 <div 
                     onClick={() => wrappedSetPage(Page.Dashboard)}
                     className="flex items-center gap-2 cursor-pointer hover:opacity-85 transition-opacity truncate"
@@ -148,7 +148,7 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
                     <img 
                         src="/logoposnesia.png" 
                         alt={companyInfo.name || 'PosNesia'} 
-                        className="h-7 max-w-[140px] object-contain" 
+                        className="h-7 max-w-[150px] object-contain" 
                         onError={(e) => {
                             e.currentTarget.style.display = 'none';
                         }}
@@ -157,7 +157,7 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
             </div>
 
             {/* NAVIGATION MENU LIST */}
-            <nav className="flex-1 overflow-y-auto p-2 space-y-0.5 text-xs no-scrollbar">
+            <nav className="flex-1 overflow-y-auto p-2.5 space-y-1 text-xs no-scrollbar">
                 {menuItems.map((item) => {
                     const hasSub = item.subItems && item.subItems.length > 0;
                     const isParentActive = item.pages ? item.pages.includes(currentPage) : currentPage === item.page;
@@ -174,49 +174,49 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
                                         wrappedSetPage(item.page);
                                     }
                                 }}
-                                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                                     isParentActive
                                         ? 'bg-blue-600 text-white shadow-2xs'
                                         : 'text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800/80'
                                 }`}
                             >
                                 <span className="shrink-0">{item.icon}</span>
-                                <span className="truncate">{item.label}</span>
+                                <span className="truncate text-[13px]">{item.label}</span>
                             </button>
                         );
                     }
 
                     return (
-                        <div key={item.label} className="space-y-0.5">
+                        <div key={item.label} className="space-y-1">
                             {/* Parent Header */}
                             <button
                                 type="button"
                                 onClick={() => toggleSubMenu(item.label)}
-                                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                                     isParentActive
                                         ? 'text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/30'
                                         : 'text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800/80'
                                 }`}
                             >
-                                <div className="flex items-center gap-2.5 truncate">
+                                <div className="flex items-center gap-3 truncate">
                                     <span className="shrink-0">{item.icon}</span>
-                                    <span className="truncate">{item.label}</span>
+                                    <span className="truncate text-[13px]">{item.label}</span>
                                 </div>
                                 <span className="shrink-0 text-slate-400">
-                                    {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                                    {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                                 </span>
                             </button>
 
                             {/* Submenu Children Items */}
                             {isOpen && (
-                                <div className="pl-7 pr-1 space-y-0.5 py-0.5">
+                                <div className="pl-8 pr-1 space-y-0.5 py-0.5">
                                     {item.subItems!.map((sub) => {
                                         const isChildActive = currentPage === sub.page;
                                         return (
                                             <button
                                                 key={sub.label}
                                                 onClick={() => wrappedSetPage(sub.page)}
-                                                className={`w-full text-left px-2.5 py-1.5 rounded-md font-semibold transition-all cursor-pointer text-[10.5px] block truncate ${
+                                                className={`w-full text-left px-3 py-2 rounded-md font-semibold transition-all cursor-pointer text-xs block truncate ${
                                                     isChildActive
                                                         ? 'bg-blue-600 text-white shadow-2xs font-bold'
                                                         : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/60 hover:text-slate-900 dark:hover:text-white'
@@ -234,17 +234,17 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
             </nav>
 
             {/* USER PROFILE FOOTER */}
-            <div className="p-2 border-t border-slate-100 dark:border-zinc-800 shrink-0 bg-slate-50/50 dark:bg-zinc-900/50">
-                <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-white dark:bg-zinc-800 border border-slate-200/80 dark:border-zinc-700/80 shadow-2xs">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-6 h-6 rounded-md bg-blue-600 text-white flex items-center justify-center font-black text-[10px] shrink-0 shadow-2xs">
+            <div className="p-2.5 border-t border-slate-100 dark:border-zinc-800 shrink-0 bg-slate-50/50 dark:bg-zinc-900/50">
+                <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white dark:bg-zinc-800 border border-slate-200/80 dark:border-zinc-700/80 shadow-2xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-7 h-7 rounded-md bg-blue-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-2xs">
                             {currentUser?.name?.charAt(0).toUpperCase() || 'U'}
                         </div>
                         <div className="truncate">
-                            <p className="text-[11px] font-black text-slate-900 dark:text-white leading-tight truncate">
+                            <p className="text-xs font-black text-slate-900 dark:text-white leading-tight truncate">
                                 {currentUser?.name || 'User'}
                             </p>
-                            <p className="text-[9px] text-slate-400 dark:text-zinc-400 capitalize truncate">
+                            <p className="text-[10px] text-slate-400 dark:text-zinc-400 capitalize truncate">
                                 Admin
                             </p>
                         </div>
@@ -253,10 +253,10 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
                     <button
                         type="button"
                         onClick={() => dispatch({ type: 'auth/logout' })}
-                        className="p-1 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors shrink-0 cursor-pointer"
+                        className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors shrink-0 cursor-pointer"
                         title="Keluar"
                     >
-                        <LogOut className="w-3.5 h-3.5" />
+                        <LogOut className="w-4 h-4" />
                     </button>
                 </div>
             </div>
