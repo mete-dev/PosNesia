@@ -478,7 +478,7 @@ export const POSPage: React.FC = () => {
         });
     };
 
-    // Checkout Modal states
+    // Checkout & Dynamic Payment Modal states
     const [isCheckoutOpen, setCheckoutOpen] = useState(false);
     const [customerId, setCustomerId] = useState('');
     const [customerSearch, setCustomerSearch] = useState('');
@@ -486,6 +486,8 @@ export const POSPage: React.FC = () => {
     const [paymentMethodId, setPaymentMethodId] = useState('pm1'); // cash as default
     const [amountPaid, setAmountPaid] = useState('');
     const [depositToUse, setDepositToUse] = useState('');
+    const [edcRefNumber, setEdcRefNumber] = useState('');
+    const [isQrisModalOpen, setIsQrisModalOpen] = useState(false);
     const [isSaleReceiptOpen, setSaleReceiptOpen] = useState(false);
 
     // Dedicated action modal states
@@ -1045,8 +1047,8 @@ export const POSPage: React.FC = () => {
             });
         });
         
-        // Include any manual deposits or withdrawals
-        const sessionJournalEntries = journalEntries.filter(je => je.posSessionId === posSession?.id);
+        // Include manual deposits or withdrawals (excluding automatic sales journal entries)
+        const sessionJournalEntries = journalEntries.filter(je => je.posSessionId === posSession?.id && !je.reference?.startsWith('Penjualan'));
         sessionJournalEntries.forEach(je => {
              je.lines.forEach(l => {
                  if (l.accountId === cashInHandAccountId) {
@@ -1513,15 +1515,23 @@ export const POSPage: React.FC = () => {
 
                   {/* Quick cash shortcuts */}
                   <div className="grid grid-cols-3 gap-2">
-                    {['Uang Pas', 'Rp 50rb', 'Rp 100rb'].map(label => (
+                    {[
+                      { label: 'Uang Pas', val: cartTotals.grandTotal },
+                      { label: 'Rp 50rb', val: 50000 },
+                      { label: 'Rp 100rb', val: 100000 }
+                    ].map(item => (
                       <button
-                        key={label}
+                        key={item.label}
                         type="button"
-                        onClick={() => setCheckoutOpen(true)}
+                        onClick={() => {
+                          setPaymentMethodId('pm1'); // Tunai
+                          setAmountPaid(item.val.toString());
+                          setCheckoutOpen(true);
+                        }}
                         disabled={posCart.length === 0}
-                        className="py-2.5 rounded-xl text-[11px] font-bold bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-300 disabled:opacity-30 transition-all shadow-sm"
+                        className="py-2.5 rounded-xl text-[11px] font-bold bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-300 disabled:opacity-30 transition-all shadow-sm cursor-pointer"
                       >
-                        {label}
+                        {item.label}
                       </button>
                     ))}
                   </div>
@@ -1530,18 +1540,25 @@ export const POSPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => setCheckoutOpen(true)}
+                      onClick={() => {
+                        setPaymentMethodId('pm1'); // Tunai
+                        setCheckoutOpen(true);
+                      }}
                       disabled={posCart.length === 0}
-                      className="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-700 hover:border-zinc-900 dark:hover:border-zinc-400 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all disabled:opacity-30 shadow-sm group"
+                      className="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-700 hover:border-zinc-900 dark:hover:border-zinc-400 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all disabled:opacity-30 shadow-sm group cursor-pointer"
                     >
                       <Banknote className="w-5 h-5 text-emerald-600 group-hover:scale-110 transition-transform" />
                       <span className="text-[11px] font-bold">Tunai</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => setCheckoutOpen(true)}
+                      onClick={() => {
+                        const nonCash = state.paymentMethods.find(m => m.type !== 'cash')?.id || 'pm2';
+                        setPaymentMethodId(nonCash); // Non-Tunai / Bank / QRIS
+                        setCheckoutOpen(true);
+                      }}
                       disabled={posCart.length === 0}
-                      className="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-700 hover:border-zinc-900 dark:hover:border-zinc-400 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all disabled:opacity-30 shadow-sm group"
+                      className="flex flex-col items-center justify-center gap-1 py-3 rounded-xl bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-700 hover:border-zinc-900 dark:hover:border-zinc-400 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all disabled:opacity-30 shadow-sm group cursor-pointer"
                     >
                       <CreditCard className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
                       <span className="text-[11px] font-bold">Non-Tunai</span>
@@ -1550,9 +1567,23 @@ export const POSPage: React.FC = () => {
 
                   {/* Checkout button */}
                   <Button
-                    onClick={() => setCheckoutOpen(true)}
+                    onClick={() => {
+                      if (posCart.length === 0) return;
+                      const selectedPm = state.paymentMethods.find(m => m.id === paymentMethodId);
+                      if (selectedPm?.type === 'qris') {
+                        setIsQrisModalOpen(true);
+                      } else if (selectedPm?.type === 'edc') {
+                        const ref = prompt("Masukkan Nomor Referensi Transaksi EDC:");
+                        if (ref !== null) {
+                          setEdcRefNumber(ref);
+                          handleCheckout();
+                        }
+                      } else {
+                        handleCheckout();
+                      }
+                    }}
                     disabled={posCart.length === 0}
-                    className={`w-full py-4 rounded-2xl font-black text-base tracking-tight text-white flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98] disabled:opacity-40 ${preset.themeClasses.primaryBtn}`}
+                    className={`w-full py-4 rounded-2xl font-black text-base tracking-tight text-white flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98] disabled:opacity-40 cursor-pointer ${preset.themeClasses.primaryBtn}`}
                   >
                     <CheckCircle2 className="w-5 h-5" />
                     <span>PROSES BAYAR</span>
@@ -1909,6 +1940,55 @@ export const POSPage: React.FC = () => {
 
                 </div>
               </div>
+            </Modal>
+
+            {/* --- Dedicated QRIS Pop Up Modal --- */}
+            <Modal
+              isOpen={isQrisModalOpen}
+              onClose={() => setIsQrisModalOpen(false)}
+              title="Pembayaran QRIS Statis / Dinamis"
+              maxWidth="max-w-md"
+              footer={
+                <div className="flex justify-end gap-2 w-full">
+                  <Button variant="secondary" onClick={() => setIsQrisModalOpen(false)}>Batal</Button>
+                  <Button 
+                    onClick={() => {
+                      setIsQrisModalOpen(false);
+                      handleCheckout();
+                    }} 
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                  >
+                    Konfirmasi Pembayaran QRIS Selesai
+                  </Button>
+                </div>
+              }
+            >
+              {(() => {
+                const selectedPm = state.paymentMethods.find(m => m.id === paymentMethodId);
+                const qrisImg = selectedPm?.qrisImageUrl || 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=POSNESIA-QRIS-PAYMENT';
+                return (
+                  <div className="flex flex-col items-center justify-center py-2 space-y-4 text-center">
+                    <div className="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl border border-emerald-200/60 dark:border-emerald-900/50 w-full space-y-1">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Total Nominal Pembayaran</span>
+                      <p className="text-3xl font-black text-emerald-900 dark:text-emerald-100 font-mono">
+                        Rp{(cartTotals.grandTotal - safeDepositToUse).toLocaleString('id-ID')}
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-md">
+                      <img 
+                        src={qrisImg} 
+                        alt="QRIS Code" 
+                        className="w-56 h-56 object-contain rounded-lg mx-auto" 
+                      />
+                    </div>
+
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Silakan minta pelanggan melakukan scan QR Code di atas menggunakan aplikasi e-wallet atau M-Banking apapun.
+                    </p>
+                  </div>
+                );
+              })()}
             </Modal>
 
             {/* --- Cashier End Session / Audit Dialog --- */}

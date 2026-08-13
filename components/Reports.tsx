@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { Sale, Product, StockMovement, AccountType, JournalEntry, Account, PurchaseOrder, PosSessionSummary, ProductCategory, Shelf, InventoryLevel, ProductTypeLocation } from '../types';
 import { Card, Button, Label, Select, DateRangeFilter, PageHeader, Table, Thead, Tbody, Tr, Th, Td, Input, Badge, Modal } from './ui';
-import { TrendingUp, Package, ShoppingCart, DollarSign, Wallet, FileText, ArrowRightLeft, Percent, Layers, PieChart, Filter } from 'lucide-react';
+import { TrendingUp, Package, ShoppingCart, DollarSign, Wallet, FileText, ArrowRightLeft, Percent, Layers, PieChart, Filter, CheckCircle2 } from 'lucide-react';
 
 // --- Consolidated Goods Report ---
 export const GoodsReportPage: React.FC = () => {

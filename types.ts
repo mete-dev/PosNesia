@@ -358,6 +358,7 @@ export interface PaymentMethod {
   linkedAccountId?: string; 
   adminFeeType?: 'fixed' | 'percentage';
   adminFeeValue?: number;
+  qrisImageUrl?: string;
 }
 export interface PaymentTerm { id: string; name: string; days: number; }
 export interface PosSession { id: string; startTime: string; endTime?: string; staffId: string; cashierStationId: string; branchId: string; startCash: number; }

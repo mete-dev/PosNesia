@@ -597,6 +597,7 @@ export const PaymentMethodsPage: React.FC = () => {
     const [linkedAccountId, setLinkedAccountId] = useState('');
     const [adminFeeType, setAdminFeeType] = useState<'fixed' | 'percentage'>('percentage');
     const [adminFeeValue, setAdminFeeValue] = useState<string>('0');
+    const [qrisImageUrl, setQrisImageUrl] = useState<string>('');
 
     const openCreateModal = () => {
         setEditingMethod(null);
@@ -605,6 +606,7 @@ export const PaymentMethodsPage: React.FC = () => {
         setLinkedAccountId('');
         setAdminFeeType('percentage');
         setAdminFeeValue('0');
+        setQrisImageUrl('');
         setIsModalOpen(true);
     };
 
@@ -615,6 +617,7 @@ export const PaymentMethodsPage: React.FC = () => {
         setLinkedAccountId(method.linkedAccountId || '');
         setAdminFeeType(method.adminFeeType || 'percentage');
         setAdminFeeValue(method.adminFeeValue !== undefined ? method.adminFeeValue.toString() : '0');
+        setQrisImageUrl(method.qrisImageUrl || '');
         setIsModalOpen(true);
     };
 
@@ -636,7 +639,8 @@ export const PaymentMethodsPage: React.FC = () => {
                     type,
                     linkedAccountId: linkedAccountId || undefined,
                     adminFeeType: type === 'cash' ? undefined : adminFeeType,
-                    adminFeeValue: feeVal
+                    adminFeeValue: feeVal,
+                    qrisImageUrl: type === 'qris' ? qrisImageUrl : undefined
                 }
             });
         } else {
@@ -647,7 +651,8 @@ export const PaymentMethodsPage: React.FC = () => {
                     type,
                     linkedAccountId: linkedAccountId || undefined,
                     adminFeeType: type === 'cash' ? undefined : adminFeeType,
-                    adminFeeValue: feeVal
+                    adminFeeValue: feeVal,
+                    qrisImageUrl: type === 'qris' ? qrisImageUrl : undefined
                 }
             });
         }
@@ -866,6 +871,33 @@ export const PaymentMethodsPage: React.FC = () => {
                             <option value="other">Lainnya</option>
                         </Select>
                     </div>
+
+                    {type === 'qris' && (
+                        <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200/60 dark:border-blue-900/50 space-y-2">
+                            <Label className="font-bold text-blue-900 dark:text-blue-300">Gambar QR Code / QRIS Statis</Label>
+                            <input 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={e => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => {
+                                            setQrisImageUrl(reader.result as string);
+                                        };
+                                        reader.readAsDataURL(file);
+                                    }
+                                }}
+                                className="block w-full text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+                            />
+                            {qrisImageUrl && (
+                                <div className="flex items-center gap-3 pt-1">
+                                    <img src={qrisImageUrl} alt="Preview QRIS" className="w-16 h-16 object-contain rounded-lg border bg-white p-1 shadow-2xs" />
+                                    <span className="text-[11px] text-emerald-600 font-bold">✓ Gambar QRIS Terpasang</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {type !== 'cash' && (
                         <div className="p-3 bg-slate-50 dark:bg-zinc-800/60 rounded-xl border border-slate-200 dark:border-zinc-700 space-y-3">
