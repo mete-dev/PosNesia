@@ -28,7 +28,7 @@ export const CustomerModal: React.FC<{
                     pin: '', // Don't show existing pin
                     companyName: existingCustomer.companyDetails?.companyName || '',
                     taxId: existingCustomer.companyDetails?.taxId || '',
-                    address: existingCustomer.companyDetails?.address || '',
+                    address: existingCustomer.address || existingCustomer.companyDetails?.address || '',
                 });
             } else {
                 setCustomerType('Perorangan');
@@ -55,6 +55,7 @@ export const CustomerModal: React.FC<{
                 name: customerType === 'Perusahaan' ? formData.companyName : formData.name,
                 email: formData.email,
                 phone: formData.phone,
+                address: formData.address,
                 pin: formData.pin ? formData.pin : existingCustomer.pin,
                 customerType: customerType,
                 companyDetails: customerType === 'Perusahaan' ? {
@@ -70,6 +71,7 @@ export const CustomerModal: React.FC<{
                 name: customerType === 'Perorangan' ? formData.name : formData.companyName,
                 email: formData.email || `${formData.phone || 'cust'}@customer.local`,
                 phone: formData.phone,
+                address: formData.address,
                 pin: formData.pin || '123456',
                 customerType: customerType,
                 status: 'active',
@@ -120,9 +122,22 @@ export const CustomerModal: React.FC<{
                     <>
                         <div><Label htmlFor="companyName">Nama Perusahaan*</Label><Input id="companyName" name="companyName" value={formData.companyName} onChange={handleInputChange} required /></div>
                         <div><Label htmlFor="taxId">NPWP</Label><Input id="taxId" name="taxId" value={formData.taxId} onChange={handleInputChange} /></div>
-                            <div><Label htmlFor="address">Alamat Perusahaan</Label><textarea id="address" name="address" value={formData.address} onChange={handleInputChange} rows={3} className="mt-1 block w-full rounded-md bg-gray-100 dark:bg-gray-700 border-transparent"></textarea></div>
                     </>
                 )}
+
+                <div>
+                    <Label htmlFor="address">Alamat (Opsional)</Label>
+                    <textarea 
+                        id="address" 
+                        name="address" 
+                        value={formData.address} 
+                        onChange={handleInputChange} 
+                        rows={2} 
+                        placeholder="Alamat lengkap pelanggan..." 
+                        className="mt-1 block w-full rounded-md bg-gray-100 dark:bg-gray-700 border-transparent p-2 text-xs"
+                    ></textarea>
+                </div>
+
                 <hr className="dark:border-gray-600"/>
                 <div><Label htmlFor="phone">No. Telepon / No HP*</Label><Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} required /></div>
             </form>
@@ -150,6 +165,7 @@ const CustomerDetailsModal: React.FC<{
                     <p><strong>Tanggal Bergabung:</strong> {new Date(customer.joinDate).toLocaleDateString('id-ID')}</p>
                     <p><strong>Saldo Deposit:</strong> Rp{customer.depositBalance.toLocaleString('id-ID')}</p>
                     <p><strong>Poin:</strong> {customer.points}</p>
+                    <p className="md:col-span-2"><strong>Alamat:</strong> {customer.address || customer.companyDetails?.address || (customer.addresses && customer.addresses.length > 0 ? customer.addresses[0].detail : '-')}</p>
                 </div>
                 {customer.customerType === 'Perusahaan' && customer.companyDetails && (
                     <div className="pt-4 border-t dark:border-gray-600 mt-4">

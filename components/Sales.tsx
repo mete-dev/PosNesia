@@ -333,6 +333,13 @@ export const CreateManualSalePage: React.FC = () => {
     const [productSearch, setProductSearch] = useState<string[]>(['']);
     const [activeSuggestionBox, setActiveSuggestionBox] = useState<number | null>(null);
 
+    const selectedCustomerAddress = useMemo(() => {
+        if (!customerId) return '';
+        const c = customers.find(cust => cust.id === customerId);
+        if (!c) return '';
+        return c.address || c.companyDetails?.address || (c.addresses && c.addresses.length > 0 ? c.addresses[0].detail : '');
+    }, [customerId, customers]);
+
     const defaultTax = useMemo(() => taxRates.find(t => t.isDefault), [taxRates]);
 
     const handleAddItem = () => {
@@ -471,6 +478,19 @@ export const CreateManualSalePage: React.FC = () => {
                                 <option value="">Pilih Pelanggan...</option>
                                 {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
+                        </div>
+
+                        <div className="grid grid-cols-12 items-start gap-2">
+                            <label className="col-span-4 font-medium text-slate-600 dark:text-zinc-400 pt-1.5">
+                                Alamat Pelanggan
+                            </label>
+                            <textarea 
+                                readOnly 
+                                value={selectedCustomerAddress} 
+                                rows={2} 
+                                placeholder="Alamat otomatis dari database pelanggan..." 
+                                className="col-span-8 rounded-lg border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/80 text-xs p-2 text-slate-700 dark:text-zinc-300 font-medium outline-none resize-none cursor-not-allowed"
+                            />
                         </div>
                     </div>
 

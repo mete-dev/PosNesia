@@ -325,7 +325,7 @@ export interface Product {
 }
 export interface ProductTypeLocation { id: string; productId: string; locationTypeId: string; locationType: 'branch' | 'warehouse'; shelfId?: string; shelvingNumber?: string; }
 export interface CustomerAddress { id: string; label: string; province: string; city: string; district: string; village: string; detail: string; isPrimary: boolean; }
-export interface Customer { id: string; name: string; email: string; phone: string; joinDate: string; pin: string; customerType: 'Perorangan' | 'Perusahaan'; depositBalance: number; points: number; status: Status; addresses: CustomerAddress[]; companyDetails?: { companyName: string; taxId: string; address: string; }; }
+export interface Customer { id: string; name: string; email: string; phone: string; joinDate: string; pin: string; customerType: 'Perorangan' | 'Perusahaan'; depositBalance: number; points: number; status: Status; addresses: CustomerAddress[]; address?: string; companyDetails?: { companyName: string; taxId: string; address: string; }; }
 export interface SalePayment { paymentMethodId: string; amount: number; }
 export interface DeliveryInfo { type: 'pickup' | 'delivery'; address?: string; deliveryFee: number; estimatedTime: string; }
 export interface SaleItem { productId: string; productName: string; quantity: number; price: number; cost: number; discount: number; }
