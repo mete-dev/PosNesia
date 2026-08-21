@@ -327,8 +327,8 @@ export const AddPurchasePage: React.FC = () => {
                             </Button>
                         </div>
 
-                        {/* Table Header */}
-                        <div className="overflow-x-auto">
+                        {/* Table Header & Rows without overflow restriction */}
+                        <div className="w-full">
                             <table className="w-full text-xs">
                                 <thead>
                                     <tr className="bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-bold border-b border-slate-200 dark:border-zinc-700">
@@ -359,12 +359,12 @@ export const AddPurchasePage: React.FC = () => {
                                                     className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs px-3 py-2 font-medium focus:ring-2 focus:ring-blue-500 outline-none"
                                                 />
                                                 {activeSuggestionBox === index && (
-                                                    <div className="absolute z-20 top-full left-2 right-2 mt-1 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl shadow-xl max-h-56 overflow-y-auto p-1">
+                                                    <div className="absolute z-30 top-full left-2 right-2 mt-1 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto p-1">
                                                         {productSuggestions.length > 0 ? productSuggestions.map(p => (
                                                             <div 
                                                                 key={p.id} 
                                                                 onMouseDown={() => handleProductSelect(index, p)} 
-                                                                className="p-2 hover:bg-blue-50 dark:hover:bg-zinc-700 rounded-lg cursor-pointer flex justify-between items-center text-xs transition-colors"
+                                                                className="p-2.5 hover:bg-blue-50 dark:hover:bg-zinc-700 rounded-lg cursor-pointer flex justify-between items-center text-xs transition-colors"
                                                             >
                                                                 <div>
                                                                     <strong className="block text-slate-900 dark:text-white font-bold">{p.name}</strong>
