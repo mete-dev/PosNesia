@@ -235,10 +235,10 @@ export const AddPurchasePage: React.FC = () => {
             </div>
 
             {/* Odoo Style Document Sheet Container */}
-            <form onSubmit={handleSubmit} className="bg-white dark:bg-zinc-900 rounded-xl shadow-xs border border-slate-200 dark:border-zinc-800 p-6 md:p-8 space-y-6">
+            <form onSubmit={handleSubmit} className="bg-white dark:bg-zinc-900 rounded-xl shadow-xs border border-slate-200 dark:border-zinc-800 p-5 md:p-6 space-y-4">
                 
                 {/* Header Information Grid (2 Side-by-Side Columns) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 pb-6 border-b border-slate-100 dark:border-zinc-800 text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3 pb-4 border-b border-slate-100 dark:border-zinc-800 text-xs">
                     {/* Left Side */}
                     <div className="space-y-3">
                         <div className="grid grid-cols-12 items-center gap-2">
@@ -325,10 +325,10 @@ export const AddPurchasePage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Tabbed / Products Table Header */}
-                <div className="space-y-3">
+                {/* Products Table */}
+                <div className="space-y-2 pt-2">
                     <div className="flex items-center gap-6 border-b border-slate-200 dark:border-zinc-800">
-                        <button type="button" className="pb-2 text-xs font-black text-purple-700 dark:text-purple-400 border-b-2 border-purple-600 uppercase tracking-wider">
+                        <button type="button" className="pb-1 text-xs font-black text-purple-700 dark:text-purple-400 border-b-2 border-purple-600 uppercase tracking-wider">
                             Products
                         </button>
                     </div>
@@ -377,20 +377,19 @@ export const AddPurchasePage: React.FC = () => {
                                                                 <span className="text-[11px] font-mono text-slate-400">Kode: {p.barcode || p.id}</span>
                                                             </div>
                                                             <span className="font-mono text-purple-600 dark:text-purple-400 font-bold text-xs">
-                                                                Rp{p.cost?.toLocaleString('id-ID')}
+                                                                Rp{(p.cost || p.price)?.toLocaleString('id-ID')}
                                                             </span>
                                                         </div>
                                                     )) : (
-                                                        <div className="p-3 text-center text-xs text-slate-500">
-                                                            <p className="mb-2">Produk tidak ditemukan.</p>
-                                                            <Button 
-                                                                variant="secondary" 
-                                                                size="sm" 
-                                                                className="text-xs py-1 px-3" 
-                                                                onMouseDown={() => { setCreatingProductForIndex(index); setProductModalOpen(true); }}
+                                                        <div className="p-3 text-center text-slate-400 text-xs flex justify-between items-center">
+                                                            <span>Produk tidak ditemukan</span>
+                                                            <button 
+                                                                type="button"
+                                                                onMouseDown={() => { setActiveSuggestionBox(null); setProductModalOpen(true); }}
+                                                                className="text-purple-600 font-bold hover:underline"
                                                             >
-                                                                + Buat Produk Baru
-                                                            </Button>
+                                                                + Buat Produk
+                                                            </button>
                                                         </div>
                                                     )}
                                                 </div>
@@ -454,30 +453,10 @@ export const AddPurchasePage: React.FC = () => {
                     </button>
                 </div>
 
-                {/* Bottom Section (Terms & Conditions + Subtotal / Taxes Summary) */}
-                <div className="pt-6 border-t border-slate-100 dark:border-zinc-800 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                    {/* Left: Tax Options & Notes */}
+                {/* Bottom Section (Terms & Conditions + Totals Summary) */}
+                <div className="pt-4 border-t border-slate-100 dark:border-zinc-800 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                    {/* Left: Notes */}
                     <div className="space-y-3">
-                        <div>
-                            <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-                                Opsi Pajak (Taxes)
-                            </label>
-                            <div className="flex items-center gap-4 text-xs">
-                                <label className="flex items-center gap-1.5 cursor-pointer">
-                                    <input type="radio" name="taxType" value="exclusive" checked={taxType === 'exclusive'} onChange={e => setTaxType(e.target.value as any)} className="text-purple-600 focus:ring-purple-500"/> 
-                                    Exclusive
-                                </label>
-                                <label className="flex items-center gap-1.5 cursor-pointer">
-                                    <input type="radio" name="taxType" value="inclusive" checked={taxType === 'inclusive'} onChange={e => setTaxType(e.target.value as any)} className="text-purple-600 focus:ring-purple-500"/> 
-                                    Inclusive
-                                </label>
-                                <label className="flex items-center gap-1.5 cursor-pointer">
-                                    <input type="radio" name="taxType" value="none" checked={taxType === 'none'} onChange={e => setTaxType(e.target.value as any)} className="text-purple-600 focus:ring-purple-500"/> 
-                                    Non-Pajak
-                                </label>
-                            </div>
-                        </div>
-
                         <div>
                             <textarea 
                                 placeholder="Define your terms and conditions..."
@@ -487,19 +466,15 @@ export const AddPurchasePage: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Right: Odoo Style Summary Totals */}
+                    {/* Right: Summary Totals */}
                     <div className="space-y-2 text-xs font-medium w-full max-w-xs ml-auto bg-slate-50/50 dark:bg-zinc-800/30 p-4 rounded-xl border border-slate-100 dark:border-zinc-800/80">
                         <div className="flex justify-between items-center text-slate-600 dark:text-zinc-400">
-                            <span>Untaxed Amount:</span>
+                            <span>Subtotal:</span>
                             <span className="font-mono font-bold text-slate-900 dark:text-white">Rp {totals.subtotal.toLocaleString('id-ID')}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-slate-600 dark:text-zinc-400">
-                            <span>Taxes ({(defaultTax?.rate || 0) * 100}%):</span>
-                            <span className="font-mono font-bold text-slate-900 dark:text-white">Rp {totals.taxAmount.toLocaleString('id-ID')}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm font-black pt-2 border-t border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-white">
                             <span>Total:</span>
-                            <span className="font-mono text-purple-700 dark:text-purple-400 text-base">Rp {totals.grandTotal.toLocaleString('id-ID')}</span>
+                            <span className="font-mono text-purple-700 dark:text-purple-400 text-base">Rp {totals.subtotal.toLocaleString('id-ID')}</span>
                         </div>
                     </div>
                 </div>
