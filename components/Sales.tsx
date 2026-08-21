@@ -170,6 +170,34 @@ const CreateManualSaleModal: React.FC<{ isOpen: boolean; onClose: () => void }> 
 
     const defaultTax = useMemo(() => taxRates.find(t => t.isDefault), [taxRates]);
 
+    const handleAddItem = () => {
+        setItems(prev => [...prev, { productId: '', quantity: 1, price: 0 }]);
+        setProductSearch(prev => [...prev, '']);
+    };
+
+    const handleItemChange = (index: number, field: keyof SaleItem, value: any) => {
+        const newItems = [...items];
+        (newItems[index] as any)[field] = value;
+        setItems(newItems);
+    };
+
+    const handleProductSelect = (index: number, product: Product) => {
+        const newItems = [...items];
+        newItems[index] = {
+            productId: product.id,
+            productName: product.name,
+            quantity: newItems[index].quantity || 1,
+            price: product.price,
+            cost: product.cost,
+            discount: 0
+        };
+        setItems(newItems);
+        const newSearch = [...productSearch];
+        newSearch[index] = product.name;
+        setProductSearch(newSearch);
+        setActiveSuggestionBox(null);
+    };
+
     const productSuggestions = useMemo(() => {
         if (activeSuggestionBox === null) return [];
         const query = productSearch[activeSuggestionBox]?.toLowerCase();
