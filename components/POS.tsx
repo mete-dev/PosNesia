@@ -2208,33 +2208,33 @@ export const POSPage: React.FC = () => {
                 onClose={() => setPosReturnModalOpen(false)}
             />
 
-            {/* Full Screen Camera Barcode Scanner for Mobile / Desktop Modal */}
+            {/* Full Screen Camera Barcode Scanner for Mobile / Desktop Modal (White Theme) */}
             {isCameraScannerOpen && (
-              <div className="fixed inset-0 z-50 bg-black text-white flex flex-col justify-between overflow-hidden">
+              <div className="fixed inset-0 z-50 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col justify-between overflow-hidden">
                 
                 {/* Scanner Top Bar */}
-                <div className="p-4 flex items-center justify-between z-20 bg-gradient-to-b from-black/80 to-transparent">
+                <div className="p-4 flex items-center justify-between z-20 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-zinc-200/80 dark:border-zinc-800 shadow-2xs">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 flex items-center justify-center">
                       <Camera className="w-4 h-4" />
                     </div>
                     <div>
-                      <h2 className="font-extrabold text-sm text-white leading-tight">Pemindai Barcode POS</h2>
-                      <p className="text-[10px] text-zinc-400">Arahkan kamera ke barcode produk</p>
+                      <h2 className="font-extrabold text-sm text-zinc-900 dark:text-zinc-100 leading-tight">Pemindai Barcode POS</h2>
+                      <p className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400">Arahkan kamera ke barcode produk</p>
                     </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => { setCameraScannerOpen(false); setIsCartDrawerOpen(false); }}
-                    className="w-9 h-9 rounded-full bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center active:scale-95 transition-all"
+                    className="w-9 h-9 rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 flex items-center justify-center active:scale-95 transition-all border border-zinc-200/60 dark:border-zinc-700"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 {/* Viewfinder Video Container */}
-                <div className="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden">
+                <div className="relative flex-1 w-full bg-zinc-100 dark:bg-black flex items-center justify-center overflow-hidden">
                   <video
                     ref={videoRef}
                     className="w-full h-full object-cover"
@@ -2244,21 +2244,21 @@ export const POSPage: React.FC = () => {
                   
                   {/* Aiming Reticle Frame Overlay */}
                   <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
-                    <div className="w-64 h-48 border-2 border-emerald-400 rounded-2xl bg-emerald-500/10 shadow-[0_0_50px_rgba(52,211,153,0.3)] relative flex items-center justify-center">
+                    <div className="w-64 h-48 border-2 border-emerald-500 rounded-2xl bg-emerald-500/10 shadow-[0_0_40px_rgba(16,185,129,0.3)] relative flex items-center justify-center">
                       {/* Corner markers */}
-                      <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg"></div>
-                      <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg"></div>
-                      <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg"></div>
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-lg"></div>
+                      <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-500 rounded-tl-lg"></div>
+                      <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-500 rounded-tr-lg"></div>
+                      <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-500 rounded-bl-lg"></div>
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-500 rounded-br-lg"></div>
                       
                       {/* Scanning laser animation line */}
-                      <div className="w-full h-0.5 bg-emerald-400 shadow-[0_0_15px_#34d399] animate-pulse"></div>
+                      <div className="w-full h-0.5 bg-emerald-500 shadow-[0_0_15px_#10b981] animate-pulse"></div>
                     </div>
 
                     {/* Feedback Messages (Success / Unregistered Warning) */}
                     <div className="mt-6 max-w-xs text-center z-20">
                       {barcodeSuccessMsg && (
-                        <div className="px-4 py-2 bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-lg animate-bounce">
+                        <div className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-lg animate-bounce">
                           {barcodeSuccessMsg}
                         </div>
                       )}
@@ -2279,24 +2279,24 @@ export const POSPage: React.FC = () => {
                 </div>
 
                 {/* Bottom Bar: Total Summary + Swipeable Cart Drawer */}
-                <div className="z-30 bg-zinc-900 border-t border-zinc-800 rounded-t-3xl transition-all duration-300 shadow-2xl">
+                <div className="z-30 bg-white dark:bg-zinc-900 border-t border-zinc-200/90 dark:border-zinc-800 rounded-t-3xl transition-all duration-300 shadow-2xl">
                   
                   {/* Swipe handle / Toggle header */}
                   <div 
                     onClick={() => setIsCartDrawerOpen(prev => !prev)}
-                    className="p-3.5 flex flex-col items-center cursor-pointer select-none active:bg-zinc-800/60 rounded-t-3xl"
+                    className="p-3.5 flex flex-col items-center cursor-pointer select-none active:bg-zinc-50 dark:active:bg-zinc-800/60 rounded-t-3xl"
                   >
-                    <div className="w-10 h-1.5 bg-zinc-600 rounded-full mb-2"></div>
+                    <div className="w-10 h-1.5 bg-zinc-300 dark:bg-zinc-600 rounded-full mb-2"></div>
                     <div className="w-full flex items-center justify-between px-2">
                       <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400 block">Total Belanja</span>
-                        <span className="text-xl font-black font-mono text-emerald-400">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">Total Belanja</span>
+                        <span className="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400">
                           Rp{cartTotals.grandTotal.toLocaleString('id-ID')}
                         </span>
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+                        <span className="text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 px-2.5 py-1 rounded-full">
                           {posCart.reduce((s, i) => s + i.quantity, 0)} Item
                         </span>
                         <ChevronRight className={`w-5 h-5 text-zinc-400 transition-transform duration-300 ${isCartDrawerOpen ? 'rotate-90' : '-rotate-90'}`} />
@@ -2306,20 +2306,20 @@ export const POSPage: React.FC = () => {
 
                   {/* Expandable Cart Details List (Swipe Up View) */}
                   {isCartDrawerOpen && (
-                    <div className="p-4 pt-1 border-t border-zinc-800 max-h-60 overflow-y-auto space-y-2 animate-in slide-in-from-bottom duration-200">
-                      <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Rincian Belanjaan:</p>
+                    <div className="p-4 pt-1 border-t border-zinc-100 dark:border-zinc-800 max-h-60 overflow-y-auto space-y-2 animate-in slide-in-from-bottom duration-200">
+                      <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Rincian Belanjaan:</p>
                       {posCart.length === 0 ? (
-                        <p className="text-xs text-zinc-500 text-center py-4">Belum ada item yang dipindai.</p>
+                        <p className="text-xs text-zinc-400 text-center py-4">Belum ada item yang dipindai.</p>
                       ) : (
                         posCart.map(item => (
-                          <div key={item.id} className="flex items-center justify-between p-2.5 bg-zinc-800/60 rounded-xl border border-zinc-700/60 text-xs">
+                          <div key={item.id} className="flex items-center justify-between p-2.5 bg-zinc-50 dark:bg-zinc-800/60 rounded-xl border border-zinc-200/80 dark:border-zinc-700/60 text-xs">
                             <div className="min-w-0 flex-1">
-                              <p className="font-bold text-white truncate">{item.product.name}</p>
-                              <p className="text-[10px] text-zinc-400 font-mono">
+                              <p className="font-bold text-zinc-900 dark:text-white truncate">{item.product.name}</p>
+                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
                                 Rp{item.product.price?.toLocaleString('id-ID')} x {item.quantity}
                               </p>
                             </div>
-                            <span className="font-mono font-bold text-emerald-400 ml-3">
+                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 ml-3">
                               Rp{((item.product.price || 0) * item.quantity).toLocaleString('id-ID')}
                             </span>
                           </div>
@@ -2330,7 +2330,7 @@ export const POSPage: React.FC = () => {
                         <div className="pt-2">
                           <Button 
                             onClick={() => { setCameraScannerOpen(false); setIsCartDrawerOpen(false); }} 
-                            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl"
+                            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs"
                           >
                             Lanjut ke Pembayaran POS (Rp{cartTotals.grandTotal.toLocaleString('id-ID')})
                           </Button>
