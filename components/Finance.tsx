@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
     CreditCard, Clock, Plus, Search, Edit2, Trash2, CheckCircle2, 
-    ShieldCheck, DollarSign, Wallet, Building2, Calendar, ArrowRightLeft 
+    ShieldCheck, DollarSign, Wallet, Building2, Calendar, ArrowRightLeft,
+    ArrowDownLeft, ArrowUpRight
 } from 'lucide-react';
 import { Account, AccountType, JournalEntry, JournalEntryLine, PaymentMethod, PaymentTerm, PosSessionSummary } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
@@ -122,6 +123,270 @@ const UpdateCashAccountModal: React.FC<{
 };
 
 
+// --- Unified Cash Transaction Modal (Pemasukan / Pengeluaran / Transfer) ---
+const UnifiedCashTransactionModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    initialMode?: 'income' | 'expense' | 'transfer';
+}> = ({ isOpen, onClose, initialMode = 'income' }) => {
+    const { state, dispatch } = useAppContext();
+    const [mode, setMode] = useState<'income' | 'expense' | 'transfer'>(initialMode);
+
+    // Common fields
+    const [amount, setAmount] = useState('');
+    const [description, setDescription] = useState('');
+    const [cashAccountId, setCashAccountId] = useState('');
+    const [counterAccountId, setCounterAccountId] = useState('');
+    const [toAccountId, setToAccountId] = useState('');
+
+    const cashAccounts = useMemo(() => state.accounts.filter(a => a.isCashAccount), [state.accounts]);
+    const revenueAccounts = useMemo(() => state.accounts.filter(a => a.type === AccountType.Revenue || a.type === AccountType.Equity || a.type === AccountType.Asset), [state.accounts]);
+    const expenseAccounts = useMemo(() => state.accounts.filter(a => a.type === AccountType.Expense || a.type === AccountType.Asset || a.type === AccountType.Liability), [state.accounts]);
+
+    useEffect(() => {
+        if (isOpen) {
+            setMode(initialMode);
+            setAmount('');
+            setDescription('');
+            setCashAccountId(cashAccounts[0]?.id || '');
+            setCounterAccountId('');
+            setToAccountId('');
+        }
+    }, [isOpen, initialMode, cashAccounts]);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const numAmount = parseFloat(amount);
+        if (!numAmount || numAmount <= 0) {
+            alert('Harap masukkan nominal transaksi yang valid.');
+            return;
+        }
+
+        if (mode === 'transfer') {
+            if (!cashAccountId || !toAccountId || cashAccountId === toAccountId) {
+                alert('Harap pilih rekening sumber dan rekening tujuan yang berbeda.');
+                return;
+            }
+            const fromAccName = cashAccounts.find(a => a.id === cashAccountId)?.name || cashAccountId;
+            const toAccName = cashAccounts.find(a => a.id === toAccountId)?.name || toAccountId;
+            dispatch({
+                type: 'finance/addJournalEntry',
+                payload: {
+                    description: description || `Transfer dari ${fromAccName} ke ${toAccName}`,
+                    lines: [
+                        { accountId: cashAccountId, type: 'credit', amount: numAmount },
+                        { accountId: toAccountId, type: 'debit', amount: numAmount },
+                    ],
+                    reference: 'Transfer Antar Rekening'
+                }
+            });
+        } else if (mode === 'income') {
+            if (!cashAccountId || !counterAccountId) {
+                alert('Harap pilih rekening kas penerima dan kategori pemasukan.');
+                return;
+            }
+            dispatch({
+                type: 'finance/addJournalEntry',
+                payload: {
+                    description: description || 'Pemasukan Kas',
+                    lines: [
+                        { accountId: cashAccountId, type: 'debit', amount: numAmount },
+                        { accountId: counterAccountId, type: 'credit', amount: numAmount },
+                    ],
+                    reference: 'Pemasukan Kas'
+                }
+            });
+        } else {
+            // expense
+            if (!cashAccountId || !counterAccountId) {
+                alert('Harap pilih rekening kas sumber dan kategori pengeluaran.');
+                return;
+            }
+            dispatch({
+                type: 'finance/addJournalEntry',
+                payload: {
+                    description: description || 'Pengeluaran Kas',
+                    lines: [
+                        { accountId: cashAccountId, type: 'credit', amount: numAmount },
+                        { accountId: counterAccountId, type: 'debit', amount: numAmount },
+                    ],
+                    reference: 'Pengeluaran Kas'
+                }
+            });
+        }
+
+        onClose();
+    };
+
+    const footer = (
+        <div className="flex justify-end gap-2 w-full">
+            <Button variant="secondary" type="button" onClick={onClose}>Batal</Button>
+            <Button 
+                type="submit" 
+                form="unified-tx-form"
+                className={`gap-1.5 ${
+                    mode === 'income' 
+                        ? 'bg-emerald-600 hover:bg-emerald-700' 
+                        : mode === 'expense'
+                        ? 'bg-rose-600 hover:bg-rose-700'
+                        : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+            >
+                {mode === 'income' ? <ArrowDownLeft className="w-4 h-4" /> : mode === 'expense' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowRightLeft className="w-4 h-4" />}
+                {mode === 'income' ? 'Simpan Pemasukan' : mode === 'expense' ? 'Simpan Pengeluaran' : 'Proses Transfer'}
+            </Button>
+        </div>
+    );
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Catat Transaksi Kas & Bank"
+            footer={footer}
+            maxWidth="max-w-lg"
+        >
+            <div className="space-y-4 text-xs">
+                {/* Mode Selector Tabs */}
+                <div className="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-zinc-800 p-1 rounded-xl">
+                    <button
+                        type="button"
+                        onClick={() => setMode('income')}
+                        className={`py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all ${
+                            mode === 'income'
+                                ? 'bg-emerald-600 text-white shadow-xs'
+                                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                    >
+                        <ArrowDownLeft className="w-4 h-4" />
+                        Pemasukan
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setMode('expense')}
+                        className={`py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all ${
+                            mode === 'expense'
+                                ? 'bg-rose-600 text-white shadow-xs'
+                                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                    >
+                        <ArrowUpRight className="w-4 h-4" />
+                        Pengeluaran
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setMode('transfer')}
+                        className={`py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition-all ${
+                            mode === 'transfer'
+                                ? 'bg-blue-600 text-white shadow-xs'
+                                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                    >
+                        <ArrowRightLeft className="w-4 h-4" />
+                        Transfer Kas
+                    </button>
+                </div>
+
+                <form id="unified-tx-form" onSubmit={handleSubmit} className="space-y-3 pt-1">
+                    {mode === 'income' && (
+                        <>
+                            <div>
+                                <Label htmlFor="inc_cashAcc">Setor ke Rekening Kas / Dompet</Label>
+                                <Select id="inc_cashAcc" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} required className="w-full mt-1">
+                                    <option value="">-- Pilih Rekening Kas Tujuan --</option>
+                                    {cashAccounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>🏦 {acc.name} (Saldo: Rp{acc.balance.toLocaleString('id-ID')})</option>
+                                    ))}
+                                </Select>
+                            </div>
+                            <div>
+                                <Label htmlFor="inc_counterAcc">Kategori Sumber Pemasukan</Label>
+                                <Select id="inc_counterAcc" value={counterAccountId} onChange={e => setCounterAccountId(e.target.value)} required className="w-full mt-1">
+                                    <option value="">-- Pilih Kategori Pemasukan --</option>
+                                    {revenueAccounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>{acc.name} ({acc.type})</option>
+                                    ))}
+                                </Select>
+                            </div>
+                        </>
+                    )}
+
+                    {mode === 'expense' && (
+                        <>
+                            <div>
+                                <Label htmlFor="exp_cashAcc">Ambil Dari Rekening Kas / Dompet</Label>
+                                <Select id="exp_cashAcc" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} required className="w-full mt-1">
+                                    <option value="">-- Pilih Rekening Kas Sumber --</option>
+                                    {cashAccounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>🏦 {acc.name} (Saldo: Rp{acc.balance.toLocaleString('id-ID')})</option>
+                                    ))}
+                                </Select>
+                            </div>
+                            <div>
+                                <Label htmlFor="exp_counterAcc">Kategori / Pos Pengeluaran</Label>
+                                <Select id="exp_counterAcc" value={counterAccountId} onChange={e => setCounterAccountId(e.target.value)} required className="w-full mt-1">
+                                    <option value="">-- Pilih Kategori Pengeluaran --</option>
+                                    {expenseAccounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>{acc.name} ({acc.type})</option>
+                                    ))}
+                                </Select>
+                            </div>
+                        </>
+                    )}
+
+                    {mode === 'transfer' && (
+                        <>
+                            <div>
+                                <Label htmlFor="tr_fromAcc">Dari Rekening Kas / Dompet Sumber</Label>
+                                <Select id="tr_fromAcc" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} required className="w-full mt-1">
+                                    <option value="">-- Pilih Rekening Sumber --</option>
+                                    {cashAccounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>🏦 {acc.name} (Saldo: Rp{acc.balance.toLocaleString('id-ID')})</option>
+                                    ))}
+                                </Select>
+                            </div>
+                            <div>
+                                <Label htmlFor="tr_toAcc">Ke Rekening Kas / Dompet Tujuan</Label>
+                                <Select id="tr_toAcc" value={toAccountId} onChange={e => setToAccountId(e.target.value)} required className="w-full mt-1">
+                                    <option value="">-- Pilih Rekening Tujuan --</option>
+                                    {cashAccounts.filter(a => a.id !== cashAccountId).map(acc => (
+                                        <option key={acc.id} value={acc.id}>🏦 {acc.name} (Saldo: Rp{acc.balance.toLocaleString('id-ID')})</option>
+                                    ))}
+                                </Select>
+                            </div>
+                        </>
+                    )}
+
+                    <div>
+                        <Label htmlFor="tx_amount">Nominal / Jumlah (Rp)</Label>
+                        <Input 
+                            id="tx_amount" 
+                            type="number" 
+                            value={amount} 
+                            onChange={e => setAmount(e.target.value)} 
+                            placeholder="0" 
+                            required 
+                            className="mt-1 font-mono font-bold"
+                        />
+                    </div>
+
+                    <div>
+                        <Label htmlFor="tx_desc">Keterangan / Catatan</Label>
+                        <Input 
+                            id="tx_desc" 
+                            type="text" 
+                            value={description} 
+                            onChange={e => setDescription(e.target.value)} 
+                            placeholder="Contoh: Pembayaran Listrik, Tambahan Modal, Transfer ke Rekening Utama..." 
+                            className="mt-1"
+                        />
+                    </div>
+                </form>
+            </div>
+        </Modal>
+    );
+};
+
 export const CashAccountListPage: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const [isAddModalOpen, setAddModalOpen] = useState(false);
@@ -129,6 +394,15 @@ export const CashAccountListPage: React.FC = () => {
     const [editingAccount, setEditingAccount] = useState<Account | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState<'all' | Account['cashAccountType']>('all');
+
+    // Unified Transaction Modal state
+    const [isTxModalOpen, setIsTxModalOpen] = useState(false);
+    const [txModalInitialMode, setTxModalInitialMode] = useState<'income' | 'expense' | 'transfer'>('income');
+
+    const openTxModal = (mode: 'income' | 'expense' | 'transfer') => {
+        setTxModalInitialMode(mode);
+        setIsTxModalOpen(true);
+    };
 
     const filteredCashAccounts = useMemo(() => {
         const lowercasedSearch = searchTerm.toLowerCase();
@@ -156,12 +430,48 @@ export const CashAccountListPage: React.FC = () => {
     };
 
     return (
-        <div className="p-8 h-full flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Data Rekening Kas</h1>
-                <Button onClick={() => setAddModalOpen(true)}>Tambah Pos Kas</Button>
+        <div className="p-4 md:p-8 h-full flex flex-col space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white leading-tight">Data Rekening Kas & Dompet</h1>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Kelola pos kas, rekening bank, serta catat transaksi pemasukan, pengeluaran & transfer kas</p>
+                </div>
+                
+                {/* Integrated Transaction & Account Actions in Top Right Header */}
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button 
+                        onClick={() => openTxModal('income')} 
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 px-3 gap-1.5 shadow-xs"
+                    >
+                        <ArrowDownLeft className="w-4 h-4" />
+                        Pemasukan
+                    </Button>
+                    <Button 
+                        onClick={() => openTxModal('expense')} 
+                        className="bg-rose-600 hover:bg-rose-700 text-white text-xs py-2 px-3 gap-1.5 shadow-xs"
+                    >
+                        <ArrowUpRight className="w-4 h-4" />
+                        Pengeluaran
+                    </Button>
+                    <Button 
+                        onClick={() => openTxModal('transfer')} 
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 px-3 gap-1.5 shadow-xs"
+                    >
+                        <ArrowRightLeft className="w-4 h-4" />
+                        Transfer Kas
+                    </Button>
+                    <Button 
+                        onClick={() => setAddModalOpen(true)} 
+                        variant="secondary"
+                        className="text-xs py-2 px-3 gap-1.5 shadow-xs"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Tambah Pos Kas
+                    </Button>
+                </div>
             </div>
-            <div className="mb-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-xs border border-gray-200/80 dark:border-gray-700/80">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input 
                         placeholder="Cari nama atau nomor akun..."
@@ -177,7 +487,8 @@ export const CashAccountListPage: React.FC = () => {
                     </Select>
                 </div>
             </div>
-            <Card className="flex-grow overflow-y-auto">
+
+            <Card className="flex-grow overflow-y-auto rounded-xl border border-gray-200/80 dark:border-gray-700/80 shadow-xs">
                 <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
                         <tr>
@@ -190,25 +501,27 @@ export const CashAccountListPage: React.FC = () => {
                     </thead>
                     <tbody>
                          {filteredCashAccounts.map((account) => (
-                            <tr key={account.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                                <td className="px-6 py-4">{account.id}</td>
-                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{account.name}</td>
+                            <tr key={account.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                                <td className="px-6 py-4 font-mono text-xs font-semibold">{account.id}</td>
+                                <td className="px-6 py-4 font-bold text-gray-900 dark:text-white">🏦 {account.name}</td>
                                 <td className="px-6 py-4">
                                     <Badge>{account.cashAccountType || 'N/A'}</Badge>
                                 </td>
-                                <td className="px-6 py-4 font-semibold text-lg text-right">
+                                <td className="px-6 py-4 font-mono font-bold text-lg text-right text-emerald-600 dark:text-emerald-400">
                                     {`Rp${account.balance.toLocaleString('id-ID')}`}
                                 </td>
                                 <td className="px-6 py-4 text-center">
-                                    <button onClick={() => openEditModal(account)} className="font-medium text-primary-600 dark:text-primary-500 hover:underline">Ubah</button>
+                                    <button onClick={() => openEditModal(account)} className="font-medium text-primary-600 dark:text-primary-500 hover:underline text-xs">Ubah</button>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </Card>
-             <AddCashAccountModal isOpen={isAddModalOpen} onClose={() => setAddModalOpen(false)} onSave={handleSave} accounts={state.accounts}/>
-             <UpdateCashAccountModal isOpen={isEditModalOpen} onClose={() => setEditModalOpen(false)} onSave={handleUpdate} account={editingAccount}/>
+
+            <AddCashAccountModal isOpen={isAddModalOpen} onClose={() => setAddModalOpen(false)} onSave={handleSave} accounts={state.accounts}/>
+            <UpdateCashAccountModal isOpen={isEditModalOpen} onClose={() => setEditModalOpen(false)} onSave={handleUpdate} account={editingAccount}/>
+            <UnifiedCashTransactionModal isOpen={isTxModalOpen} onClose={() => setIsTxModalOpen(false)} initialMode={txModalInitialMode} />
         </div>
     );
 };
