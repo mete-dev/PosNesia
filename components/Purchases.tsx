@@ -195,273 +195,325 @@ export const AddPurchasePage: React.FC = () => {
     };
 
     return (
-        <>
-            <div className="p-4 sm:p-6 w-full h-full overflow-y-auto space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Buat Pembelian Baru</h1>
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-4 overflow-y-auto bg-slate-50 dark:bg-zinc-950">
+            {/* Top Action Breadcrumb & Action Toolbar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs">
+                <div>
+                    <nav className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-zinc-400 mb-1">
+                        <span onClick={() => dispatch({ type: 'ui/setPage', payload: Page.PurchaseList })} className="hover:underline cursor-pointer">Purchase Orders</span>
+                        <span>/</span>
+                        <span className="font-bold text-slate-700 dark:text-zinc-200">New Request for Quotation</span>
+                    </nav>
+                    <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight flex items-center gap-2">
+                        Draft Purchase Order
+                    </h1>
+                </div>
+
+                <div className="flex items-center gap-2">
                     <Button 
+                        type="button"
                         variant="secondary"
                         onClick={() => dispatch({ type: 'ui/setPage', payload: Page.PurchaseList })}
-                        className="self-start sm:self-auto"
+                        className="text-xs py-1.5 px-3"
                     >
-                        ← Kembali ke Pesanan Pembelian
+                        Batal
+                    </Button>
+                    <Button 
+                        type="button"
+                        onClick={handleSubmit} 
+                        className="text-xs py-1.5 px-4 bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-2xs"
+                    >
+                        Simpan Purchase Order
                     </Button>
                 </div>
-                <form onSubmit={handleSubmit} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 p-6 sm:p-8 w-full space-y-6">
-                    {/* Header Fields - Neat 2 Equal Columns Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-slate-50/70 dark:bg-zinc-800/40 p-5 rounded-xl border border-slate-200/60 dark:border-zinc-700/60">
-                        {/* Left Column (4 Fields) */}
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-                                    Vendor <span className="text-rose-500 font-bold">*</span>
-                                </label>
-                                <select 
-                                    value={vendorId} 
-                                    onChange={e => setVendorId(e.target.value)} 
-                                    required 
-                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                >
-                                    <option value="">Pilih vendor</option>
-                                    {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-                                    No. Faktur <span className="text-slate-400 font-normal">(opsional)</span>
-                                </label>
-                                <input 
-                                    type="text" 
-                                    value={invoiceNumber} 
-                                    onChange={e => setInvoiceNumber(e.target.value)} 
-                                    placeholder="Nomor faktur pembelian..."
-                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-                                    No. Nota Vendor <span className="text-slate-400 font-normal">(opsional)</span>
-                                </label>
-                                <input 
-                                    type="text" 
-                                    value={vendorNoteNumber} 
-                                    onChange={e => setVendorNoteNumber(e.target.value)} 
-                                    placeholder="Nomor surat jalan / nota vendor..."
-                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-                                    Tanggal Pemesanan <span className="text-rose-500 font-bold">*</span>
-                                </label>
-                                <input 
-                                    type="date" 
-                                    value={orderDate} 
-                                    onChange={e => setOrderDate(e.target.value)} 
-                                    required 
-                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Right Column (3 Fields) */}
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-                                    Tujuan Barang <span className="text-rose-500 font-bold">*</span>
-                                </label>
-                                <select 
-                                    value={destinationId} 
-                                    onChange={e => setDestinationId(e.target.value)} 
-                                    required 
-                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                >
-                                    <option value="">Pilih Tujuan</option>
-                                    {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-                                    Perkiraan Tiba <span className="text-rose-500 font-bold">*</span>
-                                </label>
-                                <input 
-                                    type="date" 
-                                    value={expectedDelivery} 
-                                    onChange={e => setExpectedDelivery(e.target.value)} 
-                                    required 
-                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-                                    Jatuh Tempo <span className="text-slate-400 font-normal">(opsional)</span>
-                                </label>
-                                <input 
-                                    type="date" 
-                                    value={dueDate} 
-                                    onChange={e => setDueDate(e.target.value)} 
-                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Item Pembelian Section */}
-                    <div className="border border-slate-200 dark:border-zinc-800 rounded-xl p-5 bg-white dark:bg-zinc-900 space-y-4">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <h3 className="text-base font-black text-slate-900 dark:text-white">Item Pembelian</h3>
-                                <p className="text-xs text-slate-500">Ketik kode barcode atau nama produk untuk memilih otomatis dari database</p>
-                            </div>
-                            <Button 
-                                type="button" 
-                                onClick={handleAddItem} 
-                                className="text-xs py-1.5 px-3 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 font-bold border border-blue-200 dark:border-blue-800"
-                            >
-                                + Tambah Baris Produk
-                            </Button>
-                        </div>
-
-                        {/* Table Header & Rows without overflow restriction */}
-                        <div className="w-full">
-                            <table className="w-full text-xs">
-                                <thead>
-                                    <tr className="bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-bold border-b border-slate-200 dark:border-zinc-700">
-                                        <th className="p-3 text-left w-5/12">Produk (Cari Nama / Kode Barcode)</th>
-                                        <th className="p-3 text-center w-2/12">Qty</th>
-                                        <th className="p-3 text-right w-2/12">Harga Pembelian (Rp)</th>
-                                        <th className="p-3 text-right w-2/12">Total Akhir (Rp)</th>
-                                        <th className="p-3 text-center w-1/12">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
-                                    {items.map((item, index) => (
-                                        <tr key={index} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/40">
-                                            {/* Produk Autocomplete Input */}
-                                            <td className="p-2.5 relative">
-                                                <input
-                                                    type="text"
-                                                    value={productSearch[index]}
-                                                    onChange={e => { 
-                                                        const newSearch = [...productSearch]; 
-                                                        newSearch[index] = e.target.value; 
-                                                        setProductSearch(newSearch); 
-                                                        setActiveSuggestionBox(index); 
-                                                    }}
-                                                    onFocus={() => setActiveSuggestionBox(index)}
-                                                    onBlur={() => setTimeout(() => setActiveSuggestionBox(null), 200)}
-                                                    placeholder="Ketik beberapa kode barcode / nama produk..."
-                                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs px-3 py-2 font-medium focus:ring-2 focus:ring-blue-500 outline-none"
-                                                />
-                                                {activeSuggestionBox === index && (
-                                                    <div className="absolute z-30 top-full left-2 right-2 mt-1 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto p-1">
-                                                        {productSuggestions.length > 0 ? productSuggestions.map(p => (
-                                                            <div 
-                                                                key={p.id} 
-                                                                onMouseDown={() => handleProductSelect(index, p)} 
-                                                                className="p-2.5 hover:bg-blue-50 dark:hover:bg-zinc-700 rounded-lg cursor-pointer flex justify-between items-center text-xs transition-colors"
-                                                            >
-                                                                <div>
-                                                                    <strong className="block text-slate-900 dark:text-white font-bold">{p.name}</strong>
-                                                                    <span className="text-[11px] font-mono text-slate-400">Kode: {p.barcode || p.id}</span>
-                                                                </div>
-                                                                <span className="font-mono text-emerald-600 font-bold text-xs">
-                                                                    Rp{p.cost?.toLocaleString('id-ID')}
-                                                                </span>
-                                                            </div>
-                                                        )) : (
-                                                            <div className="p-3 text-center text-xs text-slate-500">
-                                                                <p className="mb-2">Produk tidak ditemukan.</p>
-                                                                <Button 
-                                                                    variant="secondary" 
-                                                                    size="sm" 
-                                                                    className="text-xs py-1 px-3" 
-                                                                    onMouseDown={() => { setCreatingProductForIndex(index); setProductModalOpen(true); }}
-                                                                >
-                                                                    + Buat Produk Baru
-                                                                </Button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </td>
-
-                                            {/* Qty Input */}
-                                            <td className="p-2.5">
-                                                <input 
-                                                    type="number" 
-                                                    placeholder="1" 
-                                                    value={item.quantity || ''} 
-                                                    onChange={e => handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)} 
-                                                    required 
-                                                    min="1" 
-                                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs px-2 py-2 text-center font-bold font-mono focus:ring-2 focus:ring-blue-500 outline-none" 
-                                                />
-                                            </td>
-
-                                            {/* Harga Pembelian Input */}
-                                            <td className="p-2.5">
-                                                <input 
-                                                    type="number" 
-                                                    placeholder="0" 
-                                                    step="1" 
-                                                    value={item.cost ?? ''} 
-                                                    onChange={e => handleItemChange(index, 'cost', parseFloat(e.target.value) || 0)} 
-                                                    required 
-                                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs px-3 py-2 text-right font-bold font-mono focus:ring-2 focus:ring-blue-500 outline-none" 
-                                                />
-                                            </td>
-
-                                            {/* Total Akhir Row Readonly */}
-                                            <td className="p-2.5 text-right font-mono font-black text-slate-900 dark:text-white text-xs">
-                                                Rp{((item.quantity || 0) * (item.cost || 0)).toLocaleString('id-ID')}
-                                            </td>
-
-                                            {/* Remove Button */}
-                                            <td className="p-2.5 text-center">
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => handleRemoveItem(index)} 
-                                                    className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center font-bold text-base transition-colors mx-auto"
-                                                    title="Hapus Baris"
-                                                >
-                                                    ×
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    {/* Totals Section */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                        <div>
-                            <label className="block text-sm font-medium">Opsi Pajak</label>
-                            <div className="mt-2 flex space-x-4">
-                                <label><input type="radio" name="taxType" value="exclusive" checked={taxType === 'exclusive'} onChange={e => setTaxType(e.target.value as any)} className="mr-1"/> Exclusive</label>
-                                <label><input type="radio" name="taxType" value="inclusive" checked={taxType === 'inclusive'} onChange={e => setTaxType(e.target.value as any)} className="mr-1"/> Inclusive</label>
-                                 <label><input type="radio" name="taxType" value="none" checked={taxType === 'none'} onChange={e => setTaxType(e.target.value as any)} className="mr-1"/> Non-Pajak</label>
-                            </div>
-                        </div>
-                        <div className="space-y-2 text-right">
-                            <div className="flex justify-between"><span>Subtotal</span><span className="font-semibold">Rp {totals.subtotal.toLocaleString('id-ID')}</span></div>
-                            <div className="flex justify-between"><span>Pajak ({(defaultTax?.rate || 0) * 100}%)</span><span className="font-semibold">Rp {totals.taxAmount.toLocaleString('id-ID')}</span></div>
-                            <div className="flex justify-between text-xl font-bold border-t pt-2 dark:border-gray-600"><span>Grand Total</span><span>Rp {totals.grandTotal.toLocaleString('id-ID')}</span></div>
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end pt-4">
-                        <button type="submit" className="px-8 py-3 rounded-md text-white bg-primary-600 hover:bg-primary-700 font-bold text-lg">Buat Pesanan Pembelian</button>
-                    </div>
-                </form>
             </div>
+
+            {/* Odoo Style Document Sheet Container */}
+            <form onSubmit={handleSubmit} className="bg-white dark:bg-zinc-900 rounded-xl shadow-xs border border-slate-200 dark:border-zinc-800 p-6 md:p-8 space-y-6">
+                
+                {/* Header Information Grid (2 Side-by-Side Columns) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 pb-6 border-b border-slate-100 dark:border-zinc-800 text-xs">
+                    {/* Left Side */}
+                    <div className="space-y-3">
+                        <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
+                                Vendor <span className="text-rose-500">*</span>
+                            </label>
+                            <select 
+                                value={vendorId} 
+                                onChange={e => setVendorId(e.target.value)} 
+                                required 
+                                className="col-span-8 rounded-lg border border-purple-200 dark:border-purple-900/60 bg-purple-50/30 dark:bg-purple-950/20 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                            >
+                                <option value="">Pilih Vendor...</option>
+                                {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-4 text-slate-600 dark:text-zinc-400 font-medium">
+                                No. Faktur
+                            </label>
+                            <input 
+                                type="text" 
+                                value={invoiceNumber} 
+                                onChange={e => setInvoiceNumber(e.target.value)} 
+                                placeholder="Ref Faktur Pembelian"
+                                className="col-span-8 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-4 text-slate-600 dark:text-zinc-400 font-medium">
+                                No. Nota Vendor
+                            </label>
+                            <input 
+                                type="text" 
+                                value={vendorNoteNumber} 
+                                onChange={e => setVendorNoteNumber(e.target.value)} 
+                                placeholder="Ref Surat Jalan / Nota"
+                                className="col-span-8 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Right Side */}
+                    <div className="space-y-3">
+                        <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
+                                Tujuan Barang <span className="text-rose-500">*</span>
+                            </label>
+                            <select 
+                                value={destinationId} 
+                                onChange={e => setDestinationId(e.target.value)} 
+                                required 
+                                className="col-span-8 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                            >
+                                <option value="">Pilih Gudang / Tujuan...</option>
+                                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
+                                Tanggal Pesan <span className="text-rose-500">*</span>
+                            </label>
+                            <input 
+                                type="date" 
+                                value={orderDate} 
+                                onChange={e => setOrderDate(e.target.value)} 
+                                required 
+                                className="col-span-8 rounded-lg border border-purple-200 dark:border-purple-900/60 bg-purple-50/30 dark:bg-purple-950/20 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
+                                Perkiraan Tiba <span className="text-rose-500">*</span>
+                            </label>
+                            <input 
+                                type="date" 
+                                value={expectedDelivery} 
+                                onChange={e => setExpectedDelivery(e.target.value)} 
+                                required 
+                                className="col-span-8 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-4 text-slate-600 dark:text-zinc-400 font-medium">
+                                Jatuh Tempo
+                            </label>
+                            <input 
+                                type="date" 
+                                value={dueDate} 
+                                onChange={e => setDueDate(e.target.value)} 
+                                className="col-span-8 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tabbed / Products Table Header */}
+                <div className="space-y-3">
+                    <div className="flex items-center gap-6 border-b border-slate-200 dark:border-zinc-800">
+                        <button type="button" className="pb-2 text-xs font-black text-purple-700 dark:text-purple-400 border-b-2 border-purple-600 uppercase tracking-wider">
+                            Products
+                        </button>
+                    </div>
+
+                    {/* Products Table */}
+                    <div className="w-full">
+                        <table className="w-full text-xs">
+                            <thead>
+                                <tr className="bg-slate-50 dark:bg-zinc-800/80 text-slate-600 dark:text-zinc-400 font-bold border-y border-slate-200 dark:border-zinc-700 uppercase text-[11px] tracking-wide">
+                                    <th className="p-2.5 text-left w-5/12">Product</th>
+                                    <th className="p-2.5 text-center w-2/12">Quantity</th>
+                                    <th className="p-2.5 text-right w-2/12">Unit Price</th>
+                                    <th className="p-2.5 text-right w-2/12">Subtotal</th>
+                                    <th className="p-2.5 text-center w-1/12"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
+                                {items.map((item, index) => (
+                                    <tr key={index} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/40">
+                                        {/* Product Input with Autocomplete */}
+                                        <td className="p-2 relative">
+                                            <input
+                                                type="text"
+                                                value={productSearch[index]}
+                                                onChange={e => { 
+                                                    const newSearch = [...productSearch]; 
+                                                    newSearch[index] = e.target.value; 
+                                                    setProductSearch(newSearch); 
+                                                    setActiveSuggestionBox(index); 
+                                                }}
+                                                onFocus={() => setActiveSuggestionBox(index)}
+                                                onBlur={() => setTimeout(() => setActiveSuggestionBox(null), 200)}
+                                                placeholder="[Code] Product Name..."
+                                                className="w-full rounded-md border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs px-2.5 py-1.5 font-medium focus:ring-1 focus:ring-purple-500 outline-none"
+                                            />
+                                            {activeSuggestionBox === index && (
+                                                <div className="absolute z-30 top-full left-2 right-2 mt-1 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto p-1">
+                                                    {productSuggestions.length > 0 ? productSuggestions.map(p => (
+                                                        <div 
+                                                            key={p.id} 
+                                                            onMouseDown={() => handleProductSelect(index, p)} 
+                                                            className="p-2.5 hover:bg-purple-50 dark:hover:bg-zinc-700 rounded-lg cursor-pointer flex justify-between items-center text-xs transition-colors"
+                                                        >
+                                                            <div>
+                                                                <strong className="block text-slate-900 dark:text-white font-bold">{p.name}</strong>
+                                                                <span className="text-[11px] font-mono text-slate-400">Kode: {p.barcode || p.id}</span>
+                                                            </div>
+                                                            <span className="font-mono text-purple-600 dark:text-purple-400 font-bold text-xs">
+                                                                Rp{p.cost?.toLocaleString('id-ID')}
+                                                            </span>
+                                                        </div>
+                                                    )) : (
+                                                        <div className="p-3 text-center text-xs text-slate-500">
+                                                            <p className="mb-2">Produk tidak ditemukan.</p>
+                                                            <Button 
+                                                                variant="secondary" 
+                                                                size="sm" 
+                                                                className="text-xs py-1 px-3" 
+                                                                onMouseDown={() => { setCreatingProductForIndex(index); setProductModalOpen(true); }}
+                                                            >
+                                                                + Buat Produk Baru
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </td>
+
+                                        {/* Qty Input */}
+                                        <td className="p-2">
+                                            <input 
+                                                type="number" 
+                                                placeholder="1" 
+                                                value={item.quantity || ''} 
+                                                onChange={e => handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)} 
+                                                required 
+                                                min="1" 
+                                                className="w-full rounded-md border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-1.5 text-center font-mono font-bold focus:ring-1 focus:ring-purple-500 outline-none" 
+                                            />
+                                        </td>
+
+                                        {/* Unit Price */}
+                                        <td className="p-2">
+                                            <input 
+                                                type="number" 
+                                                placeholder="0" 
+                                                step="1" 
+                                                value={item.cost ?? ''} 
+                                                onChange={e => handleItemChange(index, 'cost', parseFloat(e.target.value) || 0)} 
+                                                required 
+                                                className="w-full rounded-md border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-1.5 text-right font-mono font-bold focus:ring-1 focus:ring-purple-500 outline-none" 
+                                            />
+                                        </td>
+
+                                        {/* Subtotal */}
+                                        <td className="p-2 text-right font-mono font-bold text-slate-900 dark:text-white text-xs">
+                                            Rp{((item.quantity || 0) * (item.cost || 0)).toLocaleString('id-ID')}
+                                        </td>
+
+                                        {/* Remove Action */}
+                                        <td className="p-2 text-center">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleRemoveItem(index)} 
+                                                className="text-slate-400 hover:text-rose-600 font-bold text-sm transition-colors"
+                                                title="Remove line"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <button 
+                        type="button" 
+                        onClick={handleAddItem} 
+                        className="text-xs font-bold text-purple-700 dark:text-purple-400 hover:underline inline-flex items-center gap-1 py-1"
+                    >
+                        + Add a product
+                    </button>
+                </div>
+
+                {/* Bottom Section (Terms & Conditions + Subtotal / Taxes Summary) */}
+                <div className="pt-6 border-t border-slate-100 dark:border-zinc-800 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                    {/* Left: Tax Options & Notes */}
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                                Opsi Pajak (Taxes)
+                            </label>
+                            <div className="flex items-center gap-4 text-xs">
+                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                    <input type="radio" name="taxType" value="exclusive" checked={taxType === 'exclusive'} onChange={e => setTaxType(e.target.value as any)} className="text-purple-600 focus:ring-purple-500"/> 
+                                    Exclusive
+                                </label>
+                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                    <input type="radio" name="taxType" value="inclusive" checked={taxType === 'inclusive'} onChange={e => setTaxType(e.target.value as any)} className="text-purple-600 focus:ring-purple-500"/> 
+                                    Inclusive
+                                </label>
+                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                    <input type="radio" name="taxType" value="none" checked={taxType === 'none'} onChange={e => setTaxType(e.target.value as any)} className="text-purple-600 focus:ring-purple-500"/> 
+                                    Non-Pajak
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <textarea 
+                                placeholder="Define your terms and conditions..."
+                                rows={3}
+                                className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-slate-50/50 dark:bg-zinc-800/40 p-2.5 text-xs text-slate-800 dark:text-zinc-200 outline-none focus:ring-1 focus:ring-purple-500"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Right: Odoo Style Summary Totals */}
+                    <div className="space-y-2 text-xs font-medium w-full max-w-xs ml-auto bg-slate-50/50 dark:bg-zinc-800/30 p-4 rounded-xl border border-slate-100 dark:border-zinc-800/80">
+                        <div className="flex justify-between items-center text-slate-600 dark:text-zinc-400">
+                            <span>Untaxed Amount:</span>
+                            <span className="font-mono font-bold text-slate-900 dark:text-white">Rp {totals.subtotal.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-slate-600 dark:text-zinc-400">
+                            <span>Taxes ({(defaultTax?.rate || 0) * 100}%):</span>
+                            <span className="font-mono font-bold text-slate-900 dark:text-white">Rp {totals.taxAmount.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm font-black pt-2 border-t border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-white">
+                            <span>Total:</span>
+                            <span className="font-mono text-purple-700 dark:text-purple-400 text-base">Rp {totals.grandTotal.toLocaleString('id-ID')}</span>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
             {creatingProductForIndex !== null && (
                 <ProductModal
                     isOpen={isProductModalOpen}
@@ -474,7 +526,7 @@ export const AddPurchasePage: React.FC = () => {
                     }}
                 />
             )}
-        </>
+        </div>
     );
 };
 
