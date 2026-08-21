@@ -328,6 +328,7 @@ export const CreateManualSalePage: React.FC = () => {
 
     const [customerId, setCustomerId] = useState('');
     const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
+    const [billingType, setBillingType] = useState<'cash' | 'tempo'>('tempo');
     const [paymentTermId, setPaymentTermId] = useState('');
     const [items, setItems] = useState<Partial<SaleItem>[]>([{ productId: '', quantity: 1, price: 0 }]);
     const [productSearch, setProductSearch] = useState<string[]>(['']);
@@ -394,8 +395,12 @@ export const CreateManualSalePage: React.FC = () => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const customer = customers.find(c => c.id === customerId);
-        if (!customer || !paymentTermId) {
-            alert("Harap pilih Pelanggan dan Tempo Pembayaran.");
+        if (!customer) {
+            alert("Harap pilih Pelanggan.");
+            return;
+        }
+        if (billingType === 'tempo' && !paymentTermId) {
+            alert("Harap pilih Tempo Pembayaran untuk transaksi kredit/tempo.");
             return;
         }
 
@@ -411,16 +416,22 @@ export const CreateManualSalePage: React.FC = () => {
             grandTotal: totals.grandTotal,
             customerId,
             customerName: customer.name,
-            payments: [],
-            paymentTermId,
+            payments: billingType === 'cash' ? [{ paymentMethodId: 'pm1', amount: totals.grandTotal }] : [],
+            paymentTermId: paymentTermId || 'pt1',
             dueDate: new Date(new Date(saleDate).getTime() + (paymentTerms.find(pt => pt.id === paymentTermId)?.days || 0) * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'Unpaid',
+            status: billingType === 'cash' ? 'Paid' : 'Unpaid',
             saleChannel: 'Manual',
             fulfillmentStatus: 'N/A'
         };
         
         dispatch({ type: 'sales/add', payload: saleData });
-        alert('Penjualan manual berhasil disimpan!');
+        
+        // Auto-create Customer Bill if transaction is Tempo
+        if (billingType === 'tempo') {
+            dispatch({ type: 'billing/createCustomerBillFromSale', payload: { saleId: saleData as any } });
+        }
+
+        alert(`Penjualan manual (${billingType === 'cash' ? 'Tunai Lunas' : 'Tagihan Tempo'}) berhasil disimpan!`);
         dispatch({ type: 'ui/setPage', payload: Page.SalesList });
     };
 
@@ -511,12 +522,27 @@ export const CreateManualSalePage: React.FC = () => {
 
                         <div className="grid grid-cols-12 items-center gap-2">
                             <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
-                                Tempo Pembayaran <span className="text-rose-500">*</span>
+                                Jenis Pembayaran <span className="text-rose-500">*</span>
+                            </label>
+                            <select 
+                                value={billingType} 
+                                onChange={e => setBillingType(e.target.value as any)} 
+                                required 
+                                className="col-span-8 rounded-lg border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/30 dark:bg-emerald-950/20 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                            >
+                                <option value="cash">Tunai (Cash / Direct)</option>
+                                <option value="tempo">Tagihan Tempo (Kredit / Piutang)</option>
+                            </select>
+                        </div>
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
+                                Tempo Pembayaran {billingType === 'tempo' && <span className="text-rose-500">*</span>}
                             </label>
                             <select 
                                 value={paymentTermId} 
                                 onChange={e => setPaymentTermId(e.target.value)} 
-                                required 
+                                required={billingType === 'tempo'}
                                 className="col-span-8 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
                             >
                                 <option value="">Pilih Tempo Bayar...</option>

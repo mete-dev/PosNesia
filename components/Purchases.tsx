@@ -80,6 +80,7 @@ export const AddPurchasePage: React.FC = () => {
     }, [warehouses]);
     const [invoiceNumber, setInvoiceNumber] = useState('');
     const [vendorNoteNumber, setVendorNoteNumber] = useState('');
+    const [billingType, setBillingType] = useState<'cash' | 'tempo'>('tempo');
     const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
     const [dueDate, setDueDate] = useState('');
     const [expectedDelivery, setExpectedDelivery] = useState('');
@@ -157,6 +158,7 @@ export const AddPurchasePage: React.FC = () => {
         setDestinationId('');
         setInvoiceNumber('');
         setVendorNoteNumber('');
+        setBillingType('tempo');
         setOrderDate(new Date().toISOString().split('T')[0]);
         setDueDate('');
         setExpectedDelivery('');
@@ -174,6 +176,10 @@ export const AddPurchasePage: React.FC = () => {
             alert("Harap pilih Vendor, Tujuan, dan pastikan semua item produk valid dari daftar.");
             return;
         }
+        if (billingType === 'tempo' && !dueDate) {
+            alert("Harap isi Tanggal Jatuh Tempo untuk transaksi Kredit / Tempo Vendor.");
+            return;
+        }
         
         const purchaseData: Omit<PurchaseOrder, 'id'> = {
             destinationType: 'warehouse',
@@ -182,10 +188,10 @@ export const AddPurchasePage: React.FC = () => {
             vendorName: vendor.name,
             orderDate,
             expectedDelivery,
-            dueDate,
+            dueDate: dueDate || orderDate,
             invoiceNumber,
             vendorNoteNumber,
-            status: 'Pending',
+            status: billingType === 'cash' ? 'Purchased' : 'Pending',
             items: finalItems,
             taxType,
             taxRate: taxType !== 'none' ? (defaultTax?.rate || 0) : 0,
@@ -195,7 +201,13 @@ export const AddPurchasePage: React.FC = () => {
         };
         
         dispatch({ type: 'purchases/add', payload: purchaseData });
-        alert('Purchase Order berhasil dibuat!');
+
+        // Auto-create Vendor Bill if transaction is Tempo
+        if (billingType === 'tempo') {
+            dispatch({ type: 'billing/createVendorBillFromPo', payload: { purchaseOrderId: purchaseData as any } });
+        }
+
+        alert(`Purchase Order (${billingType === 'cash' ? 'Tunai Lunas' : 'Tagihan Tempo Vendor'}) berhasil dibuat!`);
         resetForm();
         dispatch({ type: 'ui/setPage', payload: Page.PurchaseList });
     };
@@ -312,13 +324,29 @@ export const AddPurchasePage: React.FC = () => {
                         </div>
 
                         <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
+                                Jenis Pembayaran <span className="text-rose-500">*</span>
+                            </label>
+                            <select 
+                                value={billingType} 
+                                onChange={e => setBillingType(e.target.value as any)} 
+                                required 
+                                className="col-span-8 rounded-lg border border-purple-200 dark:border-purple-900/60 bg-purple-50/30 dark:bg-purple-950/20 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                            >
+                                <option value="cash">Tunai (Cash / Direct)</option>
+                                <option value="tempo">Tagihan Tempo (Kredit / Hutang Vendor)</option>
+                            </select>
+                        </div>
+
+                        <div className="grid grid-cols-12 items-center gap-2">
                             <label className="col-span-4 text-slate-600 dark:text-zinc-400 font-medium">
-                                Jatuh Tempo
+                                Jatuh Tempo {billingType === 'tempo' && <span className="text-rose-500">*</span>}
                             </label>
                             <input 
                                 type="date" 
                                 value={dueDate} 
                                 onChange={e => setDueDate(e.target.value)} 
+                                required={billingType === 'tempo'}
                                 className="col-span-8 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
                             />
                         </div>
