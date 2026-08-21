@@ -287,20 +287,6 @@ export const AddPurchasePage: React.FC = () => {
                     <div className="space-y-3">
                         <div className="grid grid-cols-12 items-center gap-2">
                             <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
-                                Tujuan Barang <span className="text-rose-500">*</span>
-                            </label>
-                            <select 
-                                value={destinationId} 
-                                onChange={e => setDestinationId(e.target.value)} 
-                                required 
-                                className="col-span-8 rounded-lg border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none cursor-not-allowed"
-                            >
-                                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                            </select>
-                        </div>
-
-                        <div className="grid grid-cols-12 items-center gap-2">
-                            <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
                                 Tanggal Pesan <span className="text-rose-500">*</span>
                             </label>
                             <input 
