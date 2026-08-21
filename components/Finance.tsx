@@ -420,7 +420,7 @@ const AccountStatementModal: React.FC<{
 
     // Calculate chronological statement lines with running balance
     const statementData = useMemo(() => {
-        if (!account) return { rows: [], totalDebit: 0, totalCredit: 0 };
+        if (!account) return { rows: [], totalDebit: 0, totalCredit: 0, initialBal: 0 };
 
         // 1. Gather all journal lines for this account across all journal entries
         const accJournals: { date: Date; description: string; reference?: string; debit: number; credit: number }[] = [];
@@ -443,8 +443,14 @@ const AccountStatementModal: React.FC<{
         // Sort ascending by date for running balance calculation
         accJournals.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-        // Calculate running balance
-        let runningBalance = 0;
+        // Calculate total historical net movement from ALL journal entries ever recorded
+        const totalNetJournalMovement = accJournals.reduce((sum, j) => sum + (j.debit - j.credit), 0);
+        
+        // Base initial balance before any journal entries were created
+        const baseInitialBalance = account.balance - totalNetJournalMovement;
+
+        // Calculate running balance starting from baseInitialBalance
+        let runningBalance = baseInitialBalance;
         const allRows = accJournals.map(j => {
             runningBalance += (j.debit - j.credit);
             return {
@@ -467,7 +473,8 @@ const AccountStatementModal: React.FC<{
         return {
             rows: filtered.reverse(), // Show newest first
             totalDebit,
-            totalCredit
+            totalCredit,
+            initialBal: baseInitialBalance
         };
     }, [account, journalEntries, startDate, endDate]);
 
@@ -670,28 +677,36 @@ export const CashAccountListPage: React.FC = () => {
 
     return (
         <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
-            {/* Top Header Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center shrink-0 shadow-md">
-                        <Wallet className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
+            {/* Single Compact Top Header Bar */}
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 shrink-0 bg-white dark:bg-zinc-900 p-3 px-4 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs">
+                {/* Left: Title & Stat Pills in One Line */}
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs font-bold">
+                            <Wallet className="w-4 h-4" />
+                        </div>
+                        <h1 className="text-base font-black text-slate-900 dark:text-white leading-tight">
                             Data Rekening Kas & Dompet
                         </h1>
-                        <p className="text-xs text-slate-500 dark:text-zinc-400">
-                            Kelola saldo pos kas, rekening bank, serta klik akun untuk melihat Rekening Koran
-                        </p>
+                    </div>
+
+                    <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-zinc-800 text-xs">
+                        <div className="px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/50 flex items-center gap-1.5 font-mono">
+                            <span className="text-slate-500 font-sans text-[11px]">Total Kas:</span>
+                            <strong className="text-emerald-600 dark:text-emerald-400 font-bold">Rp{totalCashBalance.toLocaleString('id-ID')}</strong>
+                        </div>
+                        <div className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-mono text-[11px]">
+                            {filteredCashAccounts.length} Akun ({filteredCashAccounts.filter(a => a.balance > 0).length} Ber-Saldo)
+                        </div>
                     </div>
                 </div>
 
-                {/* Unified Right Action Buttons Group */}
-                <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 dark:bg-zinc-800 p-1.5 rounded-xl border border-slate-200/60 dark:border-zinc-700/60">
+                {/* Right: Action Buttons Group */}
+                <div className="flex flex-wrap items-center gap-1.5">
                     <button
                         type="button"
                         onClick={() => openTxModal('income')}
-                        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all cursor-pointer"
+                        className="flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all cursor-pointer"
                     >
                         <ArrowDownLeft className="w-3.5 h-3.5" />
                         Pemasukan
@@ -699,7 +714,7 @@ export const CashAccountListPage: React.FC = () => {
                     <button
                         type="button"
                         onClick={() => openTxModal('expense')}
-                        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white shadow-2xs transition-all cursor-pointer"
+                        className="flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white shadow-2xs transition-all cursor-pointer"
                     >
                         <ArrowUpRight className="w-3.5 h-3.5" />
                         Pengeluaran
@@ -707,59 +722,19 @@ export const CashAccountListPage: React.FC = () => {
                     <button
                         type="button"
                         onClick={() => openTxModal('transfer')}
-                        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition-all cursor-pointer"
+                        className="flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition-all cursor-pointer"
                     >
                         <ArrowRightLeft className="w-3.5 h-3.5" />
                         Transfer Kas
                     </button>
-                    <div className="w-[1px] h-5 bg-slate-300 dark:bg-zinc-700 mx-0.5" />
                     <button
                         type="button"
                         onClick={() => setAddModalOpen(true)}
-                        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-200 border border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-2xs"
+                        className="flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 border border-slate-200 dark:border-zinc-700 hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all cursor-pointer"
                     >
                         <Plus className="w-3.5 h-3.5 text-blue-600" />
                         Tambah Pos Kas
                     </button>
-                </div>
-            </div>
-
-            {/* Summary Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0">
-                <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
-                    <div>
-                        <p className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Total Kas & Bank</p>
-                        <p className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400 leading-tight">
-                            Rp{totalCashBalance.toLocaleString('id-ID')}
-                        </p>
-                    </div>
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-                        Rp
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
-                    <div>
-                        <p className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Jumlah Akun Kas</p>
-                        <p className="text-lg font-black font-mono text-slate-900 dark:text-white leading-tight">
-                            {filteredCashAccounts.length} Akun
-                        </p>
-                    </div>
-                    <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                        <Building2 className="w-4 h-4" />
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
-                    <div>
-                        <p className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Rekening Ber-Saldo</p>
-                        <p className="text-lg font-black font-mono text-blue-600 dark:text-blue-400 leading-tight">
-                            {filteredCashAccounts.filter(a => a.balance > 0).length} Akun
-                        </p>
-                    </div>
-                    <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                        <CreditCard className="w-4 h-4" />
-                    </div>
                 </div>
             </div>
 
