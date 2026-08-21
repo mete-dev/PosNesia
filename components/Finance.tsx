@@ -671,13 +671,13 @@ export const CashAccountListPage: React.FC = () => {
     return (
         <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
             {/* Top Header Bar */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 shadow-2xs">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center shrink-0 shadow-md">
                         <Wallet className="w-5 h-5" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
                             Data Rekening Kas & Dompet
                         </h1>
                         <p className="text-xs text-slate-500 dark:text-zinc-400">
@@ -686,37 +686,41 @@ export const CashAccountListPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Right Action Buttons */}
-                <div className="flex flex-wrap items-center gap-2">
-                    <Button 
-                        onClick={() => openTxModal('income')} 
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-1.5 px-3 gap-1.5 shadow-2xs"
+                {/* Unified Right Action Buttons Group */}
+                <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 dark:bg-zinc-800 p-1.5 rounded-xl border border-slate-200/60 dark:border-zinc-700/60">
+                    <button
+                        type="button"
+                        onClick={() => openTxModal('income')}
+                        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all cursor-pointer"
                     >
-                        <ArrowDownLeft className="w-4 h-4" />
+                        <ArrowDownLeft className="w-3.5 h-3.5" />
                         Pemasukan
-                    </Button>
-                    <Button 
-                        onClick={() => openTxModal('expense')} 
-                        className="bg-rose-600 hover:bg-rose-700 text-white text-xs py-1.5 px-3 gap-1.5 shadow-2xs"
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => openTxModal('expense')}
+                        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white shadow-2xs transition-all cursor-pointer"
                     >
-                        <ArrowUpRight className="w-4 h-4" />
+                        <ArrowUpRight className="w-3.5 h-3.5" />
                         Pengeluaran
-                    </Button>
-                    <Button 
-                        onClick={() => openTxModal('transfer')} 
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs py-1.5 px-3 gap-1.5 shadow-2xs"
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => openTxModal('transfer')}
+                        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition-all cursor-pointer"
                     >
-                        <ArrowRightLeft className="w-4 h-4" />
+                        <ArrowRightLeft className="w-3.5 h-3.5" />
                         Transfer Kas
-                    </Button>
-                    <Button 
-                        onClick={() => setAddModalOpen(true)} 
-                        variant="secondary"
-                        className="text-xs py-1.5 px-3 gap-1.5 shadow-2xs"
+                    </button>
+                    <div className="w-[1px] h-5 bg-slate-300 dark:bg-zinc-700 mx-0.5" />
+                    <button
+                        type="button"
+                        onClick={() => setAddModalOpen(true)}
+                        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-200 border border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all cursor-pointer shadow-2xs"
                     >
-                        <Plus className="w-4 h-4 text-blue-600" />
+                        <Plus className="w-3.5 h-3.5 text-blue-600" />
                         Tambah Pos Kas
-                    </Button>
+                    </button>
                 </div>
             </div>
 
@@ -729,8 +733,8 @@ export const CashAccountListPage: React.FC = () => {
                             Rp{totalCashBalance.toLocaleString('id-ID')}
                         </p>
                     </div>
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                        <DollarSign className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                        Rp
                     </div>
                 </div>
 
@@ -748,9 +752,9 @@ export const CashAccountListPage: React.FC = () => {
 
                 <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
                     <div>
-                        <p className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Rekening Aktif</p>
+                        <p className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Rekening Ber-Saldo</p>
                         <p className="text-lg font-black font-mono text-blue-600 dark:text-blue-400 leading-tight">
-                            {filteredCashAccounts.filter(a => a.balance > 0).length} Ber-Saldo
+                            {filteredCashAccounts.filter(a => a.balance > 0).length} Akun
                         </p>
                     </div>
                     <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center">
