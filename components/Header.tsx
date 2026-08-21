@@ -103,17 +103,6 @@ const keuanganGroups = [
             { label: 'Transfer', page: Page.CashTransfer },
             { label: 'Transaksi', page: Page.CashTransaction },
         ]
-    },
-    {
-        key: 'tagihan',
-        label: 'Tagihan',
-        defaultPage: Page.VendorBillList,
-        pages: [Page.VendorBillList, Page.CustomerBillList],
-        subItems: [
-            { label: 'Tagihan Vendor', page: Page.VendorBillList },
-            { label: 'Tagihan Pelanggan', page: Page.CustomerBillList },
-        ]
-    },
     {
         key: 'konfigurasi',
         label: 'Konfigurasi',
