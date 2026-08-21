@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Sale, Product, Customer, PaymentMethod, PaymentTerm, SaleItem, Status, FulfillmentStatus, Vehicle } from '../types';
+import { Sale, Product, Customer, PaymentMethod, PaymentTerm, SaleItem, Status, FulfillmentStatus, Vehicle, Page } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
 import { Receipt } from './Receipt';
 import { ActionsDropdown, DropdownItem, Modal, Button, Input, Select, Label, Badge } from './ui';
