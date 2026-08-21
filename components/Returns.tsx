@@ -370,7 +370,7 @@ const ReturnModal: React.FC<{
                                 <Select value={returnLocationId} onChange={e => setReturnLocationId(e.target.value)} required>
                                     <option value="">-- Pilih Gudang / Toko --</option>
                                     <optgroup label="Gudang Penyimpanan">
-                                        {warehouses.map(w => <option key={w.id} value={w.id}>Gudang: {w.name}</option>)}
+                                        {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                                     </optgroup>
                                     <optgroup label="Cabang Toko">
                                         {branches.map(b => <option key={b.id} value={b.id}>Toko: {b.name}</option>)}

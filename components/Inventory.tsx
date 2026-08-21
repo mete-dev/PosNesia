@@ -319,7 +319,7 @@ export const ManageShelvesPage: React.FC = () => {
 
      const locationMap = useMemo(() => {
         const map = new Map<string, string>();
-        warehouses.forEach(w => map.set(w.id, `Gudang: ${w.name}`));
+        warehouses.forEach(w => map.set(w.id, w.name));
         branches.forEach(b => map.set(b.id, `Toko: ${b.name}`));
         return map;
     }, [warehouses, branches]);

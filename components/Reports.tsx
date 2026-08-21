@@ -262,7 +262,7 @@ export const GoodsReportPage: React.FC = () => {
                             <Label className="text-xs font-semibold mb-1">Lokasi Pengecekan</Label>
                             <Select value={locationFilterId} onChange={e => setLocationFilterId(e.target.value)} className="text-xs py-1.5">
                                 <option value="">Semua Lokasi</option>
-                                {warehouses.map(w => <option key={w.id} value={w.id}>Gudang: {w.name}</option>)}
+                                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                                 {branches.map(b => <option key={b.id} value={b.id}>Toko: {b.name}</option>)}
                             </Select>
                         </div>
@@ -1192,7 +1192,8 @@ export const CashierDepositReportPage: React.FC = () => {
 
     const handleOpenVerifyModal = (summary: PosSessionSummary) => {
         setSelectedSummary(summary);
-        setTargetAccountId(summary.depositToAccountId || cashAccounts[0]?.id || '1020');
+        const defaultAcc = cashAccounts.find(a => a.id !== '1010')?.id || cashAccounts[0]?.id || '1020';
+        setTargetAccountId(summary.depositToAccountId || defaultAcc);
     };
 
     const handleConfirmVerification = () => {

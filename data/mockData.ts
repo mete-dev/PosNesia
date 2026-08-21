@@ -226,8 +226,7 @@ export const initialCashierStations: CashierStation[] = [
 ];
 export const initialRoles: Role[] = [{ id: 'admin', name: 'Admin', permissions: Object.values(Page) }];
 export const initialWarehouses: Warehouse[] = [
-    { id: 'wh_c1', name: 'Gudang Sentral Jakarta', address: 'Jl. Gudang Raya No. 1', warehouseTypeId: 'wt1' },
-    { id: 'wh_b1', name: 'Gudang - Toko Pusat Tanah Abang', address: 'Blok A Lt. 1 No. 1', warehouseTypeId: 'wt2', branchId: 'CAB-JPSTNH01' }
+    { id: 'wh_c1', name: 'Toko (Stok Utama)', address: 'Jl. Utama Toko No. 1', warehouseTypeId: 'wt1' }
 ];
 export const initialInventoryLevels: InventoryLevel[] = [];
 export const initialStockTransfers: StockTransfer[] = [];
