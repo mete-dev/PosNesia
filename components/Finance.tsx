@@ -420,7 +420,7 @@ const AccountStatementModal: React.FC<{
 
     // Calculate chronological statement lines with running balance
     const statementData = useMemo(() => {
-        if (!account) return { rows: [], totalDebit: 0, totalCredit: 0, initialBal: 0 };
+        if (!account) return { rows: [], totalDebit: 0, totalCredit: 0 };
 
         // 1. Gather all journal lines for this account across all journal entries
         const accJournals: { date: Date; description: string; reference?: string; debit: number; credit: number }[] = [];
@@ -440,17 +440,11 @@ const AccountStatementModal: React.FC<{
             });
         });
 
-        // Sort ascending by date for running balance calculation
+        // Sort ascending by date for chronological running balance
         accJournals.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-        // Calculate total historical net movement from ALL journal entries ever recorded
-        const totalNetJournalMovement = accJournals.reduce((sum, j) => sum + (j.debit - j.credit), 0);
-        
-        // Base initial balance before any journal entries were created
-        const baseInitialBalance = account.balance - totalNetJournalMovement;
-
-        // Calculate running balance starting from baseInitialBalance
-        let runningBalance = baseInitialBalance;
+        // Calculate running balance starting from 0 (or initial balance if defined)
+        let runningBalance = 0;
         const allRows = accJournals.map(j => {
             runningBalance += (j.debit - j.credit);
             return {
@@ -473,8 +467,7 @@ const AccountStatementModal: React.FC<{
         return {
             rows: filtered.reverse(), // Show newest first
             totalDebit,
-            totalCredit,
-            initialBal: baseInitialBalance
+            totalCredit
         };
     }, [account, journalEntries, startDate, endDate]);
 
