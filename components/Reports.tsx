@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import { Sale, Product, StockMovement, AccountType, JournalEntry, Account, PurchaseOrder, PosSessionSummary, ProductCategory, Shelf, InventoryLevel, ProductTypeLocation } from '../types';
 import { Card, Button, Label, Select, DateRangeFilter, PageHeader, Table, Thead, Tbody, Tr, Th, Td, Input, Badge, Modal } from './ui';
-import { TrendingUp, Package, ShoppingCart, DollarSign, Wallet, FileText, ArrowRightLeft, Percent, Layers, PieChart, Filter, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, Package, ShoppingCart, DollarSign, Wallet, FileText, ArrowRightLeft, Percent, Layers, PieChart, Filter, CheckCircle2, Eye, Printer } from 'lucide-react';
+import { Receipt } from './Receipt';
 
 // --- Consolidated Goods Report ---
 export const GoodsReportPage: React.FC = () => {
@@ -487,8 +488,13 @@ export const FinancialInventoryReportPage: React.FC = () => {
 
 export const SalesReport: React.FC = () => {
     const { state } = useAppContext();
-    const { sales, staff, customers, currentBranchId } = state;
+    const { sales, staff, customers, currentBranchId, posSessionSummaries, companyInfo, reportLayoutSettings } = state;
     const [filteredSales, setFilteredSales] = useState<Sale[]>([]);
+
+    const [viewMode, setViewMode] = useState<'transaction' | 'product'>('transaction');
+    const [filterPeriodType, setFilterPeriodType] = useState<'day' | 'session' | 'custom'>('day');
+    const [selectedSessionId, setSelectedSessionId] = useState<string>('all');
+    const [selectedSingleDate, setSelectedSingleDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
     const [saleChannel, setSaleChannel] = useState('all');
     const [cashierId, setCashierId] = useState('all');
@@ -499,17 +505,35 @@ export const SalesReport: React.FC = () => {
 
     const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: pastDate, end: today });
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [selectedSaleForReceipt, setSelectedSaleForReceipt] = useState<Sale | null>(null);
 
     const applyAllFilters = () => {
-        const startDate = new Date(dateRange.start);
-        startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(dateRange.end);
-        endDate.setHours(23, 59, 59, 999);
+        let tempSales = [...sales];
 
-        let tempSales = sales.filter(sale => {
-            const saleDate = new Date(sale.date);
-            return saleDate >= startDate && saleDate <= endDate;
-        });
+        if (filterPeriodType === 'day') {
+            tempSales = tempSales.filter(s => s.date.startsWith(selectedSingleDate));
+        } else if (filterPeriodType === 'session') {
+            if (selectedSessionId !== 'all') {
+                const targetSession = posSessionSummaries.find(ps => ps.id === selectedSessionId || ps.sessionId === selectedSessionId);
+                if (targetSession) {
+                    tempSales = tempSales.filter(s => {
+                        const sTime = new Date(s.date).getTime();
+                        const sessDate = new Date(targetSession.date).getTime();
+                        const isSameCashier = s.staffId === targetSession.cashierId || !s.staffId;
+                        return isSameCashier && Math.abs(sTime - sessDate) <= 24 * 60 * 60 * 1000;
+                    });
+                }
+            }
+        } else {
+            const startDate = new Date(dateRange.start);
+            startDate.setHours(0, 0, 0, 0);
+            const endDate = new Date(dateRange.end);
+            endDate.setHours(23, 59, 59, 999);
+            tempSales = tempSales.filter(sale => {
+                const saleDate = new Date(sale.date);
+                return saleDate >= startDate && saleDate <= endDate;
+            });
+        }
 
         if (currentBranchId) tempSales = tempSales.filter(s => s.branchId === currentBranchId);
         if (saleChannel !== 'all') tempSales = tempSales.filter(s => s.saleChannel === saleChannel);
@@ -531,13 +555,38 @@ export const SalesReport: React.FC = () => {
     
     React.useEffect(() => {
         applyAllFilters();
-    }, [sales, currentBranchId, dateRange, saleChannel, cashierId, customerType]);
+    }, [sales, currentBranchId, dateRange, filterPeriodType, selectedSessionId, selectedSingleDate, saleChannel, cashierId, customerType]);
 
     const reportData = useMemo(() => {
         const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.grandTotal, 0);
         const totalTransactions = filteredSales.length;
         const averageSale = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
         return { totalRevenue, totalTransactions, averageSale };
+    }, [filteredSales]);
+
+    // Product breakdown data grouping
+    const productBreakdownData = useMemo(() => {
+        const map = new Map<string, { productId: string; productName: string; quantity: number; totalRevenue: number; avgPrice: number }>();
+        filteredSales.forEach(sale => {
+            sale.items.forEach(item => {
+                const existing = map.get(item.productId);
+                const itemNetTotal = (item.price * item.quantity) - item.discount;
+                if (existing) {
+                    existing.quantity += item.quantity;
+                    existing.totalRevenue += itemNetTotal;
+                    existing.avgPrice = existing.totalRevenue / existing.quantity;
+                } else {
+                    map.set(item.productId, {
+                        productId: item.productId,
+                        productName: item.productName,
+                        quantity: item.quantity,
+                        totalRevenue: itemNetTotal,
+                        avgPrice: item.price
+                    });
+                }
+            });
+        });
+        return Array.from(map.values()).sort((a, b) => b.totalRevenue - a.totalRevenue);
     }, [filteredSales]);
 
     return (
@@ -556,6 +605,32 @@ export const SalesReport: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 text-xs shrink-0 self-end sm:self-center">
+                    {/* View Mode Toggle: Per Transaksi vs Per Produk */}
+                    <div className="flex items-center bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg border border-slate-200 dark:border-zinc-700">
+                        <button
+                            type="button"
+                            onClick={() => setViewMode('transaction')}
+                            className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${
+                                viewMode === 'transaction' 
+                                    ? 'bg-white dark:bg-zinc-900 text-slate-900 dark:text-white shadow-2xs' 
+                                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                            Per Transaksi
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setViewMode('product')}
+                            className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${
+                                viewMode === 'product' 
+                                    ? 'bg-white dark:bg-zinc-900 text-slate-900 dark:text-white shadow-2xs' 
+                                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                            Per Produk Terjual
+                        </button>
+                    </div>
+
                     <div className="px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-medium">
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">Total Pendapatan:</span>{" "}
                         <span className="font-bold font-mono">Rp{reportData.totalRevenue.toLocaleString('id-ID')}</span>
@@ -573,48 +648,115 @@ export const SalesReport: React.FC = () => {
                 </div>
             </div>
 
-            {/* Table Area (Maximizes vertical height) */}
+            {/* Table Area */}
             <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col">
                 <div className="overflow-x-auto flex-1">
-                    <Table>
-                        <Thead>
-                            <Tr>
-                                <Th>ID Transaksi</Th>
-                                <Th>Tanggal & Waktu</Th>
-                                <Th>Pelanggan</Th>
-                                <Th>Kasir / Staff</Th>
-                                <Th>Saluran</Th>
-                                <Th className="text-right">Total Transaksi</Th>
-                            </Tr>
-                        </Thead>
-                        <Tbody>
-                            {filteredSales.length === 0 ? (
+                    {viewMode === 'transaction' ? (
+                        <Table>
+                            <Thead>
                                 <Tr>
-                                    <Td colSpan={6} className="text-center py-12 text-slate-400">
-                                        Tidak ada data transaksi penjualan pada periode ini. Klik "Buat Laporan / Filter" untuk memilih kriteria.
-                                    </Td>
+                                    <Th>ID Transaksi</Th>
+                                    <Th>Tanggal & Waktu</Th>
+                                    <Th>Pelanggan</Th>
+                                    <Th>Kasir / Staff</Th>
+                                    <Th>Saluran</Th>
+                                    <Th className="text-right">Total Transaksi</Th>
+                                    <Th className="text-center">Struk Nota</Th>
                                 </Tr>
-                            ) : (
-                                filteredSales.map((sale) => {
-                                    const cashierStaff = staff.find(s => s.id === sale.staffId);
-                                    return (
-                                        <Tr key={sale.id}>
-                                            <Td className="font-mono text-xs font-bold text-slate-900 dark:text-white">{sale.id}</Td>
-                                            <Td className="text-slate-600 dark:text-slate-400">{new Date(sale.date).toLocaleString('id-ID')}</Td>
-                                            <Td className="font-semibold text-slate-800 dark:text-zinc-200">{sale.customerName || 'Pelanggan Umum'}</Td>
-                                            <Td className="text-slate-600 dark:text-slate-400">{cashierStaff?.name || '-'}</Td>
-                                            <Td>{sale.saleChannel === 'E-commerce' ? <Badge variant="info">E-commerce</Badge> : <Badge variant="success">POS Kasir</Badge>}</Td>
+                            </Thead>
+                            <Tbody>
+                                {filteredSales.length === 0 ? (
+                                    <Tr>
+                                        <Td colSpan={7} className="text-center py-12 text-slate-400">
+                                            Tidak ada data transaksi penjualan pada periode ini. Klik "Buat Laporan / Filter" untuk memilih kriteria.
+                                        </Td>
+                                    </Tr>
+                                ) : (
+                                    filteredSales.map((sale) => {
+                                        const cashierStaff = staff.find(s => s.id === sale.staffId);
+                                        return (
+                                            <Tr key={sale.id}>
+                                                <Td className="font-mono text-xs font-bold text-slate-900 dark:text-white">{sale.id}</Td>
+                                                <Td className="text-slate-600 dark:text-slate-400">{new Date(sale.date).toLocaleString('id-ID')}</Td>
+                                                <Td className="font-semibold text-slate-800 dark:text-zinc-200">{sale.customerName || 'Pelanggan Umum'}</Td>
+                                                <Td className="text-slate-600 dark:text-slate-400">{cashierStaff?.name || '-'}</Td>
+                                                <Td>{sale.saleChannel === 'E-commerce' ? <Badge variant="info">E-commerce</Badge> : <Badge variant="success">POS Kasir</Badge>}</Td>
+                                                <Td className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                                    Rp{sale.grandTotal.toLocaleString('id-ID')}
+                                                </Td>
+                                                <Td className="text-center">
+                                                    <Button 
+                                                        onClick={() => setSelectedSaleForReceipt(sale)} 
+                                                        variant="secondary" 
+                                                        className="text-[11px] py-1 px-2.5 gap-1.5"
+                                                    >
+                                                        <Eye className="w-3.5 h-3.5" />
+                                                        Lihat Nota
+                                                    </Button>
+                                                </Td>
+                                            </Tr>
+                                        );
+                                    })
+                                )}
+                            </Tbody>
+                        </Table>
+                    ) : (
+                        <Table>
+                            <Thead>
+                                <Tr>
+                                    <Th>Nama Produk</Th>
+                                    <Th className="text-center">Total Terjual (Qty)</Th>
+                                    <Th className="text-right">Harga Rata-rata</Th>
+                                    <Th className="text-right">Total Pendapatan Produk</Th>
+                                </Tr>
+                            </Thead>
+                            <Tbody>
+                                {productBreakdownData.length === 0 ? (
+                                    <Tr>
+                                        <Td colSpan={4} className="text-center py-12 text-slate-400">
+                                            Tidak ada data produk terjual pada periode ini.
+                                        </Td>
+                                    </Tr>
+                                ) : (
+                                    productBreakdownData.map((p) => (
+                                        <Tr key={p.productId}>
+                                            <Td className="font-semibold text-slate-900 dark:text-white">{p.productName}</Td>
+                                            <Td className="text-center font-mono font-bold text-blue-600 dark:text-blue-400">{p.quantity}</Td>
+                                            <Td className="text-right font-mono text-slate-500">Rp{Math.round(p.avgPrice).toLocaleString('id-ID')}</Td>
                                             <Td className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                                                Rp{sale.grandTotal.toLocaleString('id-ID')}
+                                                Rp{p.totalRevenue.toLocaleString('id-ID')}
                                             </Td>
                                         </Tr>
-                                    );
-                                })
-                            )}
-                        </Tbody>
-                    </Table>
+                                    ))
+                                )}
+                            </Tbody>
+                        </Table>
+                    )}
                 </div>
             </div>
+
+            {/* Receipt Modal */}
+            <Modal
+                isOpen={!!selectedSaleForReceipt}
+                onClose={() => setSelectedSaleForReceipt(null)}
+                title={`Nota Pembayaran #${selectedSaleForReceipt?.id}`}
+                maxWidth="max-w-md"
+                footer={
+                    <div className="flex justify-between items-center w-full">
+                        <Button variant="secondary" onClick={() => setSelectedSaleForReceipt(null)}>Tutup</Button>
+                        <Button onClick={() => window.print()} className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white">
+                            <Printer className="w-4 h-4" />
+                            Cetak Nota
+                        </Button>
+                    </div>
+                }
+            >
+                {selectedSaleForReceipt && (
+                    <div className="p-2 border border-slate-200 rounded-xl bg-white text-black">
+                        <Receipt sale={selectedSaleForReceipt} companyInfo={companyInfo} settings={reportLayoutSettings} />
+                    </div>
+                )}
+            </Modal>
 
             {/* Filter Modal Pop-up */}
             <Modal
@@ -633,21 +775,54 @@ export const SalesReport: React.FC = () => {
                 }
             >
                 <div className="space-y-4 text-sm">
-                    <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 space-y-2">
-                        <Label className="font-bold text-slate-800 dark:text-zinc-200 text-xs">Periode Tanggal Laporan</Label>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <Label htmlFor="sales_start" className="text-xs text-slate-500">Tanggal Mulai</Label>
-                                <Input id="sales_start" type="date" value={dateRange.start} onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))} className="text-xs py-1.5" />
-                            </div>
-                            <div>
-                                <Label htmlFor="sales_end" className="text-xs text-slate-500">Tanggal Selesai</Label>
-                                <Input id="sales_end" type="date" value={dateRange.end} onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))} className="text-xs py-1.5" />
-                            </div>
-                        </div>
+                    {/* Filter Mode Selector: Per Hari / Per Sesi / Custom */}
+                    <div className="space-y-2">
+                        <Label className="font-bold text-slate-800 dark:text-zinc-200 text-xs">Filter Berdasarkan</Label>
+                        <Select value={filterPeriodType} onChange={e => setFilterPeriodType(e.target.value as any)} className="text-xs py-1.5">
+                            <option value="day">📅 Per Hari (Tanggal Spesifik)</option>
+                            <option value="session">🏬 Per Sesi Kasir</option>
+                            <option value="custom">📆 Rentang Tanggal (Custom)</option>
+                        </Select>
                     </div>
 
-                    <div className="space-y-3">
+                    {filterPeriodType === 'day' && (
+                        <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 space-y-1.5">
+                            <Label htmlFor="single_date" className="text-xs text-slate-500 font-bold">Pilih Tanggal Hari Ini / Spesifik</Label>
+                            <Input id="single_date" type="date" value={selectedSingleDate} onChange={e => setSelectedSingleDate(e.target.value)} className="text-xs py-1.5" />
+                        </div>
+                    )}
+
+                    {filterPeriodType === 'session' && (
+                        <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 space-y-1.5">
+                            <Label className="text-xs text-slate-500 font-bold">Pilih Sesi Kasir</Label>
+                            <Select value={selectedSessionId} onChange={e => setSelectedSessionId(e.target.value)} className="text-xs py-1.5">
+                                <option value="all">Semua Sesi Kasir</option>
+                                {posSessionSummaries.map(ps => (
+                                    <option key={ps.id} value={ps.id}>
+                                        Sesi: {ps.cashierName} ({new Date(ps.date).toLocaleString('id-ID')}) - Rp{ps.countedCash.toLocaleString('id-ID')}
+                                    </option>
+                                ))}
+                            </Select>
+                        </div>
+                    )}
+
+                    {filterPeriodType === 'custom' && (
+                        <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 space-y-2">
+                            <Label className="font-bold text-slate-800 dark:text-zinc-200 text-xs">Periode Tanggal Laporan</Label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <Label htmlFor="sales_start" className="text-xs text-slate-500">Tanggal Mulai</Label>
+                                    <Input id="sales_start" type="date" value={dateRange.start} onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))} className="text-xs py-1.5" />
+                                </div>
+                                <div>
+                                    <Label htmlFor="sales_end" className="text-xs text-slate-500">Tanggal Selesai</Label>
+                                    <Input id="sales_end" type="date" value={dateRange.end} onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))} className="text-xs py-1.5" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-zinc-700">
                         <div>
                             <Label className="text-xs font-semibold mb-1">Saluran Penjualan</Label>
                             <Select value={saleChannel} onChange={e => setSaleChannel(e.target.value)} className="text-xs py-1.5">
@@ -974,7 +1149,7 @@ export const ProductPerformanceReportPage: React.FC = () => {
 
 export const CashierDepositReportPage: React.FC = () => {
     const { state, dispatch } = useAppContext();
-    const { posSessionSummaries, accounts, currentUser } = state;
+    const { posSessionSummaries, sales, accounts, currentUser, companyInfo, reportLayoutSettings } = state;
     const [filteredSummaries, setFilteredSummaries] = useState<PosSessionSummary[]>([]);
 
     const today = new Date().toISOString().split('T')[0];
@@ -987,6 +1162,10 @@ export const CashierDepositReportPage: React.FC = () => {
     // Modal verification state
     const [selectedSummary, setSelectedSummary] = useState<PosSessionSummary | null>(null);
     const [targetAccountId, setTargetAccountId] = useState<string>('');
+
+    // Session Transaction List Modal state
+    const [viewingSession, setViewingSession] = useState<PosSessionSummary | null>(null);
+    const [selectedSaleForReceipt, setSelectedSaleForReceipt] = useState<Sale | null>(null);
 
     const userIsCashier = currentUser?.roleId === 'kasir.toko';
     const cashAccounts = useMemo(() => accounts.filter(a => a.isCashAccount && a.id !== '1010'), [accounts]);
@@ -1028,6 +1207,17 @@ export const CashierDepositReportPage: React.FC = () => {
         setSelectedSummary(null);
     };
 
+    // Calculate sales belonging to the clicked session
+    const sessionSales = useMemo(() => {
+        if (!viewingSession) return [];
+        const sessTime = new Date(viewingSession.date).getTime();
+        return sales.filter(s => {
+            const sTime = new Date(s.date).getTime();
+            const isSameCashier = s.staffId === viewingSession.cashierId || !s.staffId;
+            return isSameCashier && Math.abs(sTime - sessTime) <= 24 * 60 * 60 * 1000;
+        });
+    }, [viewingSession, sales]);
+
     React.useEffect(() => {
         handleFilter(startDate, endDate);
     }, [posSessionSummaries, startDate, endDate]);
@@ -1061,7 +1251,7 @@ export const CashierDepositReportPage: React.FC = () => {
                     <Table>
                         <Thead>
                             <Tr>
-                                <Th>Tanggal</Th>
+                                <Th>Tanggal Sesi</Th>
                                 <Th>Kasir</Th>
                                 <Th className="text-right">Kas Dihitung</Th>
                                 <Th className="text-right">Kas Seharusnya</Th>
@@ -1082,8 +1272,14 @@ export const CashierDepositReportPage: React.FC = () => {
                                 filteredSummaries.map(s => {
                                     const destAccount = accounts.find(a => a.id === s.depositToAccountId);
                                     return (
-                                        <Tr key={s.id}>
-                                            <Td className="text-slate-600 dark:text-slate-400">{new Date(s.date).toLocaleString('id-ID')}</Td>
+                                        <Tr 
+                                            key={s.id}
+                                            className="hover:bg-slate-50/80 dark:hover:bg-zinc-800/50 cursor-pointer transition-colors"
+                                            onClick={() => setViewingSession(s)}
+                                        >
+                                            <Td className="text-slate-600 dark:text-slate-400 font-medium">
+                                                {new Date(s.date).toLocaleString('id-ID')}
+                                            </Td>
                                             <Td className="font-semibold text-slate-800 dark:text-zinc-200">{s.cashierName}</Td>
                                             <Td className="text-right font-mono font-bold">Rp{s.countedCash.toLocaleString('id-ID')}</Td>
                                             <Td className="text-right font-mono text-slate-500">Rp{s.expectedCash.toLocaleString('id-ID')}</Td>
@@ -1102,14 +1298,24 @@ export const CashierDepositReportPage: React.FC = () => {
                                             <Td className="text-center">
                                                 {s.status === 'verified' ? <Badge variant="success">Terverifikasi</Badge> : <Badge variant="warning">Pending</Badge>}
                                             </Td>
-                                            <Td className="text-right">
-                                                <Button 
-                                                    onClick={() => handleOpenVerifyModal(s)}
-                                                    variant={s.status === 'verified' ? 'secondary' : 'primary'}
-                                                    className="text-[11px] py-1 px-2.5 shadow-2xs"
-                                                >
-                                                    {s.status === 'verified' ? 'Ubah Dompet' : 'Validasi Setoran'}
-                                                </Button>
+                                            <Td className="text-right" onClick={e => e.stopPropagation()}>
+                                                <div className="flex items-center justify-end gap-1.5">
+                                                    <Button
+                                                        onClick={() => setViewingSession(s)}
+                                                        variant="secondary"
+                                                        className="text-[11px] py-1 px-2.5 shadow-2xs gap-1"
+                                                    >
+                                                        <Eye className="w-3.5 h-3.5" />
+                                                        List Transaksi
+                                                    </Button>
+                                                    <Button 
+                                                        onClick={() => handleOpenVerifyModal(s)}
+                                                        variant={s.status === 'verified' ? 'secondary' : 'primary'}
+                                                        className="text-[11px] py-1 px-2.5 shadow-2xs"
+                                                    >
+                                                        {s.status === 'verified' ? 'Ubah Dompet' : 'Validasi Setoran'}
+                                                    </Button>
+                                                </div>
                                             </Td>
                                         </Tr>
                                     );
@@ -1119,6 +1325,109 @@ export const CashierDepositReportPage: React.FC = () => {
                     </Table>
                 </div>
             </div>
+
+            {/* Session Transaction List Modal */}
+            <Modal
+                isOpen={!!viewingSession}
+                onClose={() => setViewingSession(null)}
+                title={`Daftar Transaksi Sesi Kasir (${viewingSession?.cashierName} - ${viewingSession ? new Date(viewingSession.date).toLocaleString('id-ID') : ''})`}
+                maxWidth="max-w-3xl"
+                footer={
+                    <div className="flex justify-end gap-2 w-full">
+                        <Button variant="secondary" onClick={() => setViewingSession(null)}>Tutup</Button>
+                    </div>
+                }
+            >
+                {viewingSession && (
+                    <div className="space-y-3">
+                        <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 flex flex-wrap justify-between items-center text-xs">
+                            <div>
+                                <span className="text-slate-500">Kasir Sesi: </span>
+                                <strong className="text-slate-900 dark:text-white">{viewingSession.cashierName}</strong>
+                            </div>
+                            <div>
+                                <span className="text-slate-500">Total Kas Dihitung: </span>
+                                <strong className="font-mono text-emerald-600 dark:text-emerald-400">Rp{viewingSession.countedCash.toLocaleString('id-ID')}</strong>
+                            </div>
+                            <div>
+                                <span className="text-slate-500">Jumlah Transaksi: </span>
+                                <strong className="font-mono text-blue-600 dark:text-blue-400">{sessionSales.length} Transaksi</strong>
+                            </div>
+                        </div>
+
+                        <div className="overflow-x-auto max-h-[350px] border border-slate-200 dark:border-zinc-800 rounded-xl">
+                            <Table>
+                                <Thead>
+                                    <Tr>
+                                        <Th>ID Transaksi</Th>
+                                        <Th>Waktu</Th>
+                                        <Th>Pelanggan</Th>
+                                        <Th className="text-right font-mono">Total (Rp)</Th>
+                                        <Th className="text-center">Nota / Struk</Th>
+                                    </Tr>
+                                </Thead>
+                                <Tbody>
+                                    {sessionSales.length === 0 ? (
+                                        <Tr>
+                                            <Td colSpan={5} className="text-center py-8 text-slate-400">
+                                                Tidak ada transaksi yang tercatat dalam sesi ini.
+                                            </Td>
+                                        </Tr>
+                                    ) : (
+                                        sessionSales.map(sale => (
+                                            <Tr 
+                                                key={sale.id}
+                                                className="hover:bg-slate-50 dark:hover:bg-zinc-800/50 cursor-pointer"
+                                                onClick={() => setSelectedSaleForReceipt(sale)}
+                                            >
+                                                <Td className="font-mono text-xs font-bold text-slate-900 dark:text-white">{sale.id}</Td>
+                                                <Td className="text-slate-600 dark:text-slate-400">{new Date(sale.date).toLocaleTimeString('id-ID')}</Td>
+                                                <Td className="font-semibold text-slate-800 dark:text-zinc-200">{sale.customerName || 'Pelanggan Umum'}</Td>
+                                                <Td className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                                    Rp{sale.grandTotal.toLocaleString('id-ID')}
+                                                </Td>
+                                                <Td className="text-center" onClick={e => e.stopPropagation()}>
+                                                    <Button
+                                                        onClick={() => setSelectedSaleForReceipt(sale)}
+                                                        variant="secondary"
+                                                        className="text-[11px] py-1 px-2.5 gap-1.5"
+                                                    >
+                                                        <Eye className="w-3.5 h-3.5 text-blue-600" />
+                                                        Tampilkan Nota
+                                                    </Button>
+                                                </Td>
+                                            </Tr>
+                                        ))
+                                    )}
+                                </Tbody>
+                            </Table>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
+            {/* Receipt Modal */}
+            <Modal
+                isOpen={!!selectedSaleForReceipt}
+                onClose={() => setSelectedSaleForReceipt(null)}
+                title={`Nota Pembayaran #${selectedSaleForReceipt?.id}`}
+                maxWidth="max-w-md"
+                footer={
+                    <div className="flex justify-between items-center w-full">
+                        <Button variant="secondary" onClick={() => setSelectedSaleForReceipt(null)}>Tutup</Button>
+                        <Button onClick={() => window.print()} className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white">
+                            <Printer className="w-4 h-4" />
+                            Cetak Nota
+                        </Button>
+                    </div>
+                }
+            >
+                {selectedSaleForReceipt && (
+                    <div className="p-2 border border-slate-200 rounded-xl bg-white text-black">
+                        <Receipt sale={selectedSaleForReceipt} companyInfo={companyInfo} settings={reportLayoutSettings} />
+                    </div>
+                )}
+            </Modal>
 
             {/* Pop-up Filter Modal */}
             <Modal
