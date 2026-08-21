@@ -914,12 +914,6 @@ export const CashAccountListPage: React.FC = () => {
             <AddCashAccountModal isOpen={isAddModalOpen} onClose={() => setAddModalOpen(false)} onSave={handleSave} accounts={state.accounts}/>
             <UpdateCashAccountModal isOpen={isEditModalOpen} onClose={() => setEditModalOpen(false)} onSave={handleUpdate} account={editingAccount}/>
             <UnifiedCashTransactionModal isOpen={isTxModalOpen} onClose={() => setIsTxModalOpen(false)} initialMode={txModalInitialMode} />
-            <AccountStatementModal 
-                account={selectedAccountForStatement} 
-                isOpen={!!selectedAccountForStatement} 
-                onClose={() => setSelectedAccountForStatement(null)} 
-                journalEntries={state.journalEntries}
-            />
         </div>
     );
 };
