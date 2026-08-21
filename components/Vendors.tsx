@@ -218,7 +218,10 @@ export const Vendors: React.FC = () => {
         ))}
       </div>
       <VendorModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveVendor} existingVendor={selectedVendor}/>
-       <VendorDetailsModal isOpen={isDetailsModalOpen} onClose={() => setDetailsModalOpen(false)} vendor={selectedVendor} />
+      <VendorDetailsModal isOpen={isDetailsModalOpen} onClose={() => setDetailsModalOpen(false)} vendor={selectedVendor} />
     </div>
   );
 };
+
+export const VendorsPage = Vendors;
+export default Vendors;
