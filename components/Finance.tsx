@@ -429,33 +429,47 @@ export const CashAccountListPage: React.FC = () => {
         setEditModalOpen(true);
     };
 
+    const totalCashBalance = useMemo(() => {
+        return state.accounts.filter(a => a.isCashAccount).reduce((sum, a) => sum + a.balance, 0);
+    }, [state.accounts]);
+
     return (
-        <div className="p-4 md:p-8 h-full flex flex-col space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white leading-tight">Data Rekening Kas & Dompet</h1>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Kelola pos kas, rekening bank, serta catat transaksi pemasukan, pengeluaran & transfer kas</p>
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
+            {/* Top Header Bar */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 shrink-0">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 shadow-2xs">
+                        <Wallet className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                            Data Rekening Kas & Dompet
+                        </h1>
+                        <p className="text-xs text-slate-500 dark:text-zinc-400">
+                            Kelola saldo pos kas, rekening bank, serta catat transaksi & transfer kas
+                        </p>
+                    </div>
                 </div>
-                
-                {/* Integrated Transaction & Account Actions in Top Right Header */}
+
+                {/* Right Action Buttons */}
                 <div className="flex flex-wrap items-center gap-2">
                     <Button 
                         onClick={() => openTxModal('income')} 
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 px-3 gap-1.5 shadow-xs"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-1.5 px-3 gap-1.5 shadow-2xs"
                     >
                         <ArrowDownLeft className="w-4 h-4" />
                         Pemasukan
                     </Button>
                     <Button 
                         onClick={() => openTxModal('expense')} 
-                        className="bg-rose-600 hover:bg-rose-700 text-white text-xs py-2 px-3 gap-1.5 shadow-xs"
+                        className="bg-rose-600 hover:bg-rose-700 text-white text-xs py-1.5 px-3 gap-1.5 shadow-2xs"
                     >
                         <ArrowUpRight className="w-4 h-4" />
                         Pengeluaran
                     </Button>
                     <Button 
                         onClick={() => openTxModal('transfer')} 
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 px-3 gap-1.5 shadow-xs"
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs py-1.5 px-3 gap-1.5 shadow-2xs"
                     >
                         <ArrowRightLeft className="w-4 h-4" />
                         Transfer Kas
@@ -463,61 +477,133 @@ export const CashAccountListPage: React.FC = () => {
                     <Button 
                         onClick={() => setAddModalOpen(true)} 
                         variant="secondary"
-                        className="text-xs py-2 px-3 gap-1.5 shadow-xs"
+                        className="text-xs py-1.5 px-3 gap-1.5 shadow-2xs"
                     >
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-4 h-4 text-blue-600" />
                         Tambah Pos Kas
                     </Button>
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-xs border border-gray-200/80 dark:border-gray-700/80">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input 
-                        placeholder="Cari nama atau nomor akun..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                    />
-                    <Select value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)}>
-                        <option value="all">Semua Kategori</option>
-                        <option value="Tunai">Tunai</option>
-                        <option value="Rekening">Rekening Bank</option>
-                        <option value="Brankas">Brankas</option>
-                        <option value="Lainnya">Lainnya</option>
-                    </Select>
+            {/* Summary Stat Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0">
+                <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+                    <div>
+                        <p className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Total Kas & Bank</p>
+                        <p className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400 leading-tight">
+                            Rp{totalCashBalance.toLocaleString('id-ID')}
+                        </p>
+                    </div>
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                        <DollarSign className="w-4 h-4" />
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+                    <div>
+                        <p className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Jumlah Akun Kas</p>
+                        <p className="text-lg font-black font-mono text-slate-900 dark:text-white leading-tight">
+                            {filteredCashAccounts.length} Akun
+                        </p>
+                    </div>
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                        <Building2 className="w-4 h-4" />
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs flex items-center justify-between">
+                    <div>
+                        <p className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Rekening Aktif</p>
+                        <p className="text-lg font-black font-mono text-blue-600 dark:text-blue-400 leading-tight">
+                            {filteredCashAccounts.filter(a => a.balance > 0).length} Ber-Saldo
+                        </p>
+                    </div>
+                    <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                        <CreditCard className="w-4 h-4" />
+                    </div>
                 </div>
             </div>
 
-            <Card className="flex-grow overflow-y-auto rounded-xl border border-gray-200/80 dark:border-gray-700/80 shadow-xs">
-                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
-                        <tr>
-                            <th scope="col" className="px-6 py-3">No. Akun</th>
-                            <th scope="col" className="px-6 py-3">Nama Rekening</th>
-                            <th scope="col" className="px-6 py-3">Kategori</th>
-                            <th scope="col" className="px-6 py-3 text-right">Saldo Saat Ini</th>
-                            <th scope="col" className="px-6 py-3 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                         {filteredCashAccounts.map((account) => (
-                            <tr key={account.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
-                                <td className="px-6 py-4 font-mono text-xs font-semibold">{account.id}</td>
-                                <td className="px-6 py-4 font-bold text-gray-900 dark:text-white">🏦 {account.name}</td>
-                                <td className="px-6 py-4">
-                                    <Badge>{account.cashAccountType || 'N/A'}</Badge>
-                                </td>
-                                <td className="px-6 py-4 font-mono font-bold text-lg text-right text-emerald-600 dark:text-emerald-400">
-                                    {`Rp${account.balance.toLocaleString('id-ID')}`}
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                    <button onClick={() => openEditModal(account)} className="font-medium text-primary-600 dark:text-primary-500 hover:underline text-xs">Ubah</button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </Card>
+            {/* Main Table Area (Flex-1 for Auto-Fill Vertical Height) */}
+            <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col">
+                {/* Search & Category Filter Header Bar */}
+                <div className="p-3 border-b border-slate-100 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 bg-slate-50/50 dark:bg-zinc-900/50">
+                    <div className="relative w-full sm:w-72">
+                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <Input 
+                            placeholder="Cari nama atau nomor akun..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="pl-9 text-xs py-1.5"
+                        />
+                    </div>
+                    <div className="w-full sm:w-48">
+                        <Select value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)} className="text-xs py-1.5">
+                            <option value="all">Semua Kategori</option>
+                            <option value="Tunai">Tunai</option>
+                            <option value="Rekening">Rekening Bank</option>
+                            <option value="Brankas">Brankas</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </Select>
+                    </div>
+                </div>
+
+                {/* Table Content */}
+                <div className="overflow-x-auto flex-1">
+                    <Table>
+                        <Thead>
+                            <Tr>
+                                <Th>No. Akun</Th>
+                                <Th>Nama Rekening Kas / Dompet</Th>
+                                <Th className="text-center">Kategori</Th>
+                                <Th className="text-right">Saldo Saat Ini</Th>
+                                <Th className="text-right">Aksi</Th>
+                            </Tr>
+                        </Thead>
+                        <Tbody>
+                            {filteredCashAccounts.length === 0 ? (
+                                <Tr>
+                                    <Td colSpan={5} className="text-center py-12 text-slate-400">
+                                        Tidak ada akun kas yang cocok dengan pencarian.
+                                    </Td>
+                                </Tr>
+                            ) : (
+                                filteredCashAccounts.map((account) => (
+                                    <Tr key={account.id} className="hover:bg-slate-50/80 dark:hover:bg-zinc-800/50 transition-colors">
+                                        <Td className="font-mono text-xs font-bold text-slate-600 dark:text-zinc-400">{account.id}</Td>
+                                        <Td className="font-bold text-slate-900 dark:text-white">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-sm shrink-0">
+                                                    {account.cashAccountType === 'Rekening' ? '🏦' : account.cashAccountType === 'Brankas' ? '🔐' : '🪙'}
+                                                </span>
+                                                <span>{account.name}</span>
+                                            </div>
+                                        </Td>
+                                        <Td className="text-center">
+                                            <Badge variant="primary">{account.cashAccountType || 'N/A'}</Badge>
+                                        </Td>
+                                        <Td className="text-right font-mono font-bold text-base text-emerald-600 dark:text-emerald-400">
+                                            Rp{account.balance.toLocaleString('id-ID')}
+                                        </Td>
+                                        <Td className="text-right">
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                <Button 
+                                                    onClick={() => openEditModal(account)}
+                                                    variant="secondary"
+                                                    className="text-[11px] py-1 px-2.5 shadow-2xs gap-1"
+                                                >
+                                                    <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                                                    Ubah
+                                                </Button>
+                                            </div>
+                                        </Td>
+                                    </Tr>
+                                ))
+                            )}
+                        </Tbody>
+                    </Table>
+                </div>
+            </div>
 
             <AddCashAccountModal isOpen={isAddModalOpen} onClose={() => setAddModalOpen(false)} onSave={handleSave} accounts={state.accounts}/>
             <UpdateCashAccountModal isOpen={isEditModalOpen} onClose={() => setEditModalOpen(false)} onSave={handleUpdate} account={editingAccount}/>
