@@ -1150,11 +1150,58 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
         case 'finance/verifyCashierDeposit': {
             const { summaryId, depositToAccountId } = action.payload;
+            const targetSummary = state.posSessionSummaries.find(s => s.id === summaryId);
+            if (!targetSummary) return state;
+
+            const oldDepositAccountId = targetSummary.depositToAccountId;
+            const amount = targetSummary.countedCash;
+            const cashInHandId = '1010'; // Kasir account
+
+            let currentAccounts = [...state.accounts];
+            let currentJournals = [...state.journalEntries];
+
+            // If it was already verified to a different account, reverse the previous journal transfer first
+            if (oldDepositAccountId && oldDepositAccountId !== depositToAccountId && amount > 0) {
+                const reverseResult = journalService.createJournalEntry(
+                    currentAccounts,
+                    currentJournals,
+                    state.currentUser?.branchId || state.branches[0]?.id || 'CAB-JPSTNH01',
+                    `Penyesuaian Ulang Setoran Kasir Sesi #${summaryId}`,
+                    [
+                        { accountId: oldDepositAccountId, type: 'credit', amount },
+                        { accountId: cashInHandId, type: 'debit', amount }
+                    ],
+                    `Adj-Revert-${summaryId}`
+                );
+                currentAccounts = reverseResult.accounts;
+                currentJournals = reverseResult.journalEntries;
+            }
+
+            // Record journal entry to debit target wallet/account and credit Cashier (1010)
+            if (depositToAccountId && amount > 0 && oldDepositAccountId !== depositToAccountId) {
+                const targetAcc = currentAccounts.find(a => a.id === depositToAccountId);
+                const journalResult = journalService.createJournalEntry(
+                    currentAccounts,
+                    currentJournals,
+                    state.currentUser?.branchId || state.branches[0]?.id || 'CAB-JPSTNH01',
+                    `Validasi Setoran Kasir Sesi #${summaryId} ke ${targetAcc?.name || depositToAccountId}`,
+                    [
+                        { accountId: cashInHandId, type: 'credit', amount },
+                        { accountId: depositToAccountId, type: 'debit', amount }
+                    ],
+                    `Setoran-Kasir-${summaryId}`
+                );
+                currentAccounts = journalResult.accounts;
+                currentJournals = journalResult.journalEntries;
+            }
+
             const updatedSummaries = state.posSessionSummaries.map(s => 
                 s.id === summaryId ? { ...s, status: 'verified' as const, depositToAccountId, verifiedDate: new Date().toISOString() } : s
             );
             return {
                 ...state,
+                accounts: currentAccounts,
+                journalEntries: currentJournals,
                 posSessionSummaries: updatedSummaries,
             };
         }
