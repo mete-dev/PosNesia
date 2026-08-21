@@ -484,9 +484,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     paymentMethods = defaultState.paymentMethods;
                 }
 
+                // Migrate & sanitize warehouses to single Toko (Stok Utama)
+                const warehouses = defaultState.warehouses;
+
+                // Migrate & sanitize branches to single Toko Utama
+                const branches = (parsed.branches || defaultState.branches).map((b: any) => ({
+                    ...b,
+                    name: b.name === 'Toko Pusat Tanah Abang' || !b.name ? 'Pos Nesia (Toko Utama)' : b.name
+                }));
+
                 return { 
                     ...defaultState, 
                     ...parsed,
+                    warehouses,
+                    branches,
                     accounts,
                     paymentMethods,
                     roles: mergedRoles,

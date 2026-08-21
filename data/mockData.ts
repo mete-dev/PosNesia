@@ -220,7 +220,7 @@ export const initialReportLayoutSettings: ReportLayoutSettings = {
     printCopies: 1
 };
 export const initialPosSessionSummaries: PosSessionSummary[] = [];
-export const initialBranches: Branch[] = [{ id: 'CAB-JPSTNH01', name: 'Toko Pusat Tanah Abang', branchTypeId: 'bt1', provinceId: 'prov1', cityId: 'city1', districtId: 'dist2', villageId: 'vill1', detail: 'Blok A Lt. 1 No. 1', safeAccountId: '1020' }];
+export const initialBranches: Branch[] = [{ id: 'CAB-JPSTNH01', name: 'Pos Nesia (Toko Utama)', branchTypeId: 'bt1', provinceId: 'prov1', cityId: 'city1', districtId: 'dist2', villageId: 'vill1', detail: 'Lumajang, Jawa Timur, Indonesia', safeAccountId: '1020' }];
 export const initialCashierStations: CashierStation[] = [
     { id: 'station-1', name: 'Kasir 1', branchId: 'CAB-JPSTNH01', cashInHandAccountId: '1010', allowedPaymentMethodIds: ['pm1', 'pm2', 'pm3'] }
 ];
