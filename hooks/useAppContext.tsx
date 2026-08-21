@@ -1178,7 +1178,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
             }
 
             // Record journal entry to debit target wallet/account and credit Cashier (1010)
-            if (depositToAccountId && amount > 0 && oldDepositAccountId !== depositToAccountId) {
+            if (depositToAccountId && amount > 0) {
                 const targetAcc = currentAccounts.find(a => a.id === depositToAccountId);
                 const journalResult = journalService.createJournalEntry(
                     currentAccounts,
