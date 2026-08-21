@@ -1294,12 +1294,107 @@ export const POSPage: React.FC = () => {
               </button>
             </div>
 
-            {/* --- Core Responsive Full Width Body --- */}
-
-            <main className="flex-1 w-full overflow-hidden p-2 sm:p-4 pb-20 sm:pb-4">
+            {/* --- Core Responsive Full Width Body with Left Menubar --- */}
+            <main className="flex-1 w-full overflow-hidden p-2 sm:p-4 pb-20 sm:pb-4 flex gap-3">
               
+              {/* DESKTOP LEFT SIDEBAR MENUBAR */}
+              <aside className="hidden lg:flex flex-col w-48 shrink-0 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-3 shadow-xs justify-between gap-4">
+                <div className="space-y-3">
+                  <div className="px-2 py-1 border-b border-zinc-100 dark:border-zinc-800">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Navigasi POS</p>
+                  </div>
+                  
+                  <nav className="space-y-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setProductInfoModalOpen(true)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-xs border border-blue-200/60 dark:border-blue-800/40 transition-all active:scale-95 text-left group shadow-2xs"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-blue-500 text-white flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                        <Search className="w-4 h-4" />
+                      </div>
+                      <span className="truncate">Cek Produk</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAddCustomerModalOpen(true)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 font-bold text-xs border border-emerald-200/60 dark:border-emerald-800/40 transition-all active:scale-95 text-left group shadow-2xs"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                        <UserPlus className="w-4 h-4" />
+                      </div>
+                      <span className="truncate">+ Pelanggan</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCustomerBillModalOpen(true)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 font-bold text-xs border border-purple-200/60 dark:border-purple-800/40 transition-all active:scale-95 text-left group shadow-2xs"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-purple-500 text-white flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <span className="truncate">Bayar Tagihan</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCameraScannerOpen(true)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 font-bold text-xs border border-rose-200/60 dark:border-rose-800/40 transition-all active:scale-95 text-left group shadow-2xs"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                        <Camera className="w-4 h-4" />
+                      </div>
+                      <span className="truncate">Scan Kamera</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTransactionHistoryModalOpen(true)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 font-bold text-xs border border-amber-200/60 dark:border-amber-800/40 transition-all active:scale-95 text-left group shadow-2xs"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                        <Clock className="w-4 h-4" />
+                      </div>
+                      <span className="truncate">Riwayat POS</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPosReturnModalOpen(true)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-orange-50/70 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 font-bold text-xs border border-orange-200/60 dark:border-orange-800/40 transition-all active:scale-95 text-left group shadow-2xs"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                        <RotateCcw className="w-4 h-4" />
+                      </div>
+                      <span className="truncate">Retur Penjualan</span>
+                    </button>
+                  </nav>
+                </div>
+
+                {/* Bottom Quick Controls */}
+                <div className="space-y-1.5 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                  <button
+                    onClick={() => dispatch({ type: 'pos/toggleMode', payload: { start: false } })}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-bold text-xs transition-all active:scale-95"
+                  >
+                    <DashboardIcon className="w-4 h-4 text-zinc-500" />
+                    <span>Dashboard ERP</span>
+                  </button>
+
+                  <button
+                    onClick={() => setEndSessionModalOpen(true)}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-all shadow-xs active:scale-95"
+                  >
+                    <LogoutIcon className="w-4 h-4" />
+                    <span>Akhiri Sesi</span>
+                  </button>
+                </div>
+              </aside>
+
               {/* Main POS Container */}
-              <div className="h-full flex gap-3">
+              <div className="h-full flex-1 flex gap-3 min-w-0">
 
                 {/* ── LEFT 2/3 — Cart Items ── */}
                 <div className="flex-[2] min-w-0 flex flex-col bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-xs">
