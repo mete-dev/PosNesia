@@ -510,6 +510,8 @@ export const POSPage: React.FC = () => {
     const [isPosReturnModalOpen, setPosReturnModalOpen] = useState(false);
     const [isCameraScannerOpen, setCameraScannerOpen] = useState(false);
     const [cameraError, setCameraError] = useState('');
+    const [scanUnregisteredMsg, setScanUnregisteredMsg] = useState('');
+    const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
 
@@ -634,9 +636,12 @@ export const POSPage: React.FC = () => {
                 );
                 if (foundProduct) {
                   addToCart(foundProduct);
-                  setBarcodeSuccessMsg(`Beep! Added: ${foundProduct.name}`);
-                  setTimeout(() => setBarcodeSuccessMsg(''), 2000);
-                  setCameraScannerOpen(false);
+                  setScanUnregisteredMsg('');
+                  setBarcodeSuccessMsg(`✓ Produk Ditambahkan: ${foundProduct.name}`);
+                  setTimeout(() => setBarcodeSuccessMsg(''), 2500);
+                } else {
+                  setScanUnregisteredMsg(`⚠️ Produk Tidak Terdaftar (Kode: ${scannedCode})`);
+                  setTimeout(() => setScanUnregisteredMsg(''), 3000);
                 }
               }
             } catch (e) {
@@ -2203,38 +2208,141 @@ export const POSPage: React.FC = () => {
                 onClose={() => setPosReturnModalOpen(false)}
             />
 
-            {/* Camera Barcode Scanner Modal */}
-            <Modal
-                isOpen={isCameraScannerOpen}
-                onClose={() => setCameraScannerOpen(false)}
-                title="📷 Scan Barcode / QR Produk"
-                footer={<Button onClick={() => setCameraScannerOpen(false)} variant="secondary">Tutup Camera</Button>}
-            >
-                <div className="flex flex-col items-center gap-4 py-2 text-center">
-                    <div className="relative w-full max-w-sm aspect-square bg-black rounded-2xl overflow-hidden border-2 border-primary-500 shadow-2xl flex items-center justify-center">
-                        <video
-                            ref={videoRef}
-                            className="w-full h-full object-cover"
-                            playsInline
-                            muted
-                        />
-                        {/* Aiming frame overlay */}
-                        <div className="absolute inset-0 border-2 border-emerald-400/60 rounded-2xl pointer-events-none flex items-center justify-center">
-                            <div className="w-56 h-36 border-2 border-dashed border-emerald-400 rounded-xl bg-emerald-500/10 animate-pulse flex items-center justify-center">
-                                <span className="text-[10px] font-bold text-emerald-200 bg-black/60 px-2 py-0.5 rounded">Arahkan Barcode ke Sini</span>
-                            </div>
-                        </div>
+            {/* Full Screen Camera Barcode Scanner for Mobile / Desktop Modal */}
+            {isCameraScannerOpen && (
+              <div className="fixed inset-0 z-50 bg-black text-white flex flex-col justify-between overflow-hidden">
+                
+                {/* Scanner Top Bar */}
+                <div className="p-4 flex items-center justify-between z-20 bg-gradient-to-b from-black/80 to-transparent">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40 flex items-center justify-center">
+                      <Camera className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="font-extrabold text-sm text-white leading-tight">Pemindai Barcode POS</h2>
+                      <p className="text-[10px] text-zinc-400">Arahkan kamera ke barcode produk</p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => { setCameraScannerOpen(false); setIsCartDrawerOpen(false); }}
+                    className="w-9 h-9 rounded-full bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center active:scale-95 transition-all"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Viewfinder Video Container */}
+                <div className="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden">
+                  <video
+                    ref={videoRef}
+                    className="w-full h-full object-cover"
+                    playsInline
+                    muted
+                  />
+                  
+                  {/* Aiming Reticle Frame Overlay */}
+                  <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
+                    <div className="w-64 h-48 border-2 border-emerald-400 rounded-2xl bg-emerald-500/10 shadow-[0_0_50px_rgba(52,211,153,0.3)] relative flex items-center justify-center">
+                      {/* Corner markers */}
+                      <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg"></div>
+                      <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg"></div>
+                      <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg"></div>
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-lg"></div>
+                      
+                      {/* Scanning laser animation line */}
+                      <div className="w-full h-0.5 bg-emerald-400 shadow-[0_0_15px_#34d399] animate-pulse"></div>
                     </div>
 
-                    {cameraError ? (
-                        <p className="text-xs text-red-500 font-semibold">{cameraError}</p>
-                    ) : (
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                            Arahkan kamera HP ke barcode atau kode QR produk. Sistem akan otomatis memasukkannya ke keranjang belanja.
-                        </p>
-                    )}
+                    {/* Feedback Messages (Success / Unregistered Warning) */}
+                    <div className="mt-6 max-w-xs text-center z-20">
+                      {barcodeSuccessMsg && (
+                        <div className="px-4 py-2 bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-lg animate-bounce">
+                          {barcodeSuccessMsg}
+                        </div>
+                      )}
+
+                      {scanUnregisteredMsg && (
+                        <div className="px-4 py-2 bg-rose-600 text-white rounded-xl font-bold text-xs shadow-lg animate-shake">
+                          {scanUnregisteredMsg}
+                        </div>
+                      )}
+
+                      {cameraError && (
+                        <div className="px-4 py-2 bg-red-600/90 text-white rounded-xl font-semibold text-xs shadow-md">
+                          {cameraError}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-            </Modal>
+
+                {/* Bottom Bar: Total Summary + Swipeable Cart Drawer */}
+                <div className="z-30 bg-zinc-900 border-t border-zinc-800 rounded-t-3xl transition-all duration-300 shadow-2xl">
+                  
+                  {/* Swipe handle / Toggle header */}
+                  <div 
+                    onClick={() => setIsCartDrawerOpen(prev => !prev)}
+                    className="p-3.5 flex flex-col items-center cursor-pointer select-none active:bg-zinc-800/60 rounded-t-3xl"
+                  >
+                    <div className="w-10 h-1.5 bg-zinc-600 rounded-full mb-2"></div>
+                    <div className="w-full flex items-center justify-between px-2">
+                      <div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400 block">Total Belanja</span>
+                        <span className="text-xl font-black font-mono text-emerald-400">
+                          Rp{cartTotals.grandTotal.toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+                          {posCart.reduce((s, i) => s + i.quantity, 0)} Item
+                        </span>
+                        <ChevronRight className={`w-5 h-5 text-zinc-400 transition-transform duration-300 ${isCartDrawerOpen ? 'rotate-90' : '-rotate-90'}`} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expandable Cart Details List (Swipe Up View) */}
+                  {isCartDrawerOpen && (
+                    <div className="p-4 pt-1 border-t border-zinc-800 max-h-60 overflow-y-auto space-y-2 animate-in slide-in-from-bottom duration-200">
+                      <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Rincian Belanjaan:</p>
+                      {posCart.length === 0 ? (
+                        <p className="text-xs text-zinc-500 text-center py-4">Belum ada item yang dipindai.</p>
+                      ) : (
+                        posCart.map(item => (
+                          <div key={item.id} className="flex items-center justify-between p-2.5 bg-zinc-800/60 rounded-xl border border-zinc-700/60 text-xs">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-bold text-white truncate">{item.product.name}</p>
+                              <p className="text-[10px] text-zinc-400 font-mono">
+                                Rp{item.product.price?.toLocaleString('id-ID')} x {item.quantity}
+                              </p>
+                            </div>
+                            <span className="font-mono font-bold text-emerald-400 ml-3">
+                              Rp{((item.product.price || 0) * item.quantity).toLocaleString('id-ID')}
+                            </span>
+                          </div>
+                        ))
+                      )}
+
+                      {posCart.length > 0 && (
+                        <div className="pt-2">
+                          <Button 
+                            onClick={() => { setCameraScannerOpen(false); setIsCartDrawerOpen(false); }} 
+                            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl"
+                          >
+                            Lanjut ke Pembayaran POS (Rp{cartTotals.grandTotal.toLocaleString('id-ID')})
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                </div>
+
+              </div>
+            )}
 
         </div>
     );
