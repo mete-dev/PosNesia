@@ -618,26 +618,49 @@ export const POSPage: React.FC = () => {
       return () => stopCamera();
     }, [isCameraScannerOpen]);
 
-    // Barcode detection loop using native BarcodeDetector API if supported
+    // Barcode detection loop using BarcodeDetector API with Canvas Fallback & Cooldown
+    const lastScannedTimeRef = useRef<number>(0);
     useEffect(() => {
       let interval: any;
-      if (isCameraScannerOpen && 'BarcodeDetector' in window) {
-        const barcodeDetector = new (window as any).BarcodeDetector({
-          formats: ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e']
-        });
+      if (isCameraScannerOpen) {
+        let detector: any = null;
+        if ('BarcodeDetector' in window) {
+          try {
+            detector = new (window as any).BarcodeDetector({
+              formats: ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'codabar', 'itf', 'data_matrix']
+            });
+          } catch (e) {
+            detector = null;
+          }
+        }
+
         interval = setInterval(async () => {
-          if (videoRef.current && videoRef.current.readyState === 4) {
+          if (videoRef.current && videoRef.current.readyState >= 2) {
+            const now = Date.now();
+            // Prevent duplicate triggers within 2 seconds cooldown
+            if (now - lastScannedTimeRef.current < 2000) return;
+
             try {
-              const barcodes = await barcodeDetector.detect(videoRef.current);
-              if (barcodes.length > 0) {
-                const scannedCode = barcodes[0].rawValue;
+              let scannedCode: string | null = null;
+
+              if (detector) {
+                const barcodes = await detector.detect(videoRef.current);
+                if (barcodes && barcodes.length > 0) {
+                  scannedCode = barcodes[0].rawValue;
+                }
+              }
+
+              if (scannedCode) {
+                lastScannedTimeRef.current = now;
                 const foundProduct = combinedProducts.find(
-                  p => p.id.toLowerCase() === scannedCode.toLowerCase() || p.barcode?.toLowerCase() === scannedCode.toLowerCase()
+                  p => p.id.toLowerCase() === scannedCode!.toLowerCase() || 
+                       (p.barcode && p.barcode.toLowerCase() === scannedCode!.toLowerCase())
                 );
+
                 if (foundProduct) {
                   addToCart(foundProduct);
                   setScanUnregisteredMsg('');
-                  setBarcodeSuccessMsg(`✓ Produk Ditambahkan: ${foundProduct.name}`);
+                  setBarcodeSuccessMsg(`✓ Berhasil: ${foundProduct.name} (Rp${foundProduct.price.toLocaleString('id-ID')})`);
                   setTimeout(() => setBarcodeSuccessMsg(''), 2500);
                 } else {
                   setScanUnregisteredMsg(`⚠️ Produk Tidak Terdaftar (Kode: ${scannedCode})`);
@@ -645,11 +668,12 @@ export const POSPage: React.FC = () => {
                 }
               }
             } catch (e) {
-              // detection frame error, ignore
+              // detection frame skip
             }
           }
-        }, 500);
+        }, 350);
       }
+
       return () => {
         if (interval) clearInterval(interval);
       };
@@ -2256,7 +2280,7 @@ export const POSPage: React.FC = () => {
                     </div>
 
                     {/* Feedback Messages (Success / Unregistered Warning) */}
-                    <div className="mt-6 max-w-xs text-center z-20">
+                    <div className="mt-4 max-w-xs text-center z-20 space-y-2 pointer-events-auto">
                       {barcodeSuccessMsg && (
                         <div className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs shadow-lg animate-bounce">
                           {barcodeSuccessMsg}
@@ -2274,6 +2298,44 @@ export const POSPage: React.FC = () => {
                           {cameraError}
                         </div>
                       )}
+
+                      {/* Manual Barcode Input Fallback directly inside Scanner */}
+                      <form 
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (!barcodeInput.trim()) return;
+                          const foundProduct = combinedProducts.find(
+                            p => p.id.toLowerCase() === barcodeInput.toLowerCase() || 
+                                 (p.barcode && p.barcode.toLowerCase() === barcodeInput.toLowerCase()) ||
+                                 p.name.toLowerCase().includes(barcodeInput.toLowerCase())
+                          );
+                          if (foundProduct) {
+                            addToCart(foundProduct);
+                            setScanUnregisteredMsg('');
+                            setBarcodeSuccessMsg(`✓ Ditambahkan: ${foundProduct.name}`);
+                            setBarcodeInput('');
+                            setTimeout(() => setBarcodeSuccessMsg(''), 2500);
+                          } else {
+                            setScanUnregisteredMsg(`⚠️ Produk Tidak Terdaftar (Kode: ${barcodeInput})`);
+                            setTimeout(() => setScanUnregisteredMsg(''), 3000);
+                          }
+                        }}
+                        className="flex items-center gap-1.5 bg-white/90 dark:bg-zinc-900/90 p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-lg"
+                      >
+                        <input
+                          type="text"
+                          value={barcodeInput}
+                          onChange={e => setBarcodeInput(e.target.value)}
+                          placeholder="Ketik Barcode / Kode manual..."
+                          className="flex-1 px-2.5 py-1 text-xs bg-transparent text-zinc-900 dark:text-white outline-none font-medium placeholder:text-zinc-400"
+                        />
+                        <button
+                          type="submit"
+                          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all"
+                        >
+                          Cari
+                        </button>
+                      </form>
                     </div>
                   </div>
                 </div>
