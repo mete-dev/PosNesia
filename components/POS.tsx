@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { useAppContext } from '../hooks/useAppContext';
 import { Product, Customer, Sale, PosSessionSummary, CompanyInfo, PaymentMethod, PosSession, Staff, JournalEntry, CustomerBill } from '../types';
 import { LogoutIcon, DashboardIcon, InfoIcon, POSIcon, ReportIcon, DepositIcon, WithdrawIcon, BillIcon } from './icons';
@@ -585,98 +586,71 @@ export const POSPage: React.FC = () => {
         }
     }, [isEndSessionModalOpen, cashInHandAccountId]);
 
-    // Camera Scanner logic
-    const stopCamera = () => {
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => track.stop());
-        mediaStreamRef.current = null;
-      }
-    };
-
-    const startCamera = async () => {
-      setCameraError('');
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }
-        });
-        mediaStreamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-        }
-      } catch (err: any) {
-        setCameraError('Gagal mengakses kamera. Pastikan izin kamera telah diberikan.');
-      }
-    };
+    // Camera Scanner logic with Html5Qrcode Engine
+    const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+    const lastScannedCodeRef = useRef<{ code: string; time: number }>({ code: '', time: 0 });
 
     useEffect(() => {
       if (isCameraScannerOpen) {
-        startCamera();
-      } else {
-        stopCamera();
-      }
-      return () => stopCamera();
-    }, [isCameraScannerOpen]);
+        setCameraError('');
+        const qrCodeId = "pos-html5-qrcode-reader";
 
-    // Barcode detection loop using BarcodeDetector API with Canvas Fallback & Cooldown
-    const lastScannedTimeRef = useRef<number>(0);
-    useEffect(() => {
-      let interval: any;
-      if (isCameraScannerOpen) {
-        let detector: any = null;
-        if ('BarcodeDetector' in window) {
+        // Delay slight tick to ensure DOM element exists
+        const timer = setTimeout(async () => {
           try {
-            detector = new (window as any).BarcodeDetector({
-              formats: ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'codabar', 'itf', 'data_matrix']
-            });
-          } catch (e) {
-            detector = null;
-          }
-        }
+            const html5QrCode = new Html5Qrcode(qrCodeId);
+            html5QrCodeRef.current = html5QrCode;
 
-        interval = setInterval(async () => {
-          if (videoRef.current && videoRef.current.readyState >= 2) {
-            const now = Date.now();
-            // Prevent duplicate triggers within 2 seconds cooldown
-            if (now - lastScannedTimeRef.current < 2000) return;
-
-            try {
-              let scannedCode: string | null = null;
-
-              if (detector) {
-                const barcodes = await detector.detect(videoRef.current);
-                if (barcodes && barcodes.length > 0) {
-                  scannedCode = barcodes[0].rawValue;
-                }
+            const qrCodeSuccessCallback = (decodedText: string) => {
+              const now = Date.now();
+              // Prevent duplicate scanning of exact same code within 2 seconds
+              if (decodedText === lastScannedCodeRef.current.code && (now - lastScannedCodeRef.current.time) < 2000) {
+                return;
               }
+              lastScannedCodeRef.current = { code: decodedText, time: now };
 
-              if (scannedCode) {
-                lastScannedTimeRef.current = now;
-                const foundProduct = combinedProducts.find(
-                  p => p.id.toLowerCase() === scannedCode!.toLowerCase() || 
-                       (p.barcode && p.barcode.toLowerCase() === scannedCode!.toLowerCase())
-                );
+              const foundProduct = combinedProducts.find(
+                p => p.id.toLowerCase() === decodedText.toLowerCase() || 
+                     (p.barcode && p.barcode.toLowerCase() === decodedText.toLowerCase())
+              );
 
-                if (foundProduct) {
-                  addToCart(foundProduct);
-                  setScanUnregisteredMsg('');
-                  setBarcodeSuccessMsg(`✓ Berhasil: ${foundProduct.name} (Rp${foundProduct.price.toLocaleString('id-ID')})`);
-                  setTimeout(() => setBarcodeSuccessMsg(''), 2500);
-                } else {
-                  setScanUnregisteredMsg(`⚠️ Produk Tidak Terdaftar (Kode: ${scannedCode})`);
-                  setTimeout(() => setScanUnregisteredMsg(''), 3000);
-                }
+              if (foundProduct) {
+                addToCart(foundProduct);
+                setScanUnregisteredMsg('');
+                setBarcodeSuccessMsg(`✓ Berhasil: ${foundProduct.name} (Rp${foundProduct.price.toLocaleString('id-ID')})`);
+                setTimeout(() => setBarcodeSuccessMsg(''), 2500);
+              } else {
+                setScanUnregisteredMsg(`⚠️ Produk Tidak Terdaftar (Kode: ${decodedText})`);
+                setTimeout(() => setScanUnregisteredMsg(''), 3000);
               }
-            } catch (e) {
-              // detection frame skip
-            }
+            };
+
+            const config = { 
+              fps: 15, 
+              qrbox: { width: 250, height: 180 },
+              aspectRatio: 1.0 
+            };
+
+            await html5QrCode.start(
+              { facingMode: "environment" },
+              config,
+              qrCodeSuccessCallback,
+              () => {} // silent frame error
+            );
+          } catch (err: any) {
+            setCameraError('Gagal membuka kamera. Pastikan izin kamera aktif & menggunakan HTTPS/Localhost.');
           }
-        }, 350);
+        }, 300);
+
+        return () => {
+          clearTimeout(timer);
+          if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+            html5QrCodeRef.current.stop().then(() => {
+              html5QrCodeRef.current?.clear();
+            }).catch(() => {});
+          }
+        };
       }
-
-      return () => {
-        if (interval) clearInterval(interval);
-      };
     }, [isCameraScannerOpen, combinedProducts]);
 
     // Handle barcode simulation (Retail preset)
@@ -2259,12 +2233,7 @@ export const POSPage: React.FC = () => {
 
                 {/* Viewfinder Video Container */}
                 <div className="relative flex-1 w-full bg-zinc-100 dark:bg-black flex items-center justify-center overflow-hidden">
-                  <video
-                    ref={videoRef}
-                    className="w-full h-full object-cover"
-                    playsInline
-                    muted
-                  />
+                  <div id="pos-html5-qrcode-reader" className="w-full h-full object-cover"></div>
                   
                   {/* Aiming Reticle Frame Overlay */}
                   <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
