@@ -43,7 +43,8 @@ import {
   Banknote,
   CreditCard,
   QrCode,
-  Wallet
+  Wallet,
+  Menu
 } from 'lucide-react';
 
 type PosView = 'transaction' | 'info' | 'register' | 'report' | 'pay_bill';
@@ -514,6 +515,7 @@ export const POSPage: React.FC = () => {
 
     // Mobile specific navigation: 'cart' | 'payment' | 'menu' | 'tables'
     const [mobileTab, setMobileTab] = useState<'cart' | 'payment' | 'menu' | 'tables'>('cart');
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     // Get current preset configuration
     const preset = useMemo(() => BUSINESS_PRESETS[activeBusinessMode], [activeBusinessMode]);
@@ -1196,61 +1198,121 @@ export const POSPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* RIGHT — System Controls (Mobile & Tablet) */}
-                <div className="flex lg:hidden items-center gap-2 shrink-0">
+                {/* RIGHT — Mobile & Desktop Controls */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Camera Scanner Button — Always visible on mobile, outside toggle menu (to the left of toggle button) */}
                   <button
-                    onClick={() => dispatch({ type: 'pos/toggleMode', payload: { start: false } })}
-                    className="px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 text-zinc-700 dark:text-zinc-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all"
+                    type="button"
+                    onClick={() => setCameraScannerOpen(true)}
+                    className="flex lg:hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 text-rose-600 dark:text-rose-400 font-bold text-xs border border-rose-200/80 dark:border-rose-900/60 shadow-2xs active:scale-95 transition-all"
+                    title="Scan Barcode Pakai Kamera HP"
                   >
-                    <DashboardIcon className="w-4 h-4 text-zinc-500" />
-                    <span>ERP</span>
+                    <div className="w-5 h-5 rounded-lg bg-rose-500 text-white flex items-center justify-center shrink-0">
+                      <Camera className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-[11px] font-black">Scan</span>
                   </button>
 
+                  {/* Toggle Button for Mobile Menu (Pojok Kanan Atas) */}
                   <button
-                    onClick={() => setEndSessionModalOpen(true)}
-                    className="px-2.5 py-1.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                    type="button"
+                    onClick={() => setIsMobileMenuOpen(prev => !prev)}
+                    className="flex lg:hidden items-center justify-center p-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all active:scale-95 border border-zinc-200/80 dark:border-zinc-700"
+                    title="Buka / Tutup Menu POS"
                   >
-                    <LogoutIcon className="w-4 h-4" />
-                    <span>Keluar</span>
+                    {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                   </button>
                 </div>
 
               </div>
             </header>
 
-            {/* Quick Actions sub-bar — below header, mobile only */}
-            <div className="md:hidden sticky top-[52px] z-30 bg-white dark:bg-zinc-900 border-b border-zinc-200/80 dark:border-zinc-800 px-3 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar shadow-xs">
-              <button type="button" onClick={() => setProductInfoModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-700 dark:text-blue-300 font-semibold text-xs border border-blue-200/70 dark:border-blue-800/40 transition-all active:scale-95 shrink-0">
-                <div className="w-6 h-6 rounded-lg bg-blue-500 text-white flex items-center justify-center shrink-0"><Search className="w-3.5 h-3.5" /></div>
-                <span className="hidden sm:inline">Cek Produk</span>
-              </button>
-              <button type="button" onClick={() => setAddCustomerModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-semibold text-xs border border-emerald-200/70 dark:border-emerald-800/40 transition-all active:scale-95 shrink-0">
-                <div className="w-6 h-6 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0"><UserPlus className="w-3.5 h-3.5" /></div>
-                <span className="hidden sm:inline">+ Pelanggan</span>
-              </button>
-              <button type="button" onClick={() => setPosReturnModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 text-orange-700 dark:text-orange-300 font-semibold text-xs border border-orange-200/70 dark:border-orange-800/40 transition-all active:scale-95 shrink-0">
-                <div className="w-6 h-6 rounded-lg bg-orange-500 text-white flex items-center justify-center shrink-0"><RotateCcw className="w-3.5 h-3.5" /></div>
-                <span className="hidden sm:inline">Retur Penjualan</span>
-              </button>
-              <button type="button" onClick={() => setCustomerBillModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 text-purple-700 dark:text-purple-300 font-semibold text-xs border border-purple-200/70 dark:border-purple-800/40 transition-all active:scale-95 shrink-0">
-                <div className="w-6 h-6 rounded-lg bg-purple-500 text-white flex items-center justify-center shrink-0"><FileText className="w-3.5 h-3.5" /></div>
-                <span className="hidden sm:inline">Bayar Tagihan</span>
-              </button>
-              <button type="button" onClick={() => setCameraScannerOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-semibold text-xs border border-rose-200/70 dark:border-rose-800/40 transition-all active:scale-95 shrink-0">
-                <div className="w-6 h-6 rounded-lg bg-rose-500 text-white flex items-center justify-center shrink-0"><Camera className="w-3.5 h-3.5" /></div>
-                <span className="hidden sm:inline">Scan Kamera</span>
-              </button>
-              <button type="button" onClick={() => setTransactionHistoryModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 font-semibold text-xs border border-amber-200/70 dark:border-amber-800/40 transition-all active:scale-95 shrink-0">
-                <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0"><Clock className="w-3.5 h-3.5" /></div>
-                <span className="hidden sm:inline">Riwayat</span>
-              </button>
-            </div>
+            {/* Mobile Popover Dropdown Menu (Menu Buka Tutup HP) */}
+            {isMobileMenuOpen && (
+              <div className="lg:hidden fixed top-[54px] right-3 z-50 w-64 bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800 rounded-2xl shadow-2xl p-3 space-y-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-2 py-1 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Menu POS HP</span>
+                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">{currentUser?.name}</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <button
+                    type="button"
+                    onClick={() => { setIsMobileMenuOpen(false); setProductInfoModalOpen(true); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-700 dark:text-blue-300 font-bold text-xs border border-blue-200/60 dark:border-blue-800/40 text-left"
+                  >
+                    <div className="w-6 h-6 rounded-lg bg-blue-500 text-white flex items-center justify-center shrink-0">
+                      <Search className="w-3.5 h-3.5" />
+                    </div>
+                    <span>Cek Produk</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setIsMobileMenuOpen(false); setAddCustomerModalOpen(true); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-bold text-xs border border-emerald-200/60 dark:border-emerald-800/40 text-left"
+                  >
+                    <div className="w-6 h-6 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                      <UserPlus className="w-3.5 h-3.5" />
+                    </div>
+                    <span>+ Pelanggan</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setIsMobileMenuOpen(false); setCustomerBillModalOpen(true); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-purple-50/70 dark:bg-purple-950/40 hover:bg-purple-100 text-purple-700 dark:text-purple-300 font-bold text-xs border border-purple-200/60 dark:border-purple-800/40 text-left"
+                  >
+                    <div className="w-6 h-6 rounded-lg bg-purple-500 text-white flex items-center justify-center shrink-0">
+                      <FileText className="w-3.5 h-3.5" />
+                    </div>
+                    <span>Bayar Tagihan</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setIsMobileMenuOpen(false); setTransactionHistoryModalOpen(true); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 font-bold text-xs border border-amber-200/60 dark:border-amber-800/40 text-left"
+                  >
+                    <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0">
+                      <Clock className="w-3.5 h-3.5" />
+                    </div>
+                    <span>Riwayat POS</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setIsMobileMenuOpen(false); setPosReturnModalOpen(true); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-orange-50/70 dark:bg-orange-950/40 hover:bg-orange-100 text-orange-700 dark:text-orange-300 font-bold text-xs border border-orange-200/60 dark:border-orange-800/40 text-left"
+                  >
+                    <div className="w-6 h-6 rounded-lg bg-orange-500 text-white flex items-center justify-center shrink-0">
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </div>
+                    <span>Retur Penjualan</span>
+                  </button>
+                </div>
+
+                <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 space-y-1.5">
+                  <button
+                    type="button"
+                    onClick={() => { setIsMobileMenuOpen(false); dispatch({ type: 'pos/toggleMode', payload: { start: false } }); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 text-zinc-700 dark:text-zinc-200 font-bold text-xs"
+                  >
+                    <DashboardIcon className="w-4 h-4 text-zinc-500" />
+                    <span>Dashboard ERP</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setIsMobileMenuOpen(false); setEndSessionModalOpen(true); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs"
+                  >
+                    <LogoutIcon className="w-4 h-4" />
+                    <span>Akhiri Sesi Kasir</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* --- Core Responsive Full Width Body with Left Menubar --- */}
             <main className="flex-1 w-full overflow-hidden p-2 sm:p-4 pb-20 sm:pb-4 flex gap-3">
