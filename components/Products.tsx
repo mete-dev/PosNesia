@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 import * as XLSX from 'xlsx';
 import { Camera, Plus, Trash2, Layers, Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle, Printer } from 'lucide-react';
 import { Product, Page, InventoryLevel, Status, BranchType, WarehouseType, Branch, Warehouse, ProductUnitTier } from '../types';
@@ -21,8 +22,7 @@ export const ProductModal: React.FC<{
     // Camera scanner state
     const [isCameraScannerOpen, setCameraScannerOpen] = useState(false);
     const [cameraError, setCameraError] = useState('');
-    const videoRef = useRef<HTMLVideoElement | null>(null);
-    const mediaStreamRef = useRef<MediaStream | null>(null);
+    const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -53,62 +53,38 @@ export const ProductModal: React.FC<{
         setUnitTiers(prev => prev.filter(tier => tier.id !== id));
     };
 
-    const stopCamera = () => {
-      if (mediaStreamRef.current) {
-        mediaStreamRef.current.getTracks().forEach(track => track.stop());
-        mediaStreamRef.current = null;
-      }
-    };
-
-    const startCamera = async () => {
-      setCameraError('');
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }
-        });
-        mediaStreamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-        }
-      } catch (err: any) {
-        setCameraError('Gagal mengakses kamera. Pastikan izin kamera telah diberikan.');
-      }
-    };
-
+    // Camera Scanner with Html5Qrcode Engine
     useEffect(() => {
       if (isCameraScannerOpen) {
-        startCamera();
-      } else {
-        stopCamera();
-      }
-      return () => stopCamera();
-    }, [isCameraScannerOpen]);
-
-    useEffect(() => {
-      let interval: any;
-      if (isCameraScannerOpen && 'BarcodeDetector' in window) {
-        const barcodeDetector = new (window as any).BarcodeDetector({
-          formats: ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e']
-        });
-        interval = setInterval(async () => {
-          if (videoRef.current && videoRef.current.readyState === 4) {
-            try {
-              const barcodes = await barcodeDetector.detect(videoRef.current);
-              if (barcodes.length > 0) {
-                const scannedCode = barcodes[0].rawValue;
+        setCameraError('');
+        const elementId = "product-form-qr-reader";
+        const timer = setTimeout(async () => {
+          try {
+            const html5QrCode = new Html5Qrcode(elementId);
+            html5QrCodeRef.current = html5QrCode;
+            await html5QrCode.start(
+              { facingMode: "environment" },
+              { fps: 15, qrbox: { width: 250, height: 180 } },
+              (scannedCode) => {
                 if (scannedCode) {
                   setFormData(prev => ({ ...prev, barcode: scannedCode }));
                   setCameraScannerOpen(false);
                 }
-              }
-            } catch (e) {}
+              },
+              () => {}
+            );
+          } catch (err: any) {
+            setCameraError('Gagal mengakses kamera HP.');
           }
-        }, 500);
+        }, 300);
+
+        return () => {
+          clearTimeout(timer);
+          if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+            html5QrCodeRef.current.stop().then(() => html5QrCodeRef.current?.clear()).catch(() => {});
+          }
+        };
       }
-      return () => {
-        if (interval) clearInterval(interval);
-      };
     }, [isCameraScannerOpen]);
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -343,14 +319,11 @@ export const ProductModal: React.FC<{
                     <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                         Arahkan kamera ke kode barcode pada kemasan produk. Barcode akan otomatis terisi.
                     </p>
-                    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                    <div className="relative w-full aspect-square bg-black rounded-xl overflow-hidden flex items-center justify-center border border-gray-200 dark:border-gray-700">
                         {cameraError ? (
                             <p className="text-xs text-red-500 font-semibold p-4 text-center">{cameraError}</p>
                         ) : (
-                            <>
-                                <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
-                                <div className="absolute inset-0 border-2 border-dashed border-blue-500/70 pointer-events-none rounded-xl m-6" />
-                            </>
+                            <div id="product-form-qr-reader" className="w-full h-full object-cover"></div>
                         )}
                     </div>
                 </div>
