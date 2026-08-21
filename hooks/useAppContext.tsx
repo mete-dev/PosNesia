@@ -1157,7 +1157,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
             const amount = targetSummary.countedCash;
             const cashInHandId = '1010'; // Kasir account
 
-            let currentAccounts = [...state.accounts];
+            let currentAccounts = state.accounts.map(a => ({ ...a }));
             let currentJournals = [...state.journalEntries];
 
             // If it was already verified to a different account, reverse the previous journal transfer first
@@ -1173,7 +1173,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
                     ],
                     `Adj-Revert-${summaryId}`
                 );
-                currentAccounts = reverseResult.accounts;
+                currentAccounts = reverseResult.accounts.map(a => ({ ...a }));
                 currentJournals = reverseResult.journalEntries;
             }
 
@@ -1191,7 +1191,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
                     ],
                     `Setoran-Kasir-${summaryId}`
                 );
-                currentAccounts = journalResult.accounts;
+                currentAccounts = journalResult.accounts.map(a => ({ ...a }));
                 currentJournals = journalResult.journalEntries;
             }
 
