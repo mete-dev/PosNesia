@@ -90,56 +90,170 @@ export const CustomerModal: React.FC<{
     };
     
     const footer = (
-        <Button onClick={handleSubmit}>Simpan Pelanggan</Button>
+        <div className="flex items-center justify-end gap-2.5 pt-2">
+            <Button type="button" variant="secondary" onClick={onClose} className="text-xs px-4 py-2">
+                Batal
+            </Button>
+            <Button type="submit" form="customer-form" className="text-xs px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs">
+                {existingCustomer ? 'Simpan Perubahan' : 'Tambah Pelanggan'}
+            </Button>
+        </div>
     );
 
     return (
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={`${existingCustomer ? 'Ubah' : 'Tambah'} Pelanggan`}
+            title={`${existingCustomer ? 'Ubah' : 'Tambah'} Data Pelanggan`}
             footer={footer}
-            maxWidth="max-w-3xl"
+            maxWidth="max-w-2xl"
         >
-            <form id="customer-form" onSubmit={handleSubmit} className="space-y-6">
+            <form id="customer-form" onSubmit={handleSubmit} className="space-y-5 py-1">
+                {/* Tipe Pelanggan Selector */}
                 <div>
-                    <Label>Tipe Pelanggan</Label>
-                    <div className="mt-2 flex gap-4">
-                        <label className="flex items-center">
-                            <input type="radio" name="customerType" value="Perorangan" checked={customerType === 'Perorangan'} onChange={() => setCustomerType('Perorangan')} className="text-primary-600 focus:ring-primary-500" />
-                            <span className="ml-2">Perorangan</span>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-2">
+                        Tipe Pelanggan <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                        <label 
+                            onClick={() => setCustomerType('Perorangan')} 
+                            className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
+                                customerType === 'Perorangan'
+                                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 ring-2 ring-emerald-500/20 shadow-xs'
+                                    : 'border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800/60'
+                            }`}
+                        >
+                            <input 
+                                type="radio" 
+                                name="customerType" 
+                                value="Perorangan" 
+                                checked={customerType === 'Perorangan'} 
+                                onChange={() => setCustomerType('Perorangan')} 
+                                className="sr-only" 
+                            />
+                            <span>👤 Perorangan (Individu)</span>
                         </label>
-                        <label className="flex items-center">
-                            <input type="radio" name="customerType" value="Perusahaan" checked={customerType === 'Perusahaan'} onChange={() => setCustomerType('Perusahaan')} className="text-primary-600 focus:ring-primary-500" />
-                            <span className="ml-2">Perusahaan</span>
+
+                        <label 
+                            onClick={() => setCustomerType('Perusahaan')} 
+                            className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
+                                customerType === 'Perusahaan'
+                                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 ring-2 ring-emerald-500/20 shadow-xs'
+                                    : 'border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800/60'
+                            }`}
+                        >
+                            <input 
+                                type="radio" 
+                                name="customerType" 
+                                value="Perusahaan" 
+                                checked={customerType === 'Perusahaan'} 
+                                onChange={() => setCustomerType('Perusahaan')} 
+                                className="sr-only" 
+                            />
+                            <span>🏢 Perusahaan (Corporate)</span>
                         </label>
                     </div>
                 </div>
-                
-                {customerType === 'Perorangan' ? (
-                    <div><Label htmlFor="name">Nama Pelanggan*</Label><Input id="name" name="name" value={formData.name} onChange={handleInputChange} required /></div>
-                ) : (
-                    <>
-                        <div><Label htmlFor="companyName">Nama Perusahaan*</Label><Input id="companyName" name="companyName" value={formData.companyName} onChange={handleInputChange} required /></div>
-                        <div><Label htmlFor="taxId">NPWP</Label><Input id="taxId" name="taxId" value={formData.taxId} onChange={handleInputChange} /></div>
-                    </>
-                )}
 
+                {/* Main Dynamic Information Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {customerType === 'Perorangan' ? (
+                        <div className="md:col-span-2">
+                            <label htmlFor="name" className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
+                                Nama Lengkap Pelanggan <span className="text-rose-500">*</span>
+                            </label>
+                            <input 
+                                id="name" 
+                                name="name" 
+                                type="text"
+                                value={formData.name} 
+                                onChange={handleInputChange} 
+                                required 
+                                placeholder="Contoh: Budi Santoso"
+                                className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
+                            />
+                        </div>
+                    ) : (
+                        <>
+                            <div>
+                                <label htmlFor="companyName" className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
+                                    Nama Perusahaan <span className="text-rose-500">*</span>
+                                </label>
+                                <input 
+                                    id="companyName" 
+                                    name="companyName" 
+                                    type="text"
+                                    value={formData.companyName} 
+                                    onChange={handleInputChange} 
+                                    required 
+                                    placeholder="Contoh: PT Sukses Mandiri"
+                                    className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="taxId" className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
+                                    NPWP Perusahaan
+                                </label>
+                                <input 
+                                    id="taxId" 
+                                    name="taxId" 
+                                    type="text"
+                                    value={formData.taxId} 
+                                    onChange={handleInputChange} 
+                                    placeholder="00.000.000.0-000.000"
+                                    className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    <div>
+                        <label htmlFor="phone" className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
+                            No. HP / WhatsApp <span className="text-rose-500">*</span>
+                        </label>
+                        <input 
+                            id="phone" 
+                            name="phone" 
+                            type="tel" 
+                            value={formData.phone} 
+                            onChange={handleInputChange} 
+                            required 
+                            placeholder="Contoh: 081234567890"
+                            className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="email" className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
+                            Alamat Email (Opsional)
+                        </label>
+                        <input 
+                            id="email" 
+                            name="email" 
+                            type="email" 
+                            value={formData.email} 
+                            onChange={handleInputChange} 
+                            placeholder="pelanggan@email.com"
+                            className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none font-medium"
+                        />
+                    </div>
+                </div>
+
+                {/* Address Field */}
                 <div>
-                    <Label htmlFor="address">Alamat (Opsional)</Label>
+                    <label htmlFor="address" className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
+                        Alamat Lengkap (Opsional)
+                    </label>
                     <textarea 
                         id="address" 
                         name="address" 
                         value={formData.address} 
                         onChange={handleInputChange} 
                         rows={2} 
-                        placeholder="Alamat lengkap pelanggan..." 
-                        className="mt-1 block w-full rounded-md bg-gray-100 dark:bg-gray-700 border-transparent p-2 text-xs"
+                        placeholder="Tuliskan jalan, nomor rumah, RT/RW, kelurahan, kecamatan..." 
+                        className="w-full rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none font-medium resize-none"
                     ></textarea>
                 </div>
-
-                <hr className="dark:border-gray-600"/>
-                <div><Label htmlFor="phone">No. Telepon / No HP*</Label><Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} required /></div>
             </form>
         </Modal>
     );
