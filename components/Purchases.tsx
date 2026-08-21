@@ -207,92 +207,237 @@ export const AddPurchasePage: React.FC = () => {
                         ← Kembali ke Pesanan Pembelian
                     </Button>
                 </div>
-                <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8 w-full space-y-6">
-                    {/* Header Fields */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                         <div>
-                            <label className="block text-sm font-medium">Vendor*</label>
-                            <select value={vendorId} onChange={e => setVendorId(e.target.value)} required className="mt-1 w-full rounded-md bg-gray-100 dark:bg-gray-700 border-transparent focus:border-primary-500 px-3 py-2">
-                                <option value="">Pilih vendor</option>
-                                {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                            </select>
+                <form onSubmit={handleSubmit} className="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-200/80 dark:border-zinc-800 p-6 sm:p-8 w-full space-y-6">
+                    {/* Header Fields - Neat 2 Equal Columns Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-slate-50/70 dark:bg-zinc-800/40 p-5 rounded-xl border border-slate-200/60 dark:border-zinc-700/60">
+                        {/* Left Column (4 Fields) */}
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                                    Vendor <span className="text-rose-500 font-bold">*</span>
+                                </label>
+                                <select 
+                                    value={vendorId} 
+                                    onChange={e => setVendorId(e.target.value)} 
+                                    required 
+                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                >
+                                    <option value="">Pilih vendor</option>
+                                    {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                                    No. Faktur <span className="text-slate-400 font-normal">(opsional)</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    value={invoiceNumber} 
+                                    onChange={e => setInvoiceNumber(e.target.value)} 
+                                    placeholder="Nomor faktur pembelian..."
+                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                                    No. Nota Vendor <span className="text-slate-400 font-normal">(opsional)</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    value={vendorNoteNumber} 
+                                    onChange={e => setVendorNoteNumber(e.target.value)} 
+                                    placeholder="Nomor surat jalan / nota vendor..."
+                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                                    Tanggal Pemesanan <span className="text-rose-500 font-bold">*</span>
+                                </label>
+                                <input 
+                                    type="date" 
+                                    value={orderDate} 
+                                    onChange={e => setOrderDate(e.target.value)} 
+                                    required 
+                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
                         </div>
-                         <div>
-                            <label className="block text-sm font-medium">Tujuan Barang*</label>
-                            <select value={destinationId} onChange={e => setDestinationId(e.target.value)} required className="mt-1 w-full rounded-md bg-gray-100 dark:bg-gray-700 border-transparent focus:border-primary-500 px-3 py-2">
-                                <option value="">Pilih Tujuan</option>
-                                {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div>
-                            <label className="block text-sm font-medium">No. Faktur (opsional)</label>
-                            <input type="text" value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} className="mt-1 w-full rounded-md bg-gray-100 dark:bg-gray-700 border-transparent px-3 py-2"/>
-                        </div>
-                         <div>
-                            <label className="block text-sm font-medium">No. Nota Vendor (opsional)</label>
-                            <input type="text" value={vendorNoteNumber} onChange={e => setVendorNoteNumber(e.target.value)} className="mt-1 w-full rounded-md bg-gray-100 dark:bg-gray-700 border-transparent px-3 py-2"/>
-                        </div>
-                         <div>
-                            <label className="block text-sm font-medium">Tanggal Pemesanan*</label>
-                            <input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} required className="mt-1 w-full rounded-md bg-gray-100 dark:bg-gray-700 border-transparent px-3 py-2"/>
-                        </div>
-                    </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-sm font-medium">Perkiraan Tiba*</label>
-                            <input type="date" value={expectedDelivery} onChange={e => setExpectedDelivery(e.target.value)} required className="mt-1 w-full rounded-md bg-gray-100 dark:bg-gray-700 border-transparent px-3 py-2"/>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium">Jatuh Tempo (opsional)</label>
-                            <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="mt-1 w-full rounded-md bg-gray-100 dark:bg-gray-700 border-transparent px-3 py-2"/>
+
+                        {/* Right Column (3 Fields) */}
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                                    Tujuan Barang <span className="text-rose-500 font-bold">*</span>
+                                </label>
+                                <select 
+                                    value={destinationId} 
+                                    onChange={e => setDestinationId(e.target.value)} 
+                                    required 
+                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                >
+                                    <option value="">Pilih Tujuan</option>
+                                    {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                                    Perkiraan Tiba <span className="text-rose-500 font-bold">*</span>
+                                </label>
+                                <input 
+                                    type="date" 
+                                    value={expectedDelivery} 
+                                    onChange={e => setExpectedDelivery(e.target.value)} 
+                                    required 
+                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                                    Jatuh Tempo <span className="text-slate-400 font-normal">(opsional)</span>
+                                </label>
+                                <input 
+                                    type="date" 
+                                    value={dueDate} 
+                                    onChange={e => setDueDate(e.target.value)} 
+                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    {/* Items Section */}
-                    <div className="border-t border-b dark:border-gray-700 py-4">
-                        <h3 className="text-lg font-semibold mb-2">Item Pembelian</h3>
-                        <div className="space-y-3 max-h-72 overflow-y-auto pr-2">
-                            {items.map((item, index) => (
-                                <div key={index} className="grid grid-cols-12 gap-2 items-center">
-                                    <div className="col-span-4 relative">
-                                        <Input
-                                            type="text"
-                                            value={productSearch[index]}
-                                            onChange={e => { const newSearch = [...productSearch]; newSearch[index] = e.target.value; setProductSearch(newSearch); setActiveSuggestionBox(index); }}
-                                            onFocus={() => setActiveSuggestionBox(index)}
-                                            onBlur={() => setTimeout(() => setActiveSuggestionBox(null), 150)}
-                                            placeholder="Nama Produk / Barcode"
-                                            className="w-full"
-                                        />
-                                        {activeSuggestionBox === index && (
-                                            <div className="absolute z-10 top-full left-0 w-full bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                                                {productSuggestions.length > 0 ? productSuggestions.map(p => (
-                                                    <div key={p.id} onMouseDown={() => handleProductSelect(index, p)} className="p-2 hover:bg-primary-100 cursor-pointer">{p.name}</div>
-                                                )) : (
-                                                    <div className="p-2 text-sm text-gray-500">
-                                                        <p>Produk tidak ditemukan.</p>
-                                                        <Button variant="secondary" size="sm" className="mt-1" onMouseDown={() => {setCreatingProductForIndex(index); setProductModalOpen(true);}}>
-                                                            + Buat Produk Baru
-                                                        </Button>
+                    {/* Item Pembelian Section */}
+                    <div className="border border-slate-200 dark:border-zinc-800 rounded-xl p-5 bg-white dark:bg-zinc-900 space-y-4">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h3 className="text-base font-black text-slate-900 dark:text-white">Item Pembelian</h3>
+                                <p className="text-xs text-slate-500">Ketik kode barcode atau nama produk untuk memilih otomatis dari database</p>
+                            </div>
+                            <Button 
+                                type="button" 
+                                onClick={handleAddItem} 
+                                className="text-xs py-1.5 px-3 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 font-bold border border-blue-200 dark:border-blue-800"
+                            >
+                                + Tambah Baris Produk
+                            </Button>
+                        </div>
+
+                        {/* Table Header */}
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-xs">
+                                <thead>
+                                    <tr className="bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-bold border-b border-slate-200 dark:border-zinc-700">
+                                        <th className="p-3 text-left w-5/12">Produk (Cari Nama / Kode Barcode)</th>
+                                        <th className="p-3 text-center w-2/12">Qty</th>
+                                        <th className="p-3 text-right w-2/12">Harga Pembelian (Rp)</th>
+                                        <th className="p-3 text-right w-2/12">Total Akhir (Rp)</th>
+                                        <th className="p-3 text-center w-1/12">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                                    {items.map((item, index) => (
+                                        <tr key={index} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/40">
+                                            {/* Produk Autocomplete Input */}
+                                            <td className="p-2.5 relative">
+                                                <input
+                                                    type="text"
+                                                    value={productSearch[index]}
+                                                    onChange={e => { 
+                                                        const newSearch = [...productSearch]; 
+                                                        newSearch[index] = e.target.value; 
+                                                        setProductSearch(newSearch); 
+                                                        setActiveSuggestionBox(index); 
+                                                    }}
+                                                    onFocus={() => setActiveSuggestionBox(index)}
+                                                    onBlur={() => setTimeout(() => setActiveSuggestionBox(null), 200)}
+                                                    placeholder="Ketik beberapa kode barcode / nama produk..."
+                                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs px-3 py-2 font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                                                />
+                                                {activeSuggestionBox === index && (
+                                                    <div className="absolute z-20 top-full left-2 right-2 mt-1 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl shadow-xl max-h-56 overflow-y-auto p-1">
+                                                        {productSuggestions.length > 0 ? productSuggestions.map(p => (
+                                                            <div 
+                                                                key={p.id} 
+                                                                onMouseDown={() => handleProductSelect(index, p)} 
+                                                                className="p-2 hover:bg-blue-50 dark:hover:bg-zinc-700 rounded-lg cursor-pointer flex justify-between items-center text-xs transition-colors"
+                                                            >
+                                                                <div>
+                                                                    <strong className="block text-slate-900 dark:text-white font-bold">{p.name}</strong>
+                                                                    <span className="text-[11px] font-mono text-slate-400">Kode: {p.barcode || p.id}</span>
+                                                                </div>
+                                                                <span className="font-mono text-emerald-600 font-bold text-xs">
+                                                                    Rp{p.cost?.toLocaleString('id-ID')}
+                                                                </span>
+                                                            </div>
+                                                        )) : (
+                                                            <div className="p-3 text-center text-xs text-slate-500">
+                                                                <p className="mb-2">Produk tidak ditemukan.</p>
+                                                                <Button 
+                                                                    variant="secondary" 
+                                                                    size="sm" 
+                                                                    className="text-xs py-1 px-3" 
+                                                                    onMouseDown={() => { setCreatingProductForIndex(index); setProductModalOpen(true); }}
+                                                                >
+                                                                    + Buat Produk Baru
+                                                                </Button>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <Input type="number" placeholder="Qty" value={item.quantity || ''} onChange={e => handleItemChange(index, 'quantity', parseInt(e.target.value))} required min="1" className="col-span-2 w-full text-center" />
-                                    <Input type="number" placeholder="Harga Satuan" step="1" value={item.cost ?? ''} onChange={e => handleItemChange(index, 'cost', parseFloat(e.target.value))} required className="col-span-3 w-full" />
-                                    <Input type="text" readOnly value={`Rp${((item.quantity || 0) * (item.cost || 0)).toLocaleString('id-ID')}`} className="col-span-2 w-full bg-gray-200 dark:bg-gray-800 border-transparent text-right" />
-                                    <div className="col-span-1 text-center font-semibold">
-                                        <button type="button" onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-700">×</button>
-                                    </div>
-                                </div>
-                            ))}
+                                            </td>
+
+                                            {/* Qty Input */}
+                                            <td className="p-2.5">
+                                                <input 
+                                                    type="number" 
+                                                    placeholder="1" 
+                                                    value={item.quantity || ''} 
+                                                    onChange={e => handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)} 
+                                                    required 
+                                                    min="1" 
+                                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs px-2 py-2 text-center font-bold font-mono focus:ring-2 focus:ring-blue-500 outline-none" 
+                                                />
+                                            </td>
+
+                                            {/* Harga Pembelian Input */}
+                                            <td className="p-2.5">
+                                                <input 
+                                                    type="number" 
+                                                    placeholder="0" 
+                                                    step="1" 
+                                                    value={item.cost ?? ''} 
+                                                    onChange={e => handleItemChange(index, 'cost', parseFloat(e.target.value) || 0)} 
+                                                    required 
+                                                    className="w-full rounded-lg border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs px-3 py-2 text-right font-bold font-mono focus:ring-2 focus:ring-blue-500 outline-none" 
+                                                />
+                                            </td>
+
+                                            {/* Total Akhir Row Readonly */}
+                                            <td className="p-2.5 text-right font-mono font-black text-slate-900 dark:text-white text-xs">
+                                                Rp{((item.quantity || 0) * (item.cost || 0)).toLocaleString('id-ID')}
+                                            </td>
+
+                                            {/* Remove Button */}
+                                            <td className="p-2.5 text-center">
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => handleRemoveItem(index)} 
+                                                    className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center font-bold text-base transition-colors mx-auto"
+                                                    title="Hapus Baris"
+                                                >
+                                                    ×
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                        <button type="button" onClick={handleAddItem} className="mt-3 text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-200">
-                            + Tambah Item
-                        </button>
                     </div>
 
                     {/* Totals Section */}
