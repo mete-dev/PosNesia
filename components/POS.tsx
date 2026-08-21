@@ -1196,64 +1196,22 @@ export const POSPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* CENTER — Quick Actions, desktop only (mobile has sub-bar below) */}
-                <div className="hidden md:flex items-center gap-2">
-                  <button type="button" onClick={() => setProductInfoModalOpen(true)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-700 dark:text-blue-300 font-semibold text-xs border border-blue-200/70 dark:border-blue-800/40 transition-all active:scale-95 shrink-0"
-                    title="Cek Informasi & Stok Produk">
-                    <div className="w-6 h-6 rounded-lg bg-blue-500 text-white flex items-center justify-center shrink-0"><Search className="w-3.5 h-3.5" /></div>
-                    <span className="hidden lg:inline">Cek Produk</span>
-                  </button>
-                  <button type="button" onClick={() => setAddCustomerModalOpen(true)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-semibold text-xs border border-emerald-200/70 dark:border-emerald-800/40 transition-all active:scale-95 shrink-0"
-                    title="Tambah Pelanggan Baru">
-                    <div className="w-6 h-6 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0"><UserPlus className="w-3.5 h-3.5" /></div>
-                    <span className="hidden lg:inline">+ Pelanggan</span>
-                  </button>
-                  <button type="button" onClick={() => setCustomerBillModalOpen(true)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 text-purple-700 dark:text-purple-300 font-semibold text-xs border border-purple-200/70 dark:border-purple-800/40 transition-all active:scale-95 shrink-0"
-                    title="Bayar Tagihan Customer">
-                    <div className="w-6 h-6 rounded-lg bg-purple-500 text-white flex items-center justify-center shrink-0"><FileText className="w-3.5 h-3.5" /></div>
-                    <span className="hidden lg:inline">Bayar Tagihan</span>
-                  </button>
-                  <button type="button" onClick={() => setCameraScannerOpen(true)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-semibold text-xs border border-rose-200/70 dark:border-rose-800/40 transition-all active:scale-95 shrink-0"
-                    title="Scan Barcode Pakai Kamera HP">
-                    <div className="w-6 h-6 rounded-lg bg-rose-500 text-white flex items-center justify-center shrink-0"><Camera className="w-3.5 h-3.5" /></div>
-                    <span className="hidden lg:inline">Scan Kamera</span>
-                  </button>
-                  <button type="button" onClick={() => setTransactionHistoryModalOpen(true)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 font-semibold text-xs border border-amber-200/70 dark:border-amber-800/40 transition-all active:scale-95 shrink-0"
-                    title="Cek Riwayat Transaksi">
-                    <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0"><Clock className="w-3.5 h-3.5" /></div>
-                    <span className="hidden lg:inline">Riwayat</span>
-                  </button>
-                  <button type="button" onClick={() => setPosReturnModalOpen(true)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 text-orange-700 dark:text-orange-300 font-semibold text-xs border border-orange-200/70 dark:border-orange-800/40 transition-all active:scale-95 shrink-0"
-                    title="Retur Penjualan Kasir">
-                    <div className="w-6 h-6 rounded-lg bg-orange-500 text-white flex items-center justify-center shrink-0"><RotateCcw className="w-3.5 h-3.5" /></div>
-                    <span className="hidden lg:inline">Retur Penjualan</span>
-                  </button>
-                </div>
-
-                {/* RIGHT — System Controls */}
-                <div className="flex items-center gap-2 shrink-0">
+                {/* RIGHT — System Controls (Mobile & Tablet) */}
+                <div className="flex lg:hidden items-center gap-2 shrink-0">
                   <button
                     onClick={() => dispatch({ type: 'pos/toggleMode', payload: { start: false } })}
-                    className="w-9 h-9 sm:w-auto sm:px-3 sm:py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95"
-                    title="Kembali ke Dashboard ERP"
+                    className="px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 text-zinc-700 dark:text-zinc-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all"
                   >
                     <DashboardIcon className="w-4 h-4 text-zinc-500" />
-                    <span className="hidden lg:inline">Dashboard ERP</span>
+                    <span>ERP</span>
                   </button>
 
                   <button
                     onClick={() => setEndSessionModalOpen(true)}
-                    className="w-9 h-9 sm:w-auto sm:px-3 sm:py-1.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95"
-                    title="Akhiri Sesi Kasir"
+                    className="px-2.5 py-1.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm"
                   >
                     <LogoutIcon className="w-4 h-4" />
-                    <span className="hidden lg:inline">Akhiri Sesi</span>
+                    <span>Keluar</span>
                   </button>
                 </div>
 
