@@ -114,10 +114,9 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
         {
             icon: <BarChart3 className="w-4 h-4" />,
             label: 'Laporan',
-            pages: [Page.SalesReport, Page.PurchaseReport, Page.GoodsReport, Page.FinancialInventoryReport, Page.CashierDepositReport, Page.IncomeStatementReport, Page.FinancialPositionReport],
+            pages: [Page.SalesReport, Page.GoodsReport, Page.FinancialInventoryReport, Page.CashierDepositReport, Page.IncomeStatementReport, Page.FinancialPositionReport],
             subItems: [
                 { label: 'Laporan Penjualan', page: Page.SalesReport },
-                { label: 'Laporan Pembelian', page: Page.PurchaseReport },
                 { label: 'Setoran Kasir', page: Page.CashierDepositReport },
                 { label: 'Laporan Laba Rugi', page: Page.IncomeStatementReport },
                 { label: 'Posisi Keuangan', page: Page.FinancialPositionReport },

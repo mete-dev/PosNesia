@@ -122,10 +122,9 @@ const laporanGroups = [
         key: 'operasional',
         label: 'Operasional',
         defaultPage: Page.SalesReport,
-        pages: [Page.SalesReport, Page.PurchaseReport, Page.CashierDepositReport],
+        pages: [Page.SalesReport, Page.CashierDepositReport],
         subItems: [
             { label: 'Laporan Penjualan', page: Page.SalesReport },
-            { label: 'Laporan Pembelian', page: Page.PurchaseReport },
             { label: 'Setoran Kasir', page: Page.CashierDepositReport },
         ]
     },
