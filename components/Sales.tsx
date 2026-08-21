@@ -363,9 +363,9 @@ export const CreateManualSalePage: React.FC = () => {
         newItems[index] = {
             productId: product.id,
             productName: product.name,
-            quantity: newItems[index].quantity || 1,
-            price: product.price,
-            cost: product.cost,
+            quantity: newItems[index]?.quantity || 1,
+            price: product.price ?? 0,
+            cost: product.cost ?? 0,
             discount: 0
         };
         setItems(newItems);
