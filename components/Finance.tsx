@@ -4,7 +4,7 @@ import {
     ShieldCheck, DollarSign, Wallet, Building2, Calendar, ArrowRightLeft,
     ArrowDownLeft, ArrowUpRight, FileText, Eye, Printer
 } from 'lucide-react';
-import { Account, AccountType, JournalEntry, JournalEntryLine, PaymentMethod, PaymentTerm, PosSessionSummary } from '../types';
+import { Account, AccountType, JournalEntry, JournalEntryLine, PaymentMethod, PaymentTerm, PosSessionSummary, Page } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
 import { Card, Button, Input, Select, Label, Modal, DateRangeFilter, Table, Thead, Tbody, Tr, Th, Td, PageHeader, ActionsDropdown, DropdownItem, Badge } from './ui';
 
