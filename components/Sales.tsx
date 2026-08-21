@@ -323,7 +323,328 @@ const CreateManualSaleModal: React.FC<{ isOpen: boolean; onClose: () => void }> 
 };
 
 export const CreateManualSalePage: React.FC = () => {
-    return <SalesListPage />;
+    const { state, dispatch } = useAppContext();
+    const { customers, products, paymentTerms, currentBranchId, taxRates, isTaxEnabled } = state;
+
+    const [customerId, setCustomerId] = useState('');
+    const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
+    const [paymentTermId, setPaymentTermId] = useState('');
+    const [items, setItems] = useState<Partial<SaleItem>[]>([{ productId: '', quantity: 1, price: 0 }]);
+    const [productSearch, setProductSearch] = useState<string[]>(['']);
+    const [activeSuggestionBox, setActiveSuggestionBox] = useState<number | null>(null);
+
+    const defaultTax = useMemo(() => taxRates.find(t => t.isDefault), [taxRates]);
+
+    const handleAddItem = () => {
+        setItems(prev => [...prev, { productId: '', quantity: 1, price: 0 }]);
+        setProductSearch(prev => [...prev, '']);
+    };
+
+    const handleRemoveItem = (index: number) => {
+        setItems(prev => prev.filter((_, i) => i !== index));
+        setProductSearch(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleItemChange = (index: number, field: keyof SaleItem, value: any) => {
+        const newItems = [...items];
+        (newItems[index] as any)[field] = value;
+        setItems(newItems);
+    };
+
+    const handleProductSelect = (index: number, product: Product) => {
+        const newItems = [...items];
+        newItems[index] = {
+            productId: product.id,
+            productName: product.name,
+            quantity: newItems[index].quantity || 1,
+            price: product.price,
+            cost: product.cost,
+            discount: 0
+        };
+        setItems(newItems);
+        const newSearch = [...productSearch];
+        newSearch[index] = product.name;
+        setProductSearch(newSearch);
+        setActiveSuggestionBox(null);
+    };
+
+    const productSuggestions = useMemo(() => {
+        if (activeSuggestionBox === null) return [];
+        const query = productSearch[activeSuggestionBox]?.toLowerCase();
+        if (!query) return [];
+        return products.filter(p => p.name.toLowerCase().includes(query) || p.barcode?.includes(query));
+    }, [activeSuggestionBox, productSearch, products]);
+
+    const totals = useMemo(() => {
+        const subtotal = items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
+        const discount = items.reduce((sum, item) => sum + (item.discount || 0), 0);
+        const totalAfterDiscount = subtotal - discount;
+        const taxAmount = isTaxEnabled ? totalAfterDiscount * (defaultTax?.rate || 0) : 0;
+        const grandTotal = totalAfterDiscount + taxAmount;
+        return { subtotal, discount, taxAmount, grandTotal };
+    }, [items, isTaxEnabled, defaultTax]);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const customer = customers.find(c => c.id === customerId);
+        if (!customer || !paymentTermId) {
+            alert("Harap pilih Pelanggan dan Tempo Pembayaran.");
+            return;
+        }
+
+        const validBranchId = currentBranchId || 'CAB-JPSTNH01';
+        const saleData: Omit<Sale, 'id'> = {
+            branchId: validBranchId,
+            sourceLocationId: validBranchId,
+            date: new Date(saleDate).toISOString(),
+            items: items.filter(i => i.productId) as SaleItem[],
+            subtotal: totals.subtotal,
+            discount: totals.discount,
+            taxAmount: totals.taxAmount,
+            grandTotal: totals.grandTotal,
+            customerId,
+            customerName: customer.name,
+            payments: [],
+            paymentTermId,
+            dueDate: new Date(new Date(saleDate).getTime() + (paymentTerms.find(pt => pt.id === paymentTermId)?.days || 0) * 24 * 60 * 60 * 1000).toISOString(),
+            status: 'Unpaid',
+            saleChannel: 'Manual',
+            fulfillmentStatus: 'N/A'
+        };
+        
+        dispatch({ type: 'sales/add', payload: saleData });
+        alert('Penjualan manual berhasil disimpan!');
+        dispatch({ type: 'ui/setPage', payload: Page.SalesList });
+    };
+
+    return (
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-4 overflow-y-auto bg-slate-50 dark:bg-zinc-950">
+            {/* Top Navigation & Action Toolbar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs">
+                <div>
+                    <nav className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-zinc-400 mb-1">
+                        <span onClick={() => dispatch({ type: 'ui/setPage', payload: Page.SalesList })} className="hover:underline cursor-pointer">Sales Orders</span>
+                        <span>/</span>
+                        <span className="font-bold text-slate-700 dark:text-zinc-200">Buat Penjualan Manual</span>
+                    </nav>
+                    <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                        Draft Sales Order
+                    </h1>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <Button 
+                        type="button"
+                        variant="secondary"
+                        onClick={() => dispatch({ type: 'ui/setPage', payload: Page.SalesList })}
+                        className="text-xs py-1.5 px-3"
+                    >
+                        Batal
+                    </Button>
+                    <Button 
+                        type="button"
+                        onClick={handleSubmit} 
+                        className="text-xs py-1.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-2xs"
+                    >
+                        Simpan Penjualan
+                    </Button>
+                </div>
+            </div>
+
+            {/* Odoo Style Sales Document Sheet Container */}
+            <form onSubmit={handleSubmit} className="bg-white dark:bg-zinc-900 rounded-xl shadow-xs border border-slate-200 dark:border-zinc-800 p-6 md:p-8 space-y-6">
+                
+                {/* Header Information Grid (2 Side-by-Side Columns) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 pb-6 border-b border-slate-100 dark:border-zinc-800 text-xs">
+                    {/* Left Side */}
+                    <div className="space-y-3">
+                        <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
+                                Pelanggan <span className="text-rose-500">*</span>
+                            </label>
+                            <select 
+                                value={customerId} 
+                                onChange={e => setCustomerId(e.target.value)} 
+                                required 
+                                className="col-span-8 rounded-lg border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/30 dark:bg-emerald-950/20 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                            >
+                                <option value="">Pilih Pelanggan...</option>
+                                {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Right Side */}
+                    <div className="space-y-3">
+                        <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
+                                Tanggal <span className="text-rose-500">*</span>
+                            </label>
+                            <input 
+                                type="date" 
+                                value={saleDate} 
+                                onChange={e => setSaleDate(e.target.value)} 
+                                required 
+                                className="col-span-8 rounded-lg border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/30 dark:bg-emerald-950/20 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-12 items-center gap-2">
+                            <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
+                                Tempo Pembayaran <span className="text-rose-500">*</span>
+                            </label>
+                            <select 
+                                value={paymentTermId} 
+                                onChange={e => setPaymentTermId(e.target.value)} 
+                                required 
+                                className="col-span-8 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                            >
+                                <option value="">Pilih Tempo Bayar...</option>
+                                {paymentTerms.map(pt => <option key={pt.id} value={pt.id}>{pt.name}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tabbed / Products Table Header */}
+                <div className="space-y-3">
+                    <div className="flex items-center gap-6 border-b border-slate-200 dark:border-zinc-800">
+                        <button type="button" className="pb-2 text-xs font-black text-emerald-700 dark:text-emerald-400 border-b-2 border-emerald-600 uppercase tracking-wider">
+                            Order Lines (Products)
+                        </button>
+                    </div>
+
+                    {/* Products Table */}
+                    <div className="w-full">
+                        <table className="w-full text-xs">
+                            <thead>
+                                <tr className="bg-slate-50 dark:bg-zinc-800/80 text-slate-600 dark:text-zinc-400 font-bold border-y border-slate-200 dark:border-zinc-700 uppercase text-[11px] tracking-wide">
+                                    <th className="p-2.5 text-left w-5/12">Product</th>
+                                    <th className="p-2.5 text-center w-2/12">Quantity</th>
+                                    <th className="p-2.5 text-right w-2/12">Unit Price (Rp)</th>
+                                    <th className="p-2.5 text-right w-2/12">Subtotal (Rp)</th>
+                                    <th className="p-2.5 text-center w-1/12"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
+                                {items.map((item, index) => (
+                                    <tr key={index} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/40">
+                                        {/* Product Input with Autocomplete */}
+                                        <td className="p-2 relative">
+                                            <input
+                                                type="text"
+                                                value={productSearch[index]}
+                                                onChange={e => { 
+                                                    const newSearch = [...productSearch]; 
+                                                    newSearch[index] = e.target.value; 
+                                                    setProductSearch(newSearch); 
+                                                    setActiveSuggestionBox(index); 
+                                                }}
+                                                onFocus={() => setActiveSuggestionBox(index)}
+                                                onBlur={() => setTimeout(() => setActiveSuggestionBox(null), 200)}
+                                                placeholder="[Kode] Nama Produk / Barcode..."
+                                                className="w-full rounded-md border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs px-2.5 py-1.5 font-medium focus:ring-1 focus:ring-emerald-500 outline-none"
+                                            />
+                                            {activeSuggestionBox === index && productSuggestions.length > 0 && (
+                                                <div className="absolute z-30 top-full left-2 right-2 mt-1 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto p-1">
+                                                    {productSuggestions.map(p => (
+                                                        <div 
+                                                            key={p.id} 
+                                                            onMouseDown={() => handleProductSelect(index, p)} 
+                                                            className="p-2.5 hover:bg-emerald-50 dark:hover:bg-zinc-700 rounded-lg cursor-pointer flex justify-between items-center text-xs transition-colors"
+                                                        >
+                                                            <div>
+                                                                <strong className="block text-slate-900 dark:text-white font-bold">{p.name}</strong>
+                                                                <span className="text-[11px] font-mono text-slate-400">Kode: {p.barcode || p.id}</span>
+                                                            </div>
+                                                            <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                                                                Rp{p.price?.toLocaleString('id-ID')}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </td>
+
+                                        {/* Qty Input */}
+                                        <td className="p-2">
+                                            <input 
+                                                type="number" 
+                                                placeholder="1" 
+                                                value={item.quantity || ''} 
+                                                onChange={e => handleItemChange(index, 'quantity', parseInt(e.target.value) || 0)} 
+                                                required 
+                                                min="1" 
+                                                className="w-full rounded-md border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-1.5 text-center font-mono font-bold focus:ring-1 focus:ring-emerald-500 outline-none" 
+                                            />
+                                        </td>
+
+                                        {/* Unit Price */}
+                                        <td className="p-2">
+                                            <input 
+                                                type="number" 
+                                                placeholder="0" 
+                                                step="1" 
+                                                value={item.price ?? ''} 
+                                                onChange={e => handleItemChange(index, 'price', parseFloat(e.target.value) || 0)} 
+                                                required 
+                                                className="w-full rounded-md border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-1.5 text-right font-mono font-bold focus:ring-1 focus:ring-emerald-500 outline-none" 
+                                            />
+                                        </td>
+
+                                        {/* Subtotal */}
+                                        <td className="p-2 text-right font-mono font-bold text-slate-900 dark:text-white text-xs">
+                                            Rp{((item.quantity || 0) * (item.price || 0)).toLocaleString('id-ID')}
+                                        </td>
+
+                                        {/* Remove Action */}
+                                        <td className="p-2 text-center">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleRemoveItem(index)} 
+                                                className="text-slate-400 hover:text-rose-600 font-bold text-sm transition-colors"
+                                                title="Hapus baris"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <button 
+                        type="button" 
+                        onClick={handleAddItem} 
+                        className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 py-1"
+                    >
+                        + Add a product
+                    </button>
+                </div>
+
+                {/* Bottom Section (Summary Totals) */}
+                <div className="pt-6 border-t border-slate-100 dark:border-zinc-800 flex justify-end">
+                    <div className="space-y-2 text-xs font-medium w-full max-w-xs bg-slate-50/50 dark:bg-zinc-800/30 p-4 rounded-xl border border-slate-100 dark:border-zinc-800/80">
+                        <div className="flex justify-between items-center text-slate-600 dark:text-zinc-400">
+                            <span>Subtotal:</span>
+                            <span className="font-mono font-bold text-slate-900 dark:text-white">Rp {totals.subtotal.toLocaleString('id-ID')}</span>
+                        </div>
+                        {isTaxEnabled && (
+                            <div className="flex justify-between items-center text-slate-600 dark:text-zinc-400">
+                                <span>Pajak ({(defaultTax?.rate || 0) * 100}%):</span>
+                                <span className="font-mono font-bold text-slate-900 dark:text-white">Rp {totals.taxAmount.toLocaleString('id-ID')}</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between items-center text-sm font-black pt-2 border-t border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-white">
+                            <span>Total:</span>
+                            <span className="font-mono text-emerald-700 dark:text-emerald-400 text-base">Rp {totals.grandTotal.toLocaleString('id-ID')}</span>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    );
 };
 
 export const SalesListPage: React.FC = () => {
@@ -425,7 +746,7 @@ export const SalesListPage: React.FC = () => {
                             <option value="Manual">Manual</option>
                         </Select>
                     </div>
-                    <Button onClick={() => setCreateModalOpen(true)} className="gap-1 text-xs h-8 px-3 font-bold whitespace-nowrap bg-primary-600 hover:bg-primary-700 text-white shrink-0">
+                    <Button onClick={() => dispatch({ type: 'ui/setPage', payload: Page.CreateManualSale })} className="gap-1 text-xs h-8 px-3 font-bold whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white shrink-0">
                         <span>+ Penjualan Manual</span>
                     </Button>
                 </div>
