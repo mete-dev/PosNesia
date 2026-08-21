@@ -99,7 +99,7 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
         {
             icon: <Wallet className="w-4 h-4" />,
             label: 'Keuangan',
-            pages: [Page.ChartOfAccounts, Page.CashAccountList, Page.VendorBillList, Page.CustomerBillList, Page.Capital, Page.PaymentMethods, Page.PaymentTerms],
+            pages: [Page.ChartOfAccounts, Page.CashAccountList, Page.AccountStatement, Page.VendorBillList, Page.CustomerBillList, Page.Capital, Page.PaymentMethods, Page.PaymentTerms],
             subItems: [
                 { label: 'Dompet & Kas', page: Page.CashAccountList },
                 { label: 'Tagihan Vendor', page: Page.VendorBillList },

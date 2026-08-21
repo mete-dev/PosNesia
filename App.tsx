@@ -10,7 +10,7 @@ import { Page, Theme } from './types';
 import { Vendors } from './components/Vendors';
 import { PurchaseListPage, AddPurchasePage } from './components/Purchases';
 import { StaffListPage, StaffAttendancePage, StaffAttendanceReportPage, RoleManagementPage, PayrollPage, RecruitmentPage, TimeOffPage, JobOpeningManagementPage } from './components/Staff';
-import { ChartOfAccountsPage, GeneralJournalPage, LedgerPage, CashAccountListPage, CashTransactionPage, CashTransferPage, PaymentMethodsPage, PaymentTermsPage, CashierDepositVerificationPage } from './components/Finance';
+import { ChartOfAccountsPage, GeneralJournalPage, LedgerPage, CashAccountListPage, AccountStatementPage, CashTransactionPage, CashTransferPage, PaymentMethodsPage, PaymentTermsPage, CashierDepositVerificationPage } from './components/Finance';
 import { AssetListPage, AssetPurchasePage, AssetSalePage, AssetCategoryManagementPage } from './components/Assets';
 import { SalesReport, ProductStockReport, IncomeStatementReport, FinancialPositionReportPage, CashierDepositReportPage, PurchaseReportPage, ProductPerformanceReportPage, GoodsReportPage, FinancialInventoryReportPage } from './components/Reports';
 import { ManageShelvesPage, ProductCategoriesPage, InventoryAdjustmentPage, GoodsReceiptPage, StockTransferPage } from './components/Inventory';
@@ -153,6 +153,7 @@ export const App: React.FC = () => {
             case Page.GeneralJournal: return <GeneralJournalPage />;
             case Page.Ledger: return <LedgerPage />;
             case Page.CashAccountList: return <CashAccountListPage />;
+            case Page.AccountStatement: return <AccountStatementPage />;
             case Page.CashTransaction: return <CashTransactionPage />;
             case Page.CashTransfer: return <CashTransferPage />;
             case Page.AssetList: return <AssetListPage />;

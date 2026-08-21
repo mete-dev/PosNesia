@@ -140,6 +140,7 @@ export enum Page {
   TimeOff = 'TimeOff', // Existing
   // --- Finance Pages ---
   CashAccountList = 'CashAccountList',
+  AccountStatement = 'AccountStatement',
   CashTransaction = 'CashTransaction',
   CashTransfer = 'CashTransfer',
   CashierDepositVerification = 'CashierDepositVerification',

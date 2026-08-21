@@ -387,13 +387,14 @@ const UnifiedCashTransactionModal: React.FC<{
     );
 };
 
-// --- Bank Statement / Rekening Koran Modal Component ---
-const AccountStatementModal: React.FC<{
-    account: Account | null;
-    isOpen: boolean;
-    onClose: () => void;
-    journalEntries: JournalEntry[];
-}> = ({ account, isOpen, onClose, journalEntries }) => {
+// --- Bank Statement / Rekening Koran Page & Printable View ---
+export const AccountStatementPage: React.FC = () => {
+    const { state, dispatch } = useAppContext();
+    const { accounts, journalEntries, companyInfo } = state;
+
+    const [selectedAccountId, setSelectedAccountId] = useState<string>(accounts.filter(a => a.isCashAccount)[0]?.id || '1010');
+    const account = useMemo(() => accounts.find(a => a.id === selectedAccountId) || null, [accounts, selectedAccountId]);
+
     const todayStr = new Date().toISOString().split('T')[0];
     const pastMonthStr = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
@@ -422,7 +423,6 @@ const AccountStatementModal: React.FC<{
     const statementData = useMemo(() => {
         if (!account) return { rows: [], totalDebit: 0, totalCredit: 0 };
 
-        // 1. Gather all journal lines for this account across all journal entries
         const accJournals: { date: Date; description: string; reference?: string; debit: number; credit: number }[] = [];
 
         journalEntries.forEach(je => {
@@ -443,7 +443,6 @@ const AccountStatementModal: React.FC<{
         // Sort ascending by date for chronological running balance
         accJournals.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-        // Calculate running balance starting from 0 (or initial balance if defined)
         let runningBalance = 0;
         const allRows = accJournals.map(j => {
             runningBalance += (j.debit - j.credit);
@@ -471,113 +470,189 @@ const AccountStatementModal: React.FC<{
         };
     }, [account, journalEntries, startDate, endDate]);
 
-    if (!account) return null;
-
     return (
-        <Modal
-            isOpen={isOpen}
-            onClose={onClose}
-            title={`Rekening Koran - ${account.name} (${account.id})`}
-            maxWidth="max-w-4xl"
-            footer={
-                <div className="flex justify-between items-center w-full">
-                    <span className="text-xs text-slate-500 font-mono">
-                        Saldo Akhir: <strong className="text-emerald-600 dark:text-emerald-400">Rp{account.balance.toLocaleString('id-ID')}</strong>
-                    </span>
-                    <div className="flex gap-2">
-                        <Button variant="secondary" onClick={() => window.print()} className="gap-1.5 text-xs">
-                            <Printer className="w-4 h-4" />
-                            Cetak Rekening Koran
-                        </Button>
-                        <Button onClick={onClose} className="text-xs">Tutup</Button>
-                    </div>
-                </div>
-            }
-        >
-            <div className="space-y-3 text-xs">
-                {/* Header Summary & Period Filter */}
-                <div className="bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center font-bold">
-                            🏦
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-slate-900 dark:text-white text-sm">{account.name}</h4>
-                            <p className="text-[11px] text-slate-500">Kategori: {account.cashAccountType || 'Tunai'} • No. Akun: {account.id}</p>
-                        </div>
-                    </div>
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-4 overflow-y-auto">
+            {/* Print CSS Stylesheet */}
+            <style>{`
+                @media print {
+                    body * {
+                        visibility: hidden;
+                    }
+                    #printable-statement, #printable-statement * {
+                        visibility: visible;
+                    }
+                    #printable-statement {
+                        position: absolute;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                        padding: 20px;
+                        background: white;
+                        color: black;
+                    }
+                    .no-print {
+                        display: none !important;
+                    }
+                }
+            `}</style>
 
-                    {/* Period Selector Tabs */}
-                    <div className="flex flex-wrap items-center gap-1.5 bg-white dark:bg-zinc-900 p-1 rounded-lg border border-slate-200 dark:border-zinc-700">
-                        <button
-                            type="button"
-                            onClick={() => setPeriodFilter('today')}
-                            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${periodFilter === 'today' ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100'}`}
-                        >
-                            Hari Ini
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setPeriodFilter('7days')}
-                            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${periodFilter === '7days' ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100'}`}
-                        >
-                            7 Hari
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setPeriodFilter('30days')}
-                            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${periodFilter === '30days' ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100'}`}
-                        >
-                            30 Hari
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setPeriodFilter('custom')}
-                            className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${periodFilter === 'custom' ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100'}`}
-                        >
-                            Custom
-                        </button>
+            {/* Header Controls (Hidden during print) */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0 no-print">
+                <div className="flex items-center gap-3">
+                    <Button 
+                        variant="secondary" 
+                        onClick={() => dispatch({ type: 'ui/setPage', payload: Page.CashAccountList })}
+                        className="text-xs py-1.5 px-3"
+                    >
+                        ← Kembali ke Dompet & Kas
+                    </Button>
+                    <div>
+                        <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                            Rekening Koran & Mutasi Kas
+                        </h1>
                     </div>
                 </div>
 
-                {periodFilter === 'custom' && (
-                    <div className="bg-slate-50 dark:bg-zinc-800/40 p-2.5 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2">
+                    <Button onClick={() => window.print()} className="gap-1.5 text-xs py-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white shadow-2xs">
+                        <Printer className="w-4 h-4" />
+                        Cetak / Download PDF
+                    </Button>
+                </div>
+            </div>
+
+            {/* Main Printable Document Container */}
+            <div id="printable-statement" className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs p-6 space-y-6 text-slate-900 dark:text-white">
+                
+                {/* Official Letterhead Header for Print */}
+                <div className="flex justify-between items-start border-b border-slate-200 pb-4">
+                    <div>
+                        <h2 className="text-2xl font-black uppercase text-blue-900 dark:text-blue-400">{companyInfo.name || 'POSNESIA POS'}</h2>
+                        <p className="text-xs text-slate-500">{companyInfo.address || 'Jl. Raya Utama PosNesia No. 88'}</p>
+                        <p className="text-xs text-slate-500">Telp: {companyInfo.phone || '-'} • Email: {companyInfo.email || '-'}</p>
+                    </div>
+                    <div className="text-right">
+                        <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-wider">REKENING KORAN</h3>
+                        <p className="text-xs font-mono text-slate-500">Periode: {startDate} s/d {endDate}</p>
+                        <p className="text-xs font-mono text-slate-500">Tgl Cetak: {new Date().toLocaleDateString('id-ID')}</p>
+                    </div>
+                </div>
+
+                {/* Account Selection & Period Selector (Interactive, No-Print controls) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-zinc-800/60 p-4 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 no-print">
+                    <div>
+                        <Label htmlFor="statement_acc" className="font-bold text-xs">Pilih Rekening Kas / Dompet</Label>
+                        <Select
+                            id="statement_acc"
+                            value={selectedAccountId}
+                            onChange={e => setSelectedAccountId(e.target.value)}
+                            className="text-xs py-2 w-full mt-1 font-bold"
+                        >
+                            {accounts.filter(a => a.isCashAccount).map(acc => (
+                                <option key={acc.id} value={acc.id}>
+                                    🏦 {acc.name} ({acc.cashAccountType || 'Tunai'}) - Saldo: Rp{acc.balance.toLocaleString('id-ID')}
+                                </option>
+                            ))}
+                        </Select>
+                    </div>
+
+                    <div>
+                        <Label className="font-bold text-xs mb-1 block">Filter Periode Waktu</Label>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => setPeriodFilter('today')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === 'today' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-zinc-300'}`}
+                            >
+                                Hari Ini
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPeriodFilter('7days')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === '7days' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-zinc-300'}`}
+                            >
+                                7 Hari
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPeriodFilter('30days')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === '30days' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-zinc-300'}`}
+                            >
+                                30 Hari
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setPeriodFilter('custom')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === 'custom' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-zinc-300'}`}
+                            >
+                                Custom
+                            </button>
+                        </div>
+                    </div>
+
+                    {periodFilter === 'custom' && (
+                        <div className="col-span-1 md:col-span-2 grid grid-cols-2 gap-3 pt-2">
+                            <div>
+                                <Label className="text-[11px] text-slate-500">Tanggal Mulai</Label>
+                                <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                            <div>
+                                <Label className="text-[11px] text-slate-500">Tanggal Selesai</Label>
+                                <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-xs py-1.5" />
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Account Details Box */}
+                {account && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 dark:bg-zinc-800/40 p-4 rounded-xl border border-slate-200 dark:border-zinc-700 text-xs">
                         <div>
-                            <Label className="text-[11px] text-slate-500">Tanggal Mulai</Label>
-                            <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-xs py-1" />
+                            <span className="text-slate-500 block">Nama Rekening</span>
+                            <strong className="text-slate-900 dark:text-white font-bold text-sm">🏦 {account.name}</strong>
                         </div>
                         <div>
-                            <Label className="text-[11px] text-slate-500">Tanggal Selesai</Label>
-                            <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-xs py-1" />
+                            <span className="text-slate-500 block">No. Akun / Kode</span>
+                            <strong className="font-mono text-slate-800 dark:text-zinc-200 font-bold">{account.id}</strong>
+                        </div>
+                        <div>
+                            <span className="text-slate-500 block">Kategori Rekening</span>
+                            <strong className="text-slate-800 dark:text-zinc-200 font-bold">{account.cashAccountType || 'Tunai'}</strong>
+                        </div>
+                        <div className="text-right">
+                            <span className="text-slate-500 block">Saldo Saat Ini</span>
+                            <strong className="font-mono text-base font-black text-emerald-600 dark:text-emerald-400">
+                                Rp{account.balance.toLocaleString('id-ID')}
+                            </strong>
                         </div>
                     </div>
                 )}
 
-                {/* Total Summary Row */}
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                    <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/50">
-                        <span className="text-slate-500 text-[10px] uppercase font-semibold">Total Pemasukan (Debit)</span>
-                        <p className="font-mono font-bold text-emerald-600 dark:text-emerald-400">Rp{statementData.totalDebit.toLocaleString('id-ID')}</p>
+                {/* Mutasi Summary Cards */}
+                <div className="grid grid-cols-3 gap-3 text-center text-xs">
+                    <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/50">
+                        <span className="text-slate-500 text-[11px] font-semibold uppercase tracking-wider block">Total Pemasukan (Debit)</span>
+                        <p className="font-mono text-base font-black text-emerald-600 dark:text-emerald-400">Rp{statementData.totalDebit.toLocaleString('id-ID')}</p>
                     </div>
-                    <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-900/50">
-                        <span className="text-slate-500 text-[10px] uppercase font-semibold">Total Pengeluaran (Kredit)</span>
-                        <p className="font-mono font-bold text-rose-600 dark:text-rose-400">Rp{statementData.totalCredit.toLocaleString('id-ID')}</p>
+                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-900/50">
+                        <span className="text-slate-500 text-[11px] font-semibold uppercase tracking-wider block">Total Pengeluaran (Kredit)</span>
+                        <p className="font-mono text-base font-black text-rose-600 dark:text-rose-400">Rp{statementData.totalCredit.toLocaleString('id-ID')}</p>
                     </div>
-                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/50">
-                        <span className="text-slate-500 text-[10px] uppercase font-semibold">Mutasi Bersih</span>
-                        <p className={`font-mono font-bold ${(statementData.totalDebit - statementData.totalCredit) >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600'}`}>
+                    <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/50">
+                        <span className="text-slate-500 text-[11px] font-semibold uppercase tracking-wider block">Mutasi Bersih</span>
+                        <p className={`font-mono text-base font-black ${(statementData.totalDebit - statementData.totalCredit) >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600'}`}>
                             Rp{(statementData.totalDebit - statementData.totalCredit).toLocaleString('id-ID')}
                         </p>
                     </div>
                 </div>
 
-                {/* Bank Statement Table */}
-                <div className="max-h-[350px] overflow-y-auto border border-slate-200 dark:border-zinc-800 rounded-xl">
+                {/* Statement Journal Table */}
+                <div className="border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden">
                     <Table>
                         <Thead>
-                            <Tr>
-                                <Th>Waktu & Tanggal</Th>
-                                <Th>Keterangan / Deskripsi</Th>
+                            <Tr className="bg-slate-100 dark:bg-zinc-800">
+                                <Th>Tanggal & Waktu</Th>
+                                <Th>Keterangan / Deskripsi Mutasi</Th>
                                 <Th>Referensi</Th>
                                 <Th className="text-right font-mono">Pemasukan (+)</Th>
                                 <Th className="text-right font-mono">Pengeluaran (-)</Th>
@@ -587,18 +662,18 @@ const AccountStatementModal: React.FC<{
                         <Tbody>
                             {statementData.rows.length === 0 ? (
                                 <Tr>
-                                    <Td colSpan={6} className="text-center py-10 text-slate-400">
-                                        Tidak ada catatan transaksi pada periode ini.
+                                    <Td colSpan={6} className="text-center py-12 text-slate-400">
+                                        Tidak ada data mutasi transaksi pada periode ini.
                                     </Td>
                                 </Tr>
                             ) : (
                                 statementData.rows.map((row, idx) => (
-                                    <Tr key={idx} className="hover:bg-slate-50 dark:hover:bg-zinc-800/40">
-                                        <Td className="text-slate-600 dark:text-slate-400 font-mono text-[11px]">
+                                    <Tr key={idx} className="hover:bg-slate-50 dark:hover:bg-zinc-800/40 border-b border-slate-100 dark:border-zinc-800">
+                                        <Td className="text-slate-600 dark:text-slate-400 font-mono text-xs">
                                             {row.date.toLocaleString('id-ID')}
                                         </Td>
-                                        <Td className="font-semibold text-slate-800 dark:text-zinc-200">{row.description}</Td>
-                                        <Td className="text-slate-500 italic text-[11px]">{row.reference || '-'}</Td>
+                                        <Td className="font-bold text-slate-900 dark:text-white">{row.description}</Td>
+                                        <Td className="text-slate-500 italic font-mono text-xs">{row.reference || '-'}</Td>
                                         <Td className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                                             {row.debit > 0 ? `+Rp${row.debit.toLocaleString('id-ID')}` : '-'}
                                         </Td>
@@ -614,8 +689,20 @@ const AccountStatementModal: React.FC<{
                         </Tbody>
                     </Table>
                 </div>
+
+                {/* Printable Signatures Footer */}
+                <div className="pt-8 grid grid-cols-2 text-center text-xs border-t border-slate-200 mt-6">
+                    <div>
+                        <p className="text-slate-500 mb-12">Dibuat Oleh (Kasir / Admin),</p>
+                        <p className="font-bold text-slate-900 dark:text-white">( ______________________ )</p>
+                    </div>
+                    <div>
+                        <p className="text-slate-500 mb-12">Disetujui Oleh (Finance / Owner),</p>
+                        <p className="font-bold text-slate-900 dark:text-white">( ______________________ )</p>
+                    </div>
+                </div>
             </div>
-        </Modal>
+        </div>
     );
 };
 
@@ -779,7 +866,7 @@ export const CashAccountListPage: React.FC = () => {
                                     <Tr 
                                         key={account.id} 
                                         className="hover:bg-blue-50/50 dark:hover:bg-zinc-800/70 cursor-pointer transition-colors"
-                                        onClick={() => setSelectedAccountForStatement(account)}
+                                        onClick={() => dispatch({ type: 'ui/setPage', payload: Page.AccountStatement })}
                                     >
                                         <Td className="font-mono text-xs font-bold text-slate-600 dark:text-zinc-400">{account.id}</Td>
                                         <Td className="font-bold text-slate-900 dark:text-white">
@@ -799,7 +886,7 @@ export const CashAccountListPage: React.FC = () => {
                                         <Td className="text-right" onClick={e => e.stopPropagation()}>
                                             <div className="flex items-center justify-end gap-1.5">
                                                 <Button 
-                                                    onClick={() => setSelectedAccountForStatement(account)}
+                                                    onClick={() => dispatch({ type: 'ui/setPage', payload: Page.AccountStatement })}
                                                     variant="secondary"
                                                     className="text-[11px] py-1 px-2.5 shadow-2xs gap-1 text-blue-600"
                                                 >
