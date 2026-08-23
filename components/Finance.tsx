@@ -720,6 +720,20 @@ export const AccountStatementPage: React.FC = () => {
             {/* Main Printable Document Container */}
             <div id="printable-statement" className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs p-4 md:p-5 space-y-4 text-slate-900 dark:text-white">
                 
+                {/* Print-Only Official Letterhead Header */}
+                <div className="hidden print:flex justify-between items-start border-b border-slate-200 dark:border-zinc-800 pb-3 mb-2">
+                    <div>
+                        <h2 className="text-xl font-black uppercase text-blue-900 dark:text-blue-400">{companyInfo.name || 'POSNESIA POS'}</h2>
+                        <p className="text-[11px] text-slate-500">{companyInfo.address || 'Jl. Raya Utama PosNesia No. 88'}</p>
+                        <p className="text-[11px] text-slate-500">Telp: {companyInfo.phone || '-'} • Email: {companyInfo.email || '-'}</p>
+                    </div>
+                    <div className="text-right">
+                        <h3 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-wider">REKENING KORAN</h3>
+                        <p className="text-[11px] font-mono text-slate-500">Periode: {startDate} s/d {endDate}</p>
+                        <p className="text-[11px] font-mono text-slate-500">Tgl Cetak: {new Date().toLocaleDateString('id-ID')}</p>
+                    </div>
+                </div>
+
                 {/* Sleek Odoo/ERP Style 2-Column Statement Header */}
                 <div className="bg-slate-50/80 dark:bg-zinc-800/50 p-4 rounded-xl border border-slate-200/80 dark:border-zinc-700/80 space-y-3">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 dark:border-zinc-700 pb-3">
@@ -924,8 +938,8 @@ export const AccountStatementPage: React.FC = () => {
                     </Table>
                 </div>
 
-                {/* Printable Signatures Footer */}
-                <div className="pt-8 grid grid-cols-2 text-center text-xs border-t border-slate-200 mt-6">
+                {/* Printable Signatures Footer (Visible Only When Printing) */}
+                <div className="hidden print:grid pt-8 grid-cols-2 text-center text-xs border-t border-slate-200 mt-6">
                     <div>
                         <p className="text-slate-500 mb-12">Dibuat Oleh (Kasir / Admin),</p>
                         <p className="font-bold text-slate-900 dark:text-white">( ______________________ )</p>
