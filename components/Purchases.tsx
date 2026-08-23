@@ -206,7 +206,6 @@ export const PurchaseOrderDetailsPage: React.FC<{ purchaseOrderId?: string, onBa
                                 <thead className="bg-slate-100 dark:bg-zinc-800 uppercase font-bold text-slate-600 dark:text-zinc-400">
                                     <tr>
                                         <th className="p-3">Tgl. Bayar</th>
-                                        <th className="p-3">Metode Pembayaran</th>
                                         <th className="p-3">Sumber Saldo/Akun</th>
                                         <th className="p-3 text-right">Nominal</th>
                                     </tr>
@@ -215,8 +214,7 @@ export const PurchaseOrderDetailsPage: React.FC<{ purchaseOrderId?: string, onBa
                                     {purchaseOrder.paymentHistory.map(pay => (
                                         <tr key={pay.id}>
                                             <td className="p-3 font-mono">{new Date(pay.date).toLocaleString('id-ID')}</td>
-                                            <td className="p-3 font-semibold">{pay.paymentMethodName}</td>
-                                            <td className="p-3 text-slate-500">{pay.sourceAccountName || '-'}</td>
+                                            <td className="p-3 text-slate-500">{pay.sourceAccountName || pay.paymentMethodName || '-'}</td>
                                             <td className="p-3 text-right font-mono font-bold text-emerald-600">Rp{pay.amount.toLocaleString('id-ID')}</td>
                                         </tr>
                                     ))}
@@ -243,26 +241,14 @@ export const PurchaseOrderDetailsPage: React.FC<{ purchaseOrderId?: string, onBa
                     </div>
 
                     <div>
-                        <label className="block font-bold text-slate-700 dark:text-zinc-300 mb-1">Metode Pembayaran</label>
-                        <select 
-                            value={selectedPaymentMethodId} 
-                            onChange={e => setSelectedPaymentMethodId(e.target.value)}
-                            required
-                            className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-2 font-semibold outline-none"
-                        >
-                            {paymentMethods.map(pm => <option key={pm.id} value={pm.id}>{pm.name}</option>)}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block font-bold text-slate-700 dark:text-zinc-300 mb-1">Sumber Saldo / Akun Kas</label>
+                        <label className="block font-bold text-slate-700 dark:text-zinc-300 mb-1">Sumber Saldo / Dompet Kas</label>
                         <select 
                             value={selectedAccountId} 
                             onChange={e => setSelectedAccountId(e.target.value)}
                             required
                             className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-2 font-semibold outline-none"
                         >
-                            {accounts.filter(a => a.isCashAccount || a.type === 'Asset').map(a => (
+                            {accounts.filter(a => a.isCashAccount).map(a => (
                                 <option key={a.id} value={a.id}>{a.name} (Saldo: Rp{a.balance.toLocaleString('id-ID')})</option>
                             ))}
                         </select>
@@ -478,7 +464,6 @@ export const AddPurchasePage: React.FC = () => {
             taxAmount: totals.taxAmount,
             grandTotal: totals.grandTotal,
             billingType,
-            ...(billingType === 'cash' ? { sourceAccountId: selectedAccountId, paymentMethodId: selectedPaymentMethodId } : {})
         };
         
         dispatch({ type: 'purchases/add', payload: purchaseData as any });
@@ -639,41 +624,6 @@ export const AddPurchasePage: React.FC = () => {
                             </select>
                         </div>
 
-                        {billingType === 'cash' && (
-                            <>
-                                <div className="grid grid-cols-12 items-center gap-2">
-                                    <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
-                                        Sumber Saldo Kas <span className="text-rose-500">*</span>
-                                    </label>
-                                    <select 
-                                        value={selectedAccountId} 
-                                        onChange={e => setSelectedAccountId(e.target.value)} 
-                                        required 
-                                        className="col-span-8 rounded-lg border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/30 dark:bg-emerald-950/20 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
-                                    >
-                                        {cashAccounts.map(a => (
-                                            <option key={a.id} value={a.id}>{a.name} (Saldo: Rp{a.balance.toLocaleString('id-ID')})</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="grid grid-cols-12 items-center gap-2">
-                                    <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
-                                        Metode Pembayaran <span className="text-rose-500">*</span>
-                                    </label>
-                                    <select 
-                                        value={selectedPaymentMethodId} 
-                                        onChange={e => setSelectedPaymentMethodId(e.target.value)} 
-                                        required 
-                                        className="col-span-8 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-                                    >
-                                        {paymentMethods.map(pm => (
-                                            <option key={pm.id} value={pm.id}>{pm.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </>
-                        )}
 
                         <div className="grid grid-cols-12 items-center gap-2">
                             <label className="col-span-4 text-slate-600 dark:text-zinc-400 font-medium">
