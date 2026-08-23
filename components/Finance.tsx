@@ -734,98 +734,89 @@ export const AccountStatementPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Refined ERP Style 2-Column Statement Header */}
+                {/* Clean ERP Style 2-Column Statement Header */}
                 <div className="bg-slate-50/80 dark:bg-zinc-800/50 p-4 rounded-xl border border-slate-200/80 dark:border-zinc-700/80 space-y-3">
-                    <div className="flex flex-row justify-between items-center border-b border-slate-200/80 dark:border-zinc-700 pb-2.5">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200/80 dark:border-zinc-700 pb-2.5">
                         <div>
                             <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 block">Laporan Mutasi Rekening</span>
                             <h2 className="text-lg font-black text-slate-900 dark:text-white leading-tight flex items-center gap-2">
                                 {account?.name || 'Kasir'} <span className="text-xs font-semibold text-slate-500 font-mono">({account?.cashAccountType || 'Tunai'})</span>
                             </h2>
                         </div>
-                        <div className="text-right">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Kode Akun</span>
-                            <span className="font-mono text-sm font-black text-slate-700 dark:text-zinc-300">#{account?.id || '1010'}</span>
+                        
+                        {/* Top Right: Period Filter & Account Code */}
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-zinc-700">
+                                <span className="font-mono font-semibold text-slate-800 dark:text-zinc-200 text-xs">{startDate} s/d {endDate}</span>
+                                <div className="no-print flex items-center gap-1 ml-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setPeriodFilter('today')}
+                                        className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${periodFilter === 'today' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300'}`}
+                                    >
+                                        Hari Ini
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPeriodFilter('30days')}
+                                        className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${periodFilter === '30days' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300'}`}
+                                    >
+                                        30 Hari
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Kode Akun</span>
+                                <span className="font-mono text-sm font-black text-slate-700 dark:text-zinc-300">#{account?.id || '1010'}</span>
+                            </div>
                         </div>
                     </div>
 
                     {/* Clean 2-Column Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
-                        {/* Left Column: Key Specs & Filters */}
+                        {/* Left Column: Account Info Specs */}
                         <div className="space-y-2 md:border-r border-slate-200/80 dark:border-zinc-700/80 md:pr-6">
-                            <div className="grid grid-cols-12 items-center">
-                                <span className="col-span-5 text-slate-500 font-medium">Nama Dompet / Kas</span>
-                                <span className="col-span-1 text-slate-400 text-center">:</span>
-                                <div className="col-span-6 no-print">
-                                    <Select
-                                        id="statement_acc"
-                                        value={selectedAccountId}
-                                        onChange={e => setSelectedAccountId(e.target.value)}
-                                        className="text-xs py-1 px-2 font-bold bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-700 w-full"
-                                    >
-                                        {accounts.filter(a => a.isCashAccount).map(acc => (
-                                            <option key={acc.id} value={acc.id}>
-                                                🏦 {acc.name} ({acc.cashAccountType || 'Tunai'})
-                                            </option>
-                                        ))}
-                                    </Select>
-                                </div>
-                                <span className="col-span-6 font-bold text-slate-900 dark:text-white hidden print:inline">{account?.name}</span>
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-500 font-medium w-40">Nama Dompet / Kas</span>
+                                <span className="text-slate-400 mr-2">:</span>
+                                <span className="font-bold text-slate-900 dark:text-white flex-1">{account?.name}</span>
                             </div>
 
-                            <div className="grid grid-cols-12 items-center">
-                                <span className="col-span-5 text-slate-500 font-medium">Rentang Tanggal</span>
-                                <span className="col-span-1 text-slate-400 text-center">:</span>
-                                <div className="col-span-6 flex items-center justify-between gap-1">
-                                    <span className="font-mono font-semibold text-slate-800 dark:text-zinc-200 text-[11px]">{startDate} s/d {endDate}</span>
-                                    <div className="no-print flex items-center gap-1 shrink-0">
-                                        <button
-                                            type="button"
-                                            onClick={() => setPeriodFilter('today')}
-                                            className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${periodFilter === 'today' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-slate-200/70 text-slate-700 dark:bg-zinc-700 dark:text-zinc-300'}`}
-                                        >
-                                            Hari Ini
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setPeriodFilter('30days')}
-                                            className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${periodFilter === '30days' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-slate-200/70 text-slate-700 dark:bg-zinc-700 dark:text-zinc-300'}`}
-                                        >
-                                            30 Hari
-                                        </button>
-                                    </div>
-                                </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-500 font-medium w-40">Kategori / Tipe Akun</span>
+                                <span className="text-slate-400 mr-2">:</span>
+                                <span className="font-mono font-semibold text-slate-800 dark:text-zinc-200 flex-1">{account?.cashAccountType || 'Tunai'}</span>
                             </div>
 
-                            <div className="grid grid-cols-12 items-center">
-                                <span className="col-span-5 text-slate-500 font-medium">Tanggal Cetak</span>
-                                <span className="col-span-1 text-slate-400 text-center">:</span>
-                                <span className="col-span-6 font-mono font-semibold text-slate-800 dark:text-zinc-200">{new Date().toLocaleDateString('id-ID')}</span>
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-500 font-medium w-40">Tanggal Cetak</span>
+                                <span className="text-slate-400 mr-2">:</span>
+                                <span className="font-mono font-semibold text-slate-800 dark:text-zinc-200 flex-1">{new Date().toLocaleDateString('id-ID')}</span>
                             </div>
                         </div>
 
                         {/* Right Column: Key Totals */}
                         <div className="space-y-2">
-                            <div className="grid grid-cols-12 items-center">
-                                <span className="col-span-6 text-slate-500 font-medium">Total Debit (Pemasukan)</span>
-                                <span className="col-span-1 text-slate-400 text-center">:</span>
-                                <span className="col-span-5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-500 font-medium w-44">Total Debit (Pemasukan)</span>
+                                <span className="text-slate-400 mr-2">:</span>
+                                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs flex-1 text-right">
                                     +Rp{statementData.totalDebit.toLocaleString('id-ID')}
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-12 items-center">
-                                <span className="col-span-6 text-slate-500 font-medium">Total Kredit (Pengeluaran)</span>
-                                <span className="col-span-1 text-slate-400 text-center">:</span>
-                                <span className="col-span-5 text-right font-mono font-bold text-rose-600 dark:text-rose-400 text-xs">
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-500 font-medium w-44">Total Kredit (Pengeluaran)</span>
+                                <span className="text-slate-400 mr-2">:</span>
+                                <span className="font-mono font-bold text-rose-600 dark:text-rose-400 text-xs flex-1 text-right">
                                     -Rp{statementData.totalCredit.toLocaleString('id-ID')}
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-12 items-center pt-2 border-t border-slate-200/80 dark:border-zinc-700/80">
-                                <span className="col-span-6 text-slate-900 dark:text-white font-extrabold text-xs">Saldo Kas Saat Ini</span>
-                                <span className="col-span-1 text-slate-400 text-center">:</span>
-                                <strong className="col-span-5 text-right font-mono font-black text-blue-600 dark:text-blue-400 text-base">
+                            <div className="flex justify-between items-center pt-2 border-t border-slate-200/80 dark:border-zinc-700/80">
+                                <span className="text-slate-900 dark:text-white font-extrabold text-xs w-44">Saldo Kas Saat Ini</span>
+                                <span className="text-slate-400 mr-2">:</span>
+                                <strong className="font-mono font-black text-blue-600 dark:text-blue-400 text-base flex-1 text-right">
                                     Rp{statementData.activeAccountBalance.toLocaleString('id-ID')}
                                 </strong>
                             </div>
