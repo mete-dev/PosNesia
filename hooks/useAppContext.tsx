@@ -471,19 +471,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     r.id === 'admin' ? { ...r, permissions: allPages } : r
                 );
 
-                // Migrate accounts state: preserve user-created accounts & wallets
-                let accounts = parsed.accounts || defaultState.accounts;
-                const hasOldMockBalances = accounts.some((a: any) => 
-                    a.name === 'Kas di Tangan (Pusat)' || 
-                    a.id === '1220'
-                );
+                // Calculate all account balances purely from active journalEntries starting from 0
+                const rawJournals = parsed.journalEntries || defaultState.journalEntries;
+                const baseAccounts = defaultState.accounts;
+                const userAccounts = parsed.accounts || defaultState.accounts;
 
-                if (hasOldMockBalances) {
-                    // Retain user newly created cash accounts (id starting with 1020 or isCashAccount) while cleaning legacy mock names
-                    accounts = defaultState.accounts.concat(
-                        accounts.filter((a: any) => !defaultState.accounts.some(d => d.id === a.id))
-                    );
-                }
+                const mergedAccountMap = new Map<string, Account>();
+                baseAccounts.forEach(a => mergedAccountMap.set(a.id, { ...a, balance: 0 }));
+                userAccounts.forEach((a: any) => {
+                    if (a && a.id) {
+                        const existing = mergedAccountMap.get(a.id) || a;
+                        mergedAccountMap.set(a.id, { ...existing, ...a, balance: 0 });
+                    }
+                });
+
+                // Apply journal entries to calculate real balances from 0
+                rawJournals.forEach((je: any) => {
+                    if (je.status === 'cancelled' || je.status === 'corrected') return;
+                    (je.lines || []).forEach((l: any) => {
+                        const target = mergedAccountMap.get(l.accountId);
+                        if (target) {
+                            const delta = l.type === 'debit' ? l.amount : -l.amount;
+                            target.balance = (target.balance || 0) + delta;
+                        }
+                    });
+                });
+
+                let accounts = Array.from(mergedAccountMap.values());
 
                 // Migrate & sanitize paymentMethods (retain ONLY 'Tunai - Kasir' by default plus user custom methods)
                 let paymentMethods = (parsed.paymentMethods || defaultState.paymentMethods).map((pm: any) => {
