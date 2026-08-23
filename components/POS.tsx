@@ -531,7 +531,7 @@ export const POSPage: React.FC = () => {
     const combinedProducts = useMemo(() => {
       return (state.products || []).map(p => {
         const categoryObj = state.productCategories?.find(c => c.id === p.categoryId);
-        const stockCount = state.inventoryLevels?.filter(inv => inv.productId === p.id).reduce((acc, curr) => acc + curr.quantity, 0) || 100;
+        const stockCount = state.inventoryLevels?.filter(inv => inv.productId === p.id).reduce((acc, curr) => acc + curr.quantity, 0) ?? 0;
         return {
           id: p.id,
           name: p.name,
@@ -755,6 +755,16 @@ export const POSPage: React.FC = () => {
 
     // Cart operations
     const addToCart = (product: ProductPreset) => {
+      // Stock protection: Prevent sale if stock <= 0 (except for service and appointment modes)
+      if (activeBusinessMode !== 'service_job' && activeBusinessMode !== 'appointment_commission') {
+        const availableStock = product.stock ?? 0;
+        const currentInCart = posCart.filter(item => item.product.id === product.id).reduce((sum, item) => sum + item.quantity, 0);
+        if (availableStock <= 0 || currentInCart >= availableStock) {
+          alert(`⚠️ Stok Produk Habis!\nStok "${product.name}" saat ini adalah ${availableStock} unit.`);
+          return;
+        }
+      }
+
       setPosCart(prev => {
         const existingIndex = prev.findIndex(item => item.product.id === product.id);
         if (existingIndex > -1 && !product.isCustomizable && activeBusinessMode !== 'service_job' && activeBusinessMode !== 'appointment_commission') {
@@ -791,6 +801,14 @@ export const POSPage: React.FC = () => {
       setPosCart(prev => {
         return prev.map(item => {
           if (item.id === itemId) {
+            if (increment && activeBusinessMode !== 'service_job' && activeBusinessMode !== 'appointment_commission') {
+              const availableStock = item.product.stock ?? 0;
+              const totalInCartForProduct = prev.filter(i => i.product.id === item.product.id).reduce((sum, i) => sum + i.quantity, 0);
+              if (totalInCartForProduct >= availableStock) {
+                alert(`⚠️ Stok Produk Habis!\nJumlah di keranjang melebihi stok yang tersedia (${availableStock} unit).`);
+                return item;
+              }
+            }
             const newQty = increment ? item.quantity + 1 : item.quantity - 1;
             return newQty > 0 ? { ...item, quantity: newQty } : item;
           }
