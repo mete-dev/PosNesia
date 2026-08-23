@@ -869,11 +869,59 @@ const appReducer = (state: AppState, action: Action): AppState => {
         // --- PURCHASES ---
         case 'purchases/add': {
             const poDate = new Date(action.payload.orderDate || Date.now());
-            const newPO: PurchaseOrder = {
-                ...action.payload,
-                id: generateMonthlyTransactionalId('B', action.payload.destinationId || 'PST', poDate, state.purchases),
+            const newPOId = generateMonthlyTransactionalId('B', action.payload.destinationId || 'PST', poDate, state.purchases);
+            const { sourceAccountId, paymentMethodId, ...poData } = action.payload as any;
+
+            let currentAccounts = state.accounts.map(a => ({ ...a }));
+            let currentJournals = [...state.journalEntries];
+
+            const isCashPayment = poData.billingType === 'cash' || sourceAccountId;
+            let updatedPO: PurchaseOrder = {
+                ...poData,
+                id: newPOId,
             };
-            return { ...state, purchases: [newPO, ...state.purchases] };
+
+            if (isCashPayment && sourceAccountId && poData.grandTotal > 0) {
+                const pm = state.paymentMethods.find(p => p.id === paymentMethodId);
+                const acc = currentAccounts.find(a => a.id === sourceAccountId);
+
+                const paymentRecord: PaymentRecord = {
+                    id: generateId('pay', Math.random()),
+                    date: new Date().toISOString(),
+                    amount: poData.grandTotal,
+                    paymentMethodId: paymentMethodId || 'pm-1',
+                    paymentMethodName: pm?.name || 'Tunai',
+                    sourceAccountId,
+                    sourceAccountName: acc?.name,
+                    notes: 'Pembayaran Tunai Langsung saat Pembuatan PO',
+                };
+
+                updatedPO.amountPaid = poData.grandTotal;
+                updatedPO.paymentStatus = 'Lunas';
+                updatedPO.paymentHistory = [paymentRecord];
+
+                const branchId = state.currentUser?.branchId || state.branches[0]?.id || 'CAB-JPSTNH01';
+                const journalResult = journalService.createJournalEntry(
+                    currentAccounts,
+                    currentJournals,
+                    branchId,
+                    `Pembayaran Tunai Pembelian #${newPOId} (${poData.vendorName})`,
+                    [
+                        { accountId: '2100', type: 'debit', amount: poData.grandTotal }, // Debet Hutang Usaha / Pembelian
+                        { accountId: sourceAccountId, type: 'credit', amount: poData.grandTotal } // Kredit Rekening/Dompet/Brankas
+                    ],
+                    `PO-CASH-${newPOId}`
+                );
+                currentAccounts = journalResult.accounts;
+                currentJournals = journalResult.journalEntries;
+            }
+
+            return {
+                ...state,
+                accounts: currentAccounts,
+                journalEntries: currentJournals,
+                purchases: [updatedPO, ...state.purchases]
+            };
         }
         case 'purchases/receive': {
             const poId = action.payload;

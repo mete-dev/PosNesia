@@ -330,7 +330,8 @@ export const PurchaseOrderDetailsPage: React.FC<{ purchaseOrderId?: string, onBa
 // --- Page 2: Add Purchase Page (New complex component) ---
 export const AddPurchasePage: React.FC = () => {
     const { state, dispatch } = useAppContext();
-    const { vendors, products, taxRates, warehouses } = state;
+    const { vendors, products, taxRates, warehouses, accounts, paymentMethods } = state;
+    const cashAccounts = useMemo(() => accounts.filter(a => a.isCashAccount || a.type === 'Asset'), [accounts]);
     
     const [vendorId, setVendorId] = useState('');
     const [destinationId, setDestinationId] = useState(warehouses[0]?.id || 'wh_c1');
@@ -343,6 +344,8 @@ export const AddPurchasePage: React.FC = () => {
     const [invoiceNumber, setInvoiceNumber] = useState('');
     const [vendorNoteNumber, setVendorNoteNumber] = useState('');
     const [billingType, setBillingType] = useState<'cash' | 'tempo'>('tempo');
+    const [selectedAccountId, setSelectedAccountId] = useState(cashAccounts[0]?.id || '1010');
+    const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState(paymentMethods[0]?.id || 'pm-1');
     const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
     const [dueDate, setDueDate] = useState('');
     const [expectedDelivery, setExpectedDelivery] = useState('');
@@ -457,7 +460,7 @@ export const AddPurchasePage: React.FC = () => {
             return;
         }
         
-        const purchaseData: Omit<PurchaseOrder, 'id'> = {
+        const purchaseData: Omit<PurchaseOrder, 'id'> & { sourceAccountId?: string; paymentMethodId?: string; billingType?: string } = {
             destinationType: 'warehouse',
             destinationId,
             vendorId,
@@ -474,9 +477,11 @@ export const AddPurchasePage: React.FC = () => {
             subtotal: totals.subtotal,
             taxAmount: totals.taxAmount,
             grandTotal: totals.grandTotal,
+            billingType,
+            ...(billingType === 'cash' ? { sourceAccountId: selectedAccountId, paymentMethodId: selectedPaymentMethodId } : {})
         };
         
-        dispatch({ type: 'purchases/add', payload: purchaseData });
+        dispatch({ type: 'purchases/add', payload: purchaseData as any });
 
         // Auto-create Vendor Bill if transaction is Tempo
         if (billingType === 'tempo') {
@@ -633,6 +638,42 @@ export const AddPurchasePage: React.FC = () => {
                                 <option value="tempo">Tagihan Tempo (Kredit / Hutang Vendor)</option>
                             </select>
                         </div>
+
+                        {billingType === 'cash' && (
+                            <>
+                                <div className="grid grid-cols-12 items-center gap-2">
+                                    <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
+                                        Sumber Saldo Kas <span className="text-rose-500">*</span>
+                                    </label>
+                                    <select 
+                                        value={selectedAccountId} 
+                                        onChange={e => setSelectedAccountId(e.target.value)} 
+                                        required 
+                                        className="col-span-8 rounded-lg border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/30 dark:bg-emerald-950/20 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                                    >
+                                        {cashAccounts.map(a => (
+                                            <option key={a.id} value={a.id}>{a.name} (Saldo: Rp{a.balance.toLocaleString('id-ID')})</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="grid grid-cols-12 items-center gap-2">
+                                    <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
+                                        Metode Pembayaran <span className="text-rose-500">*</span>
+                                    </label>
+                                    <select 
+                                        value={selectedPaymentMethodId} 
+                                        onChange={e => setSelectedPaymentMethodId(e.target.value)} 
+                                        required 
+                                        className="col-span-8 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                                    >
+                                        {paymentMethods.map(pm => (
+                                            <option key={pm.id} value={pm.id}>{pm.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </>
+                        )}
 
                         <div className="grid grid-cols-12 items-center gap-2">
                             <label className="col-span-4 text-slate-600 dark:text-zinc-400 font-medium">
