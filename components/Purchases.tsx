@@ -317,16 +317,13 @@ export const PurchaseOrderDetailsPage: React.FC<{ purchaseOrderId?: string, onBa
 export const AddPurchasePage: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const { vendors, products, taxRates, warehouses, accounts, paymentMethods } = state;
-    const cashAccounts = useMemo(() => accounts.filter(a => a.isCashAccount || a.type === 'Asset'), [accounts]);
-    
+    const targetBranchId = state.currentBranchId || state.branches[0]?.id || 'CAB-JPSTNH01';
     const [vendorId, setVendorId] = useState('');
-    const [destinationId, setDestinationId] = useState(warehouses[0]?.id || 'wh_c1');
+    const [destinationId, setDestinationId] = useState(targetBranchId);
 
     useEffect(() => {
-        if (warehouses.length > 0 && !destinationId) {
-            setDestinationId(warehouses[0].id);
-        }
-    }, [warehouses]);
+        setDestinationId(targetBranchId);
+    }, [targetBranchId]);
     const [invoiceNumber, setInvoiceNumber] = useState('');
     const [vendorNoteNumber, setVendorNoteNumber] = useState('');
     const [billingType, setBillingType] = useState<'cash' | 'tempo'>('tempo');
@@ -447,7 +444,7 @@ export const AddPurchasePage: React.FC = () => {
         }
         
         const purchaseData: Omit<PurchaseOrder, 'id'> & { sourceAccountId?: string; paymentMethodId?: string; billingType?: string } = {
-            destinationType: 'warehouse',
+            destinationType: 'branch',
             destinationId,
             vendorId,
             vendorName: vendor.name,

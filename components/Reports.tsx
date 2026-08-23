@@ -1955,17 +1955,27 @@ export const FinancialPositionReportPage: React.FC = () => {
             : accounts;
 
         const assets = branchAccounts.filter(a => a.type === AccountType.Asset).reduce((sum, a) => sum + a.balance, 0);
-        const liabilities = branchAccounts.filter(a => a.type === AccountType.Liability).reduce((sum, a) => sum + a.balance, 0);
-        const equity = branchAccounts.filter(a => a.type === AccountType.Equity).reduce((sum, a) => sum + a.balance, 0);
+        const liabilities = branchAccounts.filter(a => a.type === AccountType.Liability).reduce((sum, a) => sum + Math.abs(a.balance), 0);
+        const equity = branchAccounts.filter(a => a.type === AccountType.Equity).reduce((sum, a) => sum + Math.abs(a.balance), 0);
+
+        // Net income = Revenue (credit-normal, stored as negative) - Expenses (debit-normal, stored as positive)
+        // Revenue accounts have negative balance (credits reduce balance in our system)
+        const revenueTotal = branchAccounts.filter(a => a.type === AccountType.Revenue).reduce((sum, a) => sum + Math.abs(a.balance), 0);
+        const expenseTotal = branchAccounts.filter(a => a.type === AccountType.Expense).reduce((sum, a) => sum + a.balance, 0);
+        const netIncome = revenueTotal - expenseTotal;
 
         return {
             assets,
-            liabilities: Math.abs(liabilities),
-            equity: Math.abs(equity),
+            liabilities,
+            equity,
+            netIncome,
+            revenueAccounts: branchAccounts.filter(a => a.type === AccountType.Revenue),
+            expenseAccounts: branchAccounts.filter(a => a.type === AccountType.Expense),
         };
     }, [accounts, currentBranchId]);
 
-    const isBalanced = reportData.assets === (reportData.liabilities + reportData.equity);
+
+    const isBalanced = Math.abs(reportData.assets - (reportData.liabilities + reportData.equity + reportData.netIncome)) < 1;
 
     return (
         <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-4 overflow-hidden">
@@ -1995,7 +2005,7 @@ export const FinancialPositionReportPage: React.FC = () => {
 
                     <div className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200/60 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 font-medium">
                         <span className="text-[10px] uppercase font-bold">Total Ekuitas:</span>{" "}
-                        <span className="font-bold font-mono">Rp{reportData.equity.toLocaleString('id-ID')}</span>
+                        <span className="font-bold font-mono">Rp{(reportData.equity + reportData.netIncome).toLocaleString('id-ID')}</span>
                     </div>
 
                     <Button onClick={() => setIsFilterOpen(true)} className="gap-2 text-xs py-1.5 px-3.5 shadow-xs">
@@ -2103,6 +2113,16 @@ export const FinancialPositionReportPage: React.FC = () => {
                                                     </td>
                                                 </tr>
                                             ))}
+                                            {/* Laba / Rugi Berjalan = Revenue - Expense */}
+                                            <tr className={`hover:bg-slate-50 dark:hover:bg-zinc-800/40 font-semibold ${reportData.netIncome >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                                                <td className="py-2">
+                                                    <span className="font-mono text-slate-400 mr-2">3999</span>
+                                                    Laba / Rugi Berjalan
+                                                </td>
+                                                <td className="py-2 text-right font-mono font-bold">
+                                                    {reportData.netIncome < 0 ? '-' : ''}Rp{Math.abs(reportData.netIncome).toLocaleString('id-ID')}
+                                                </td>
+                                            </tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -2111,7 +2131,7 @@ export const FinancialPositionReportPage: React.FC = () => {
 
                         <div className="p-4 bg-blue-50/80 dark:bg-blue-950/40 border-t border-blue-100 dark:border-blue-900/60 flex justify-between items-center font-bold text-blue-900 dark:text-blue-200 text-sm">
                             <span>TOTAL LIABILITAS & EKUITAS</span>
-                            <span className="font-mono text-base">Rp{(reportData.liabilities + reportData.equity).toLocaleString('id-ID')}</span>
+                            <span className="font-mono text-base">Rp{(reportData.liabilities + reportData.equity + reportData.netIncome).toLocaleString('id-ID')}</span>
                         </div>
                     </div>
                 </div>

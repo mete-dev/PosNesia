@@ -506,6 +506,45 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     name: b.name === 'Toko Pusat Tanah Abang' || !b.name ? 'Pos Nesia (Toko Utama)' : b.name
                 }));
 
+                const mainBranchId = branches[0]?.id || 'CAB-JPSTNH01';
+
+                // Unify inventoryLevels: Consolidate stock levels across old warehouse IDs into single store branch
+                const rawInvLevels: InventoryLevel[] = parsed.inventoryLevels || defaultState.inventoryLevels;
+                const consolidatedInvMap = new Map<string, number>();
+                rawInvLevels.forEach((inv: any) => {
+                    if (inv && inv.productId) {
+                        consolidatedInvMap.set(inv.productId, (consolidatedInvMap.get(inv.productId) || 0) + (inv.quantity || 0));
+                    }
+                });
+                const unifiedInventoryLevels: InventoryLevel[] = Array.from(consolidatedInvMap.entries()).map(([productId, quantity], idx) => ({
+                    id: `inv_${idx + 1}`,
+                    productId,
+                    locationId: mainBranchId,
+                    locationType: 'branch',
+                    quantity
+                }));
+
+                // Normalize stock movements: Ensure old warehouse location IDs map to main store branch
+                const rawStockMovements: StockMovement[] = parsed.stockMovements || defaultState.stockMovements;
+                const unifiedStockMovements = rawStockMovements.map(m => ({
+                    ...m,
+                    locationId: mainBranchId
+                }));
+
+                // Auto-reconcile 1210 inventory account balance if it was negative due to legacy unjournaled purchases
+                const productsList: Product[] = parsed.products || defaultState.products;
+                const totalStockValue = unifiedInventoryLevels.reduce((sum, inv) => {
+                    const prod = productsList.find(p => p.id === inv.productId);
+                    return sum + ((prod?.cost || 0) * Math.max(0, inv.quantity));
+                }, 0);
+
+                accounts = accounts.map((a: any) => {
+                    if (a.id === '1210' && (a.balance < 0 || (a.balance === 0 && totalStockValue > 0))) {
+                        return { ...a, balance: totalStockValue };
+                    }
+                    return a;
+                });
+
                 return { 
                     ...defaultState, 
                     ...parsed,
@@ -515,6 +554,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     paymentMethods,
                     roles: mergedRoles,
                     companyInfo,
+                    inventoryLevels: unifiedInventoryLevels,
+                    stockMovements: unifiedStockMovements,
                     websiteSettings: { ...defaultState.websiteSettings, ...(parsed.websiteSettings || {}) }
                 };
             }
@@ -887,14 +928,16 @@ const appReducer = (state: AppState, action: Action): AppState => {
             const targetPO = state.purchases.find(p => p.id === poId);
             if (!targetPO || targetPO.status === 'Received') return state;
 
-            const updatedPurchases = state.purchases.map(p => p.id === poId ? { ...p, status: 'Received' as const } : p);
+            const updatedPurchases = state.purchases.map(p => p.id === poId ? { ...p, status: 'Received' as const, itemStatus: 'Barang Diterima' as const } : p);
             
-            // Auto update stock for target location
+            // Auto update stock for target location (single store branch)
             let updatedInventoryLevels = [...state.inventoryLevels];
             const newMovements = [...state.stockMovements];
-            const locId = targetPO.destinationId || state.currentBranchId || 'CAB-JPSTNH01';
+            const locId = state.currentBranchId || state.branches[0]?.id || 'CAB-JPSTNH01';
 
+            let totalReceiveCost = 0;
             targetPO.items.forEach(item => {
+                totalReceiveCost += (item.cost || 0) * item.quantity;
                 const invIndex = updatedInventoryLevels.findIndex(i => i.productId === item.productId && i.locationId === locId);
                 if (invIndex > -1) {
                     updatedInventoryLevels[invIndex] = {
@@ -923,8 +966,31 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 });
             });
 
+            // Financial Journal: Debit 1210 (Persediaan Barang Dagang), Credit 2010 (Utang Usaha)
+            let currentAccounts = state.accounts.map(a => ({ ...a }));
+            let currentJournals = [...state.journalEntries];
+
+            if (totalReceiveCost > 0) {
+                const branchId = state.currentUser?.branchId || state.branches[0]?.id || 'CAB-JPSTNH01';
+                const journalResult = journalService.createJournalEntry(
+                    currentAccounts,
+                    currentJournals,
+                    branchId,
+                    `Penerimaan Barang PO #${targetPO.id} (${targetPO.vendorName})`,
+                    [
+                        { accountId: '1210', type: 'debit', amount: totalReceiveCost }, // Persediaan Barang Dagang
+                        { accountId: '2010', type: 'credit', amount: totalReceiveCost } // Utang Usaha
+                    ],
+                    `PO-REC-${targetPO.id}`
+                );
+                currentAccounts = journalResult.accounts;
+                currentJournals = journalResult.journalEntries;
+            }
+
             return {
                 ...state,
+                accounts: currentAccounts,
+                journalEntries: currentJournals,
                 purchases: updatedPurchases,
                 inventoryLevels: updatedInventoryLevels,
                 stockMovements: newMovements
@@ -986,7 +1052,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
                     branchId,
                     `Pembayaran Pembelian #${targetPO.id} ke ${targetPO.vendorName}`,
                     [
-                        { accountId: '2100', type: 'debit', amount }, // Debet Hutang Usaha / Pembelian
+                        { accountId: '2010', type: 'debit', amount }, // Debet Hutang Usaha / Pembelian (2010)
                         { accountId: sourceAccountId, type: 'credit', amount } // Kredit Dompet / Brankas
                     ],
                     `PO-PAY-${targetPO.id}`
@@ -1017,14 +1083,16 @@ const appReducer = (state: AppState, action: Action): AppState => {
 
             let updatedInventoryLevels = [...state.inventoryLevels];
             const newMovements = [...state.stockMovements];
-            const locId = targetPO.destinationId || state.currentBranchId || 'CAB-JPSTNH01';
+            const locId = state.currentBranchId || state.branches[0]?.id || 'CAB-JPSTNH01';
 
+            let totalReceiveCost = 0;
             const updatedItems = targetPO.items.map(item => {
                 const r = receivedItems.find(i => i.productId === item.productId);
                 if (!r || r.receivedQty <= 0) return item;
 
                 const addedQty = r.receivedQty;
                 const newRec = (item.receivedQuantity || 0) + addedQty;
+                totalReceiveCost += (item.cost || 0) * addedQty;
 
                 const invIndex = updatedInventoryLevels.findIndex(i => i.productId === item.productId && i.locationId === locId);
                 if (invIndex > -1) {
@@ -1059,8 +1127,30 @@ const appReducer = (state: AppState, action: Action): AppState => {
             const allItemsFullyReceived = updatedItems.every(i => (i.receivedQuantity || 0) >= i.quantity);
             const newItemStatus: PurchaseItemStatus = allItemsFullyReceived ? 'Barang Diterima' : 'Menunggu Kedatangan';
 
+            let currentAccounts = state.accounts.map(a => ({ ...a }));
+            let currentJournals = [...state.journalEntries];
+
+            if (totalReceiveCost > 0) {
+                const branchId = state.currentUser?.branchId || state.branches[0]?.id || 'CAB-JPSTNH01';
+                const journalResult = journalService.createJournalEntry(
+                    currentAccounts,
+                    currentJournals,
+                    branchId,
+                    `Penerimaan Sebagian Barang PO #${targetPO.id} (${targetPO.vendorName})`,
+                    [
+                        { accountId: '1210', type: 'debit', amount: totalReceiveCost }, // Persediaan Barang Dagang
+                        { accountId: '2010', type: 'credit', amount: totalReceiveCost } // Utang Usaha
+                    ],
+                    `PO-PREC-${targetPO.id}`
+                );
+                currentAccounts = journalResult.accounts;
+                currentJournals = journalResult.journalEntries;
+            }
+
             return {
                 ...state,
+                accounts: currentAccounts,
+                journalEntries: currentJournals,
                 purchases: state.purchases.map(p => p.id === poId ? { ...p, items: updatedItems, itemStatus: newItemStatus, status: allItemsFullyReceived ? 'Received' as const : 'Pending' as const } : p),
                 inventoryLevels: updatedInventoryLevels,
                 stockMovements: newMovements
@@ -1323,7 +1413,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 branchId,
                 `Pembayaran Tagihan Vendor #${bill.id} (${bill.vendorName})`,
                 [
-                    { accountId: '2100', type: 'debit', amount: bill.amount }, // Debet Hutang Usaha
+                    { accountId: '2010', type: 'debit', amount: bill.amount }, // Debet Hutang Usaha (2010)
                     { accountId: paymentAccountId, type: 'credit', amount: bill.amount } // Kredit Rekening/Dompet
                 ],
                 `BILL-PAY-${bill.id}`

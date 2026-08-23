@@ -67,11 +67,10 @@ export const InventoryAdjustmentPage: React.FC = () => {
   const { products, stockMovements, productCategories, inventoryLevels, currentBranchId, productTypeLocations, shelves, branches, branchTypes } = state;
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [view, setView] = useState<'overview' | 'history'>('overview');
+  const targetBranchId = currentBranchId || branches[0]?.id || 'CAB-JPSTNH01';
 
   const onAdjustStock = (productId: string, newStock: number, reason: string) => {
-    if (!currentBranchId) return;
-    dispatch({ type: 'inventory/adjustStock', payload: { productId, newStock, reason, locationId: currentBranchId } });
+    dispatch({ type: 'inventory/adjustStock', payload: { productId, newStock, reason, locationId: targetBranchId } });
   };
 
   const handleOpenModal = (product: Product) => {
@@ -80,16 +79,24 @@ export const InventoryAdjustmentPage: React.FC = () => {
   };
   
   const branchInventory = useMemo(() => {
-    if (!currentBranchId) return new Map<string, InventoryLevel>();
-    return new Map(inventoryLevels.filter(inv => inv.locationId === currentBranchId).map(inv => [inv.productId, inv]));
-  }, [inventoryLevels, currentBranchId]);
+    const map = new Map<string, InventoryLevel>();
+    inventoryLevels.forEach(inv => {
+      if (!currentBranchId || inv.locationId === targetBranchId) {
+        const existing = map.get(inv.productId);
+        if (existing) {
+          map.set(inv.productId, { ...existing, quantity: existing.quantity + inv.quantity });
+        } else {
+          map.set(inv.productId, inv);
+        }
+      }
+    });
+    return map;
+  }, [inventoryLevels, currentBranchId, targetBranchId]);
 
   const shelfMap = useMemo(() => new Map(shelves.map(s => [s.id, s.code])), [shelves]);
   const productLocationMap = useMemo(() => {
       const map = new Map<string, string>();
-      if (!currentBranchId) return map;
-  
-      const currentBranch = branches.find(b => b.id === currentBranchId);
+      const currentBranch = branches.find(b => b.id === targetBranchId);
       if (!currentBranch) return map;
       
       const currentBranchType = branchTypes.find(bt => bt.id === currentBranch.branchTypeId);
@@ -102,7 +109,7 @@ export const InventoryAdjustmentPage: React.FC = () => {
               map.set(ptl.productId, `${shelfCode || ''}${ptl.shelvingNumber ? `-${ptl.shelvingNumber}` : ''}`);
           });
       return map;
-  }, [productTypeLocations, shelves, currentBranchId, branches, branchTypes, shelfMap]);
+  }, [productTypeLocations, shelves, targetBranchId, branches, branchTypes, shelfMap]);
 
   const getStatus = (product: Product) => {
     const stock = branchInventory.get(product.id)?.quantity || 0;
@@ -120,9 +127,9 @@ export const InventoryAdjustmentPage: React.FC = () => {
   [productCategories]);
 
   const branchStockMovements = useMemo(() => {
-    if (!currentBranchId) return [];
-    return stockMovements.filter(m => m.locationId === currentBranchId);
-  }, [stockMovements, currentBranchId])
+    if (!currentBranchId) return stockMovements;
+    return stockMovements.filter(m => m.locationId === targetBranchId);
+  }, [stockMovements, currentBranchId, targetBranchId]);
   
   return (
     <div className="p-8 h-full flex flex-col">
