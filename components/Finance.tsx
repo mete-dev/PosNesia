@@ -416,7 +416,7 @@ export const AccountStatementPage: React.FC = () => {
     const todayStr = new Date().toISOString().split('T')[0];
     const pastMonthStr = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    const [periodFilter, setPeriodFilter] = useState<'today' | '7days' | '30days' | 'custom'>('30days');
+    const [periodFilter, setPeriodFilter] = useState<'today' | '7days' | '30days' | '1year' | 'custom'>('30days');
     const [startDate, setStartDate] = useState(pastMonthStr);
     const [endDate, setEndDate] = useState(todayStr);
 
@@ -432,6 +432,10 @@ export const AccountStatementPage: React.FC = () => {
             setEndDate(tStr);
         } else if (periodFilter === '30days') {
             const d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            setStartDate(d.toISOString().split('T')[0]);
+            setEndDate(tStr);
+        } else if (periodFilter === '1year') {
+            const d = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
             setStartDate(d.toISOString().split('T')[0]);
             setEndDate(tStr);
         }
@@ -746,22 +750,43 @@ export const AccountStatementPage: React.FC = () => {
                         
                         {/* Top Right: Period Filter & Account Code */}
                         <div className="flex flex-wrap items-center gap-3">
-                            <div className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-zinc-700">
-                                <span className="font-mono font-semibold text-slate-800 dark:text-zinc-200 text-xs">{startDate} s/d {endDate}</span>
-                                <div className="no-print flex items-center gap-1 ml-1">
+                            <div className="flex flex-wrap items-center gap-1.5 bg-white dark:bg-zinc-900 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-2xs">
+                                <span className="font-mono font-bold text-slate-800 dark:text-zinc-200 text-xs px-1">{startDate} s/d {endDate}</span>
+                                <div className="no-print flex flex-wrap items-center gap-1 border-l border-slate-200 dark:border-zinc-700 pl-1.5">
                                     <button
                                         type="button"
                                         onClick={() => setPeriodFilter('today')}
-                                        className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${periodFilter === 'today' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300'}`}
+                                        className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all ${periodFilter === 'today' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300'}`}
                                     >
                                         Hari Ini
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setPeriodFilter('30days')}
-                                        className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${periodFilter === '30days' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300'}`}
+                                        onClick={() => setPeriodFilter('7days')}
+                                        className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all ${periodFilter === '7days' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300'}`}
                                     >
-                                        30 Hari
+                                        Seminggu
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPeriodFilter('30days')}
+                                        className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all ${periodFilter === '30days' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300'}`}
+                                    >
+                                        Sebulan
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPeriodFilter('1year')}
+                                        className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all ${periodFilter === '1year' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300'}`}
+                                    >
+                                        Setahun
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPeriodFilter('custom')}
+                                        className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all ${periodFilter === 'custom' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300'}`}
+                                    >
+                                        Custom
                                     </button>
                                 </div>
                             </div>
@@ -771,6 +796,19 @@ export const AccountStatementPage: React.FC = () => {
                             </div>
                         </div>
                     </div>
+
+                    {periodFilter === 'custom' && (
+                        <div className="grid grid-cols-2 gap-3 p-2.5 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-700 no-print">
+                            <div>
+                                <Label className="text-[10px] font-bold text-slate-500">Tanggal Mulai</Label>
+                                <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-xs py-1 font-mono" />
+                            </div>
+                            <div>
+                                <Label className="text-[10px] font-bold text-slate-500">Tanggal Selesai</Label>
+                                <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-xs py-1 font-mono" />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Clean 2-Column Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">

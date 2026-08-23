@@ -968,8 +968,30 @@ const appReducer = (state: AppState, action: Action): AppState => {
             const isFullyPaid = newAmountPaid >= targetPO.grandTotal;
             const newPaymentStatus: PurchasePaymentStatus = isFullyPaid ? 'Lunas' : 'Dicicil';
 
+            let currentAccounts = state.accounts.map(a => ({ ...a }));
+            let currentJournals = [...state.journalEntries];
+
+            if (sourceAccountId && amount > 0) {
+                const branchId = state.currentUser?.branchId || state.branches[0]?.id || 'CAB-JPSTNH01';
+                const journalResult = journalService.createJournalEntry(
+                    currentAccounts,
+                    currentJournals,
+                    branchId,
+                    `Pembayaran Pembelian #${targetPO.id} ke ${targetPO.vendorName}`,
+                    [
+                        { accountId: '2100', type: 'debit', amount }, // Debet Hutang Usaha / Pembelian
+                        { accountId: sourceAccountId, type: 'credit', amount } // Kredit Dompet / Brankas
+                    ],
+                    `PO-PAY-${targetPO.id}`
+                );
+                currentAccounts = journalResult.accounts;
+                currentJournals = journalResult.journalEntries;
+            }
+
             return {
                 ...state,
+                accounts: currentAccounts,
+                journalEntries: currentJournals,
                 purchases: state.purchases.map(p => {
                     if (p.id !== poId) return p;
                     return {
@@ -1277,6 +1299,36 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 currentCustomer: updatedPayer,
                 customerBills: updatedBills,
                 depositTransactions: updatedTransactions,
+            };
+        }
+        case 'billing/payVendorBill': {
+            const { billId, paymentAccountId } = action.payload;
+            const bill = state.vendorBills.find(b => b.id === billId);
+            if (!bill || bill.status === 'Paid') return state;
+
+            let currentAccounts = state.accounts.map(a => ({ ...a }));
+            let currentJournals = [...state.journalEntries];
+
+            const branchId = state.currentUser?.branchId || state.branches[0]?.id || 'CAB-JPSTNH01';
+            const journalResult = journalService.createJournalEntry(
+                currentAccounts,
+                currentJournals,
+                branchId,
+                `Pembayaran Tagihan Vendor #${bill.id} (${bill.vendorName})`,
+                [
+                    { accountId: '2100', type: 'debit', amount: bill.amount }, // Debet Hutang Usaha
+                    { accountId: paymentAccountId, type: 'credit', amount: bill.amount } // Kredit Rekening/Dompet
+                ],
+                `BILL-PAY-${bill.id}`
+            );
+
+            const updatedBills = state.vendorBills.map(b => b.id === billId ? { ...b, status: 'Paid' as const, paidDate: new Date().toISOString() } : b);
+
+            return {
+                ...state,
+                accounts: journalResult.accounts,
+                journalEntries: journalResult.journalEntries,
+                vendorBills: updatedBills,
             };
         }
         // --- POS ---
