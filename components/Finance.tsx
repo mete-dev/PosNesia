@@ -478,19 +478,42 @@ export const AccountStatementPage: React.FC = () => {
             });
         });
 
+        // Calculate opening balance if account.balance has an initial balance not captured in journal entries
+        const rawJournalBalance = accJournals
+            .filter(j => j.status !== 'cancelled' && j.status !== 'corrected')
+            .reduce((sum, j) => sum + (j.debit - j.credit), 0);
+
+        const openingBalance = (account.balance || 0) - rawJournalBalance;
+
         // Sort ascending by date for chronological running balance
         accJournals.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-        let runningBalance = 0;
-        const allRows = accJournals.map(j => {
-            // Only active transactions impact running balance!
+        let runningBalance = openingBalance;
+        const allRows: any[] = [];
+
+        // If there is an opening balance, add an Opening Balance virtual row at the beginning
+        if (openingBalance !== 0) {
+            allRows.push({
+                id: `INIT-${account.id}`,
+                date: new Date(2026, 0, 1),
+                description: 'Saldo Awal / Pembukaan Rekening',
+                reference: 'SALDO-AWAL',
+                debit: openingBalance > 0 ? openingBalance : 0,
+                credit: openingBalance < 0 ? Math.abs(openingBalance) : 0,
+                status: 'active' as const,
+                lines: [],
+                runningBalance: openingBalance
+            });
+        }
+
+        accJournals.forEach(j => {
             if (j.status !== 'cancelled' && j.status !== 'corrected') {
                 runningBalance += (j.debit - j.credit);
             }
-            return {
+            allRows.push({
                 ...j,
                 runningBalance
-            };
+            });
         });
 
         // Apply date filtering
@@ -506,10 +529,8 @@ export const AccountStatementPage: React.FC = () => {
         const totalDebit = activeOnly.reduce((sum, r) => sum + r.debit, 0);
         const totalCredit = activeOnly.reduce((sum, r) => sum + r.credit, 0);
 
-        // Active balance from all active journal entries for this account
-        const activeAccountBalance = accJournals
-            .filter(j => j.status !== 'cancelled' && j.status !== 'corrected')
-            .reduce((sum, j) => sum + (j.debit - j.credit), 0);
+        // Active balance from account
+        const activeAccountBalance = account.balance || runningBalance;
 
         return {
             rows: filtered.reverse(), // Show newest first
