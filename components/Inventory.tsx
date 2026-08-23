@@ -67,6 +67,7 @@ export const InventoryAdjustmentPage: React.FC = () => {
   const { products, stockMovements, productCategories, inventoryLevels, currentBranchId, productTypeLocations, shelves, branches, branchTypes } = state;
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [view, setView] = useState<'overview' | 'history'>('overview');
   const targetBranchId = currentBranchId || branches[0]?.id || 'CAB-JPSTNH01';
 
   const onAdjustStock = (productId: string, newStock: number, reason: string) => {
