@@ -108,6 +108,7 @@ export enum Page {
   // --- Sales Pages (now a focused module) ---
   SalesList = 'SalesList',
   CreateManualSale = 'CreateManualSale', // New
+  SaleDetailsPage = 'SaleDetailsPage',
   // --- Product Pages ---
   ProductList = 'ProductList',
   SetPricing = 'SetPricing',
@@ -121,14 +122,17 @@ export enum Page {
   // --- Purchase Pages ---
   PurchaseList = 'PurchaseList',
   AddPurchase = 'AddPurchase',
+  PurchaseDetailsPage = 'PurchaseDetailsPage',
   // --- Billing Pages (under Finance) ---
   VendorBillList = 'VendorBillList',
   CustomerBillList = 'CustomerBillList',
   // --- Customer Pages ---
   CustomerList = 'CustomerList',
+  CustomerDetailsPage = 'CustomerDetailsPage',
   // --- Principal Pages ---
   PrincipalList = 'PrincipalList',
   Vendors = 'Vendors',
+  VendorDetailsPage = 'VendorDetailsPage',
   // --- Staff Pages ---
   StaffList = 'StaffList',
   Payroll = 'Payroll',
@@ -328,15 +332,24 @@ export interface CustomerAddress { id: string; label: string; province: string; 
 export interface Customer { id: string; name: string; email: string; phone: string; joinDate: string; pin: string; customerType: 'Perorangan' | 'Perusahaan'; depositBalance: number; points: number; status: Status; addresses: CustomerAddress[]; address?: string; companyDetails?: { companyName: string; taxId: string; address: string; }; }
 export interface SalePayment { paymentMethodId: string; amount: number; }
 export interface DeliveryInfo { type: 'pickup' | 'delivery'; address?: string; deliveryFee: number; estimatedTime: string; }
-export interface SaleItem { productId: string; productName: string; quantity: number; price: number; cost: number; discount: number; }
-export interface Sale { id: string; branchId: string; sourceLocationId: string; date: string; items: SaleItem[]; subtotal: number; discount: number; taxAmount: number; grandTotal: number; customerId?: string; customerName: string; payments: SalePayment[]; paymentTermId: string; dueDate: string; status: 'Paid' | 'Unpaid' | 'Cancelled'; saleChannel: 'POS' | 'E-commerce' | 'Manual'; fulfillmentStatus: FulfillmentStatus; staffId?: string; pointsEarned?: number; pointsUsed?: number; depositUsed?: number; amountPaid?: number; change?: number; codAmount?: number; deliveryInfo?: DeliveryInfo; attachments?: Attachment[]; posSessionId?: string; }
-export interface Vendor { id: string; name: string; contactPerson?: string; email?: string; phone?: string; ownerName?: string; companyAddress?: string; taxId?: string; bankAccount?: string; paymentTerm: number; status: Status; }
-export interface Staff { id: string; name: string; roleId: string; email: string; phone: string; salary: number; pin: string; status: Status; branchId: string; cashierStationId?: string; depositBalance: number; }
-export interface Asset { id: string; name: string; assetCategoryId: string; purchaseDate: string; value: number; status: Status; branchId: string; }
-export interface PurchaseOrderItem { productId: string; productName: string; quantity: number; cost: number; }
-export interface PurchaseOrder { id: string; destinationType: 'warehouse' | 'branch'; destinationId: string; vendorId: string; vendorName: string; orderDate: string; expectedDelivery: string; dueDate?: string; invoiceNumber?: string; vendorNoteNumber?: string; status: 'Pending' | 'Received' | 'Cancelled'; items: PurchaseOrderItem[]; taxType: 'inclusive' | 'exclusive' | 'none'; taxRate: number; subtotal: number; taxAmount: number; grandTotal: number; attachments?: Attachment[]; }
-export interface PromotionBenefit { type: 'percentage_discount' | 'fixed_discount' | 'bogo'; value: number; discountType?: 'percentage' | 'nominal'; freeProductId?: string; freeProductQuantity?: number; }
-export interface PromotionCondition { applyBy: 'product' | 'category' | 'principal' | 'brand'; appliesToIds: string[]; minProductQuantity?: number; minPurchaseValue?: number; }
+export interface PaymentRecord {
+  id: string;
+  date: string;
+  amount: number;
+  paymentMethodId: string;
+  paymentMethodName: string;
+  sourceAccountId?: string;
+  sourceAccountName?: string;
+  notes?: string;
+}
+
+export interface PurchaseOrderItem { productId: string; productName: string; quantity: number; receivedQuantity?: number; cost: number; }
+export interface PurchaseOrder { id: string; destinationType: 'warehouse' | 'branch'; destinationId: string; vendorId: string; vendorName: string; orderDate: string; expectedDelivery: string; dueDate?: string; invoiceNumber?: string; vendorNoteNumber?: string; status: 'Pending' | 'Received' | 'Cancelled'; itemStatus?: PurchaseItemStatus; paymentStatus?: PurchasePaymentStatus; items: PurchaseOrderItem[]; taxType: 'inclusive' | 'exclusive' | 'none'; taxRate: number; subtotal: number; taxAmount: number; grandTotal: number; amountPaid?: number; paymentHistory?: PaymentRecord[]; attachments?: Attachment[]; }
+
+export interface SaleItem { productId: string; productName: string; quantity: number; deliveredQuantity?: number; price: number; cost: number; discount: number; }
+export interface Sale { id: string; branchId: string; sourceLocationId: string; date: string; items: SaleItem[]; subtotal: number; discount: number; taxAmount: number; grandTotal: number; customerId?: string; customerName: string; payments: SalePayment[]; paymentTermId: string; dueDate: string; status: 'Paid' | 'Unpaid' | 'Cancelled'; itemStatus?: SaleItemStatus; paymentStatus?: SalePaymentStatus; saleChannel: 'POS' | 'E-commerce' | 'Manual'; fulfillmentStatus: FulfillmentStatus; staffId?: string; pointsEarned?: number; pointsUsed?: number; depositUsed?: number; amountPaid?: number; change?: number; codAmount?: number; deliveryInfo?: DeliveryInfo; paymentHistory?: PaymentRecord[]; attachments?: Attachment[]; posSessionId?: string; }
+export interface PromotionBenefit { type: 'percentage_discount' | 'fixed_discount' | 'bogo'; value: number; discountType?: 'percentage' | 'nominal'; maxDiscountAmount?: number; freeProductId?: string; freeProductQuantity?: number; }
+export interface PromotionCondition { applyBy: 'all_products' | 'product' | 'category' | 'principal' | 'brand'; appliesToIds: string[]; minProductQuantity?: number; minPurchaseValue?: number; }
 export interface PromotionCustomerTarget { applyTo: 'all_customers' | 'members_only' | 'new_customers' | 'birthday_customers' | 'exclude_customers'; excludedCustomerIds?: string[]; }
 export interface Promotion { id: string; name: string; promoCategory: 'Promosi' | 'Voucher' | 'Program Poin'; benefit: PromotionBenefit; condition: PromotionCondition; customerTarget: PromotionCustomerTarget; startDate: string; endDate: string; voucherCode?: string; status: Status; }
 export interface StockMovement { id: string; date: string; locationId: string; productId: string; productName: string; type: 'Sale' | 'Purchase' | 'Adjustment' | 'Transfer In' | 'Transfer Out' | 'Return'; quantityChange: number; newStockLevel: number; notes: string; referenceId?: string; partnerId?: string; staffId?: string; }
@@ -574,4 +587,8 @@ export interface AppState {
     lastWithdrawalReceipt: { customerName: string; amount: number } | null;
     rentalOrders: RentalOrder[];
     mobileMenuCategory: string | null;
+    selectedPurchaseOrderId?: string;
+    selectedSaleId?: string;
+    selectedVendorId?: string;
+    selectedCustomerId?: string;
 }

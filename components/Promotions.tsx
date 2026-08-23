@@ -20,7 +20,9 @@ const PromotionModal: React.FC<{
     const [voucherCode, setVoucherCode] = useState('');
     const [discountType, setDiscountType] = useState<'percentage' | 'nominal'>('percentage');
     const [discountValue, setDiscountValue] = useState<number | string>('');
-    const [applyBy, setApplyBy] = useState<PromotionCondition['applyBy']>('product');
+    const [maxDiscountAmount, setMaxDiscountAmount] = useState<number | string>('');
+    const [minPurchaseValue, setMinPurchaseValue] = useState<number | string>('');
+    const [applyBy, setApplyBy] = useState<PromotionCondition['applyBy']>('all_products');
     const [appliesToIds, setAppliesToIds] = useState<string[]>([]);
 
     useEffect(() => {
@@ -33,8 +35,10 @@ const PromotionModal: React.FC<{
                 setVoucherCode(existingPromo.voucherCode || '');
                 setDiscountType(existingPromo.benefit.discountType || 'percentage');
                 setDiscountValue(existingPromo.benefit.value);
-                setApplyBy(existingPromo.condition.applyBy);
-                setAppliesToIds(existingPromo.condition.appliesToIds);
+                setMaxDiscountAmount(existingPromo.benefit.maxDiscountAmount || '');
+                setMinPurchaseValue(existingPromo.condition.minPurchaseValue || '');
+                setApplyBy(existingPromo.condition.applyBy || 'all_products');
+                setAppliesToIds(existingPromo.condition.appliesToIds || []);
             } else {
                 // Reset form for new entry
                 setName('');
@@ -45,7 +49,9 @@ const PromotionModal: React.FC<{
                 setVoucherCode('');
                 setDiscountType('percentage');
                 setDiscountValue('');
-                setApplyBy('product');
+                setMaxDiscountAmount('');
+                setMinPurchaseValue('');
+                setApplyBy('all_products');
                 setAppliesToIds([]);
             }
         }
@@ -67,9 +73,14 @@ const PromotionModal: React.FC<{
         const benefit: PromotionBenefit = {
             type: discountType === 'percentage' ? 'percentage_discount' : 'fixed_discount',
             discountType: discountType,
-            value: Number(discountValue)
+            value: Number(discountValue),
+            maxDiscountAmount: maxDiscountAmount ? Number(maxDiscountAmount) : undefined,
         };
-        const condition: PromotionCondition = { applyBy, appliesToIds };
+        const condition: PromotionCondition = { 
+            applyBy, 
+            appliesToIds: applyBy === 'all_products' ? [] : appliesToIds,
+            minPurchaseValue: minPurchaseValue ? Number(minPurchaseValue) : undefined,
+        };
         const customerTarget: PromotionCustomerTarget = { applyTo: 'all_customers' };
 
         const promoData: Omit<Promotion, 'id'> = {
@@ -94,52 +105,97 @@ const PromotionModal: React.FC<{
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={`Buat ${promoCategory} Baru`} maxWidth="max-w-3xl">
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Nama Promosi" required />
-                {promoCategory === 'Voucher' && <Input value={voucherCode} onChange={e => setVoucherCode(e.target.value)} placeholder="Kode Voucher (Opsional)" />}
+            <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Nama Promosi / Voucher" required />
+                {promoCategory === 'Voucher' && (
+                    <Input 
+                        value={voucherCode} 
+                        onChange={e => setVoucherCode(e.target.value)} 
+                        placeholder="Kode Voucher (Contoh: DISKON20)" 
+                        className="font-mono uppercase font-bold"
+                        required 
+                    />
+                )}
                 <div className="grid grid-cols-2 gap-4">
-                    <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required />
-                    <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} required />
+                    <div>
+                        <Label>Tanggal Mulai</Label>
+                        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required />
+                    </div>
+                    <div>
+                        <Label>Tanggal Selesai</Label>
+                        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} required />
+                    </div>
                 </div>
-                <div className="p-4 border rounded-lg dark:border-gray-600">
-                    <h3 className="font-semibold mb-2">Benefit</h3>
-                    <div className="flex gap-4 items-end">
-                        <div className="flex-grow">
+
+                {/* Section Benefit Diskon */}
+                <div className="p-4 border rounded-xl dark:border-gray-700 bg-slate-50/50 dark:bg-zinc-800/40 space-y-3">
+                    <h3 className="font-extrabold text-sm text-slate-800 dark:text-zinc-200">Keuntungan Diskon (Benefit)</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
                             <Label>Tipe Diskon</Label>
                             <Select value={discountType} onChange={e => setDiscountType(e.target.value as any)}>
-                                <option value="percentage">Persentase</option>
+                                <option value="percentage">Persentase (%)</option>
                                 <option value="nominal">Nominal (Rp)</option>
                             </Select>
                         </div>
                         <div>
-                            <Label>Nilai</Label>
-                            <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} required />
+                            <Label>{discountType === 'percentage' ? 'Nilai Diskon (%)' : 'Nilai Potongan (Rp)'}</Label>
+                            <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} placeholder={discountType === 'percentage' ? 'Misal: 20' : 'Misal: 50000'} required />
                         </div>
+                        {discountType === 'percentage' && (
+                            <div>
+                                <Label>Maksimal Diskon Rp (Opsional)</Label>
+                                <Input type="number" value={maxDiscountAmount} onChange={e => setMaxDiscountAmount(e.target.value)} placeholder="Misal: 25000" />
+                            </div>
+                        )}
                     </div>
                 </div>
-                <div className="p-4 border rounded-lg dark:border-gray-600">
-                     <h3 className="font-semibold mb-2">Kondisi</h3>
-                     <div className="flex gap-4 items-end">
-                        <div className="flex-grow">
-                            <Label>Berlaku untuk</Label>
-                            <Select value={applyBy} onChange={e => {setApplyBy(e.target.value as any); setAppliesToIds([]);}}>
-                                <option value="product">Produk Tertentu</option>
-                                <option value="category">Kategori Tertentu</option>
-                                <option value="brand">Merk Tertentu</option>
-                                <option value="principal">Principal Tertentu</option>
-                            </Select>
+
+                {/* Section Cakupan & Syarat Voucher */}
+                <div className="p-4 border rounded-xl dark:border-gray-700 bg-slate-50/50 dark:bg-zinc-800/40 space-y-3">
+                     <h3 className="font-extrabold text-sm text-slate-800 dark:text-zinc-200">Cakupan Produk & Syarat Minimal Belanja</h3>
+                     <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <Label>Cakupan Voucher (Berlaku Untuk)</Label>
+                                <Select value={applyBy} onChange={e => {setApplyBy(e.target.value as any); setAppliesToIds([]);}}>
+                                    <option value="all_products">Semua Produk (Default)</option>
+                                    <option value="category">Kategori Tertentu</option>
+                                    <option value="product">Produk Tertentu</option>
+                                    <option value="brand">Merk Tertentu</option>
+                                    <option value="principal">Principal Tertentu</option>
+                                </Select>
+                            </div>
+                            <div>
+                                <Label>Minimum Transaksi Produk Promo (Rp)</Label>
+                                <Input type="number" value={minPurchaseValue} onChange={e => setMinPurchaseValue(e.target.value)} placeholder="0 (Tanpa minimum)" />
+                            </div>
                         </div>
-                         <div className="flex-grow">
-                            <Label>Item yang Berlaku (pilih satu atau lebih)</Label>
-                            <select multiple value={appliesToIds} onChange={e => setAppliesToIds(Array.from(e.target.selectedOptions, option => option.value))} className="h-24 mt-1 block w-full rounded-md bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600">
-                                {getApplicableItems().map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-                            </select>
-                        </div>
+
+                        {applyBy !== 'all_products' && (
+                            <div>
+                                <Label>Pilih {applyBy === 'category' ? 'Kategori' : applyBy === 'product' ? 'Produk' : applyBy === 'brand' ? 'Merk' : 'Principal'} yang Memenuhi Syarat (Pilih satu atau lebih)</Label>
+                                <select 
+                                    multiple 
+                                    value={appliesToIds} 
+                                    onChange={e => setAppliesToIds(Array.from(e.target.selectedOptions, option => option.value))} 
+                                    className="h-28 mt-1 block w-full rounded-xl bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700 p-2 font-mono text-xs focus:ring-2 focus:ring-purple-500"
+                                >
+                                    {getApplicableItems().map(item => (
+                                        <option key={item.id} value={item.id} className="p-1 hover:bg-purple-100 dark:hover:bg-zinc-800">
+                                            {item.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <p className="text-[10px] text-slate-400 mt-1">Tekan `Ctrl` (Windows) / `Cmd` (Mac) untuk memilih lebih dari satu item.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
-                <div className="flex justify-end gap-2 pt-4">
-                    <Button variant="secondary" onClick={onClose}>Batal</Button>
-                    <Button type="submit">Simpan</Button>
+
+                <div className="flex justify-end gap-2 pt-2">
+                    <Button type="button" variant="secondary" onClick={onClose}>Batal</Button>
+                    <Button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white font-bold">Simpan Voucher / Promo</Button>
                 </div>
             </form>
         </Modal>

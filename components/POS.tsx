@@ -45,6 +45,8 @@ import {
   CreditCard,
   QrCode,
   Wallet,
+  User,
+  ArrowLeft,
   Menu
 } from 'lucide-react';
 
@@ -490,6 +492,8 @@ export const POSPage: React.FC = () => {
     const [paymentMethodId, setPaymentMethodId] = useState('pm1'); // cash as default
     const [amountPaid, setAmountPaid] = useState('');
     const [depositToUse, setDepositToUse] = useState('');
+    const [appliedVoucherCode, setAppliedVoucherCode] = useState('');
+    const [voucherErrorMsg, setVoucherErrorMsg] = useState('');
 
     useEffect(() => {
         if (state.paymentMethods && state.paymentMethods.length > 0) {
@@ -840,7 +844,19 @@ export const POSPage: React.FC = () => {
       setCustomizingItem(null);
     };
 
-    // Calculations
+    // Voucher Validation & Active Automatic Promos
+    const activeVoucher = useMemo(() => {
+      if (!appliedVoucherCode) return null;
+      const code = appliedVoucherCode.trim().toUpperCase();
+      return state.promotions?.find(p => (p.promoCategory === 'Voucher' || p.voucherCode) && p.voucherCode?.toUpperCase() === code && p.status === 'active') || null;
+    }, [appliedVoucherCode, state.promotions]);
+
+    // Active automatic promotions (promoCategory === 'Promosi' && status === 'active')
+    const activePromotions = useMemo(() => {
+      const today = new Date().toISOString().split('T')[0];
+      return (state.promotions || []).filter(p => p.promoCategory === 'Promosi' && p.status === 'active' && (!p.startDate || p.startDate.split('T')[0] <= today) && (!p.endDate || p.endDate.split('T')[0] >= today));
+    }, [state.promotions]);
+
     const cartTotals = useMemo(() => {
       let subtotal = 0;
       let wholesaleDiscounts = 0;
@@ -855,18 +871,116 @@ export const POSPage: React.FC = () => {
         }
       });
 
-      const taxRate = 0;
       const taxableAmount = subtotal - wholesaleDiscounts;
-      const taxAmount = 0;
-      const grandTotal = taxableAmount;
+
+      // ── 1. OTOMATIS: Hitung Diskon dari Promosi Otomatis (promoCategory === 'Promosi') ──
+      let autoPromoDiscountAmount = 0;
+      const appliedAutoPromosList: { name: string; amount: number }[] = [];
+
+      activePromotions.forEach(promo => {
+        let promoEligibleSubtotal = 0;
+        const { applyBy, appliesToIds, minPurchaseValue = 0 } = promo.condition;
+
+        posCart.forEach(item => {
+          let isEligible = false;
+          if (applyBy === 'all_products' || !applyBy) {
+            isEligible = true;
+          } else if (applyBy === 'product') {
+            isEligible = appliesToIds.includes(item.product.id);
+          } else if (applyBy === 'category') {
+            isEligible = appliesToIds.includes(item.product.categoryId);
+          } else if (applyBy === 'brand' && item.product.brandId) {
+            isEligible = appliesToIds.includes(item.product.brandId);
+          } else if (applyBy === 'principal' && item.product.principalId) {
+            isEligible = appliesToIds.includes(item.product.principalId);
+          }
+
+          if (isEligible) {
+            promoEligibleSubtotal += getItemFinalPrice(item) * item.quantity;
+          }
+        });
+
+        if (promoEligibleSubtotal > 0 && promoEligibleSubtotal >= minPurchaseValue) {
+          let promoDiscount = 0;
+          const benefit = promo.benefit;
+          if (benefit.discountType === 'percentage' || benefit.type === 'percentage_discount') {
+            promoDiscount = (promoEligibleSubtotal * benefit.value) / 100;
+            if (benefit.maxDiscountAmount && benefit.maxDiscountAmount > 0) {
+              promoDiscount = Math.min(promoDiscount, benefit.maxDiscountAmount);
+            }
+          } else {
+            promoDiscount = Math.min(benefit.value, promoEligibleSubtotal);
+          }
+
+          if (promoDiscount > 0) {
+            autoPromoDiscountAmount += promoDiscount;
+            appliedAutoPromosList.push({ name: promo.name, amount: promoDiscount });
+          }
+        }
+      });
+
+      // ── 2. MANUAL: Hitung Diskon dari Voucher (di-input manual kode vouchernya) ──
+      let voucherDiscountAmount = 0;
+      let voucherTotalEligible = 0;
+      let eligibleItemsCount = 0;
+
+      if (activeVoucher) {
+        const { applyBy, appliesToIds } = activeVoucher.condition;
+
+        posCart.forEach(item => {
+          let isEligible = false;
+          if (applyBy === 'all_products' || !applyBy) {
+            isEligible = true;
+          } else if (applyBy === 'product') {
+            isEligible = appliesToIds.includes(item.product.id);
+          } else if (applyBy === 'category') {
+            isEligible = appliesToIds.includes(item.product.categoryId);
+          } else if (applyBy === 'brand' && item.product.brandId) {
+            isEligible = appliesToIds.includes(item.product.brandId);
+          } else if (applyBy === 'principal' && item.product.principalId) {
+            isEligible = appliesToIds.includes(item.product.principalId);
+          }
+
+          if (isEligible) {
+            const itemFinalPrice = getItemFinalPrice(item);
+            voucherTotalEligible += itemFinalPrice * item.quantity;
+            eligibleItemsCount += item.quantity;
+          }
+        });
+
+        if (voucherTotalEligible > 0) {
+          const minVal = activeVoucher.condition.minPurchaseValue || 0;
+          if (voucherTotalEligible >= minVal) {
+            const benefit = activeVoucher.benefit;
+            if (benefit.discountType === 'percentage' || benefit.type === 'percentage_discount') {
+              voucherDiscountAmount = (voucherTotalEligible * benefit.value) / 100;
+              if (benefit.maxDiscountAmount && benefit.maxDiscountAmount > 0) {
+                voucherDiscountAmount = Math.min(voucherDiscountAmount, benefit.maxDiscountAmount);
+              }
+            } else {
+              voucherDiscountAmount = Math.min(benefit.value, voucherTotalEligible);
+            }
+          }
+        }
+      }
+
+      const totalDiscount = wholesaleDiscounts + autoPromoDiscountAmount + voucherDiscountAmount;
+      const grandTotal = Math.max(0, taxableAmount - autoPromoDiscountAmount - voucherDiscountAmount);
 
       return {
         subtotal,
         discount: wholesaleDiscounts,
+        autoPromoDiscount: autoPromoDiscountAmount,
+        appliedAutoPromosList,
+        voucherDiscount: voucherDiscountAmount,
+        totalDiscount,
         taxAmount: 0,
-        grandTotal
+        grandTotal,
+        totalEligible: voucherTotalEligible,
+        eligibleItemsCount,
+        activeVoucher
       };
-    }, [posCart, activeBusinessMode]);
+    }, [posCart, activeBusinessMode, activeVoucher, activePromotions]);
 
     // Customers filtering
     const selectedCustomerObj = useMemo(() => {
@@ -927,14 +1041,14 @@ export const POSPage: React.FC = () => {
             payload: { 
               customerId: customerId || undefined, 
               paymentMethodId, 
-              voucherCode: '', 
+              voucherCode: appliedVoucherCode || '', 
               amountPaid: finalAmountPaid, 
               change: paymentMethodId === 'pm1' ? finalAmountPaid - cartTotals.grandTotal : 0, 
               pointsToUse: 0, 
               depositToUse: safeDepositToUse,
               items: saleItems,
               subtotal: cartTotals.subtotal,
-              discount: cartTotals.discount + safeDepositToUse,
+              discount: cartTotals.totalDiscount + safeDepositToUse,
               taxAmount: cartTotals.taxAmount,
               grandTotal: cartTotals.grandTotal - safeDepositToUse,
               posSessionId: posSession?.id
@@ -1439,69 +1553,7 @@ export const POSPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
-                      {/* Customer Search Input */}
-                      <div className="relative flex-1 max-w-[240px]">
-                        <div className="flex items-center gap-1.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-2.5 h-8 shadow-xs focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500 transition-all">
-                          <Search className="w-3 h-3 text-zinc-400 shrink-0" />
-                          <input
-                            type="text"
-                            value={customerSearch}
-                            onChange={e => {
-                              setCustomerSearch(e.target.value);
-                              setCustomerDropdownOpen(true);
-                              if (!e.target.value) { setCustomerId(''); }
-                            }}
-                            onFocus={() => setCustomerDropdownOpen(true)}
-                            onBlur={() => setTimeout(() => setCustomerDropdownOpen(false), 150)}
-                            placeholder={selectedCustomerObj ? selectedCustomerObj.name : '👤 Cari pelanggan...'}
-                            className="flex-1 bg-transparent text-xs outline-none text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400 font-medium min-w-0"
-                          />
-                          {customerId && (
-                            <button
-                              onMouseDown={e => { e.preventDefault(); setCustomerId(''); setCustomerSearch(''); }}
-                              className="text-zinc-400 hover:text-red-500 transition-colors p-0.5"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                        {/* Dropdown results */}
-                        {customerDropdownOpen && (
-                          <div className="absolute top-full right-0 mt-1 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl z-50 overflow-hidden">
-                            <div
-                              onMouseDown={e => { e.preventDefault(); setCustomerId(''); setCustomerSearch(''); setCustomerDropdownOpen(false); }}
-                              className="flex items-center gap-2 px-3 py-2 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer border-b border-zinc-100 dark:border-zinc-800"
-                            >
-                              <span className="font-medium">Pelanggan Umum</span>
-                            </div>
-                            {state.customers
-                              .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
-                              .slice(0, 6)
-                              .map(c => (
-                                <div
-                                  key={c.id}
-                                  onMouseDown={e => { e.preventDefault(); setCustomerId(c.id); setCustomerSearch(c.name); setCustomerDropdownOpen(false); }}
-                                  className="flex items-center justify-between px-3 py-2 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer"
-                                >
-                                  <span className="font-semibold text-zinc-800 dark:text-zinc-200">{c.name}</span>
-                                  <span className="text-zinc-400">{c.points} poin</span>
-                                </div>
-                              ))
-                            }
-                            {state.customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase())).length === 0 && (
-                              <div className="px-3 py-2 text-xs text-zinc-400 italic">Pelanggan tidak ditemukan</div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {selectedCustomerObj && (
-                        <span className="hidden md:inline text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-lg border border-emerald-200/60 dark:border-emerald-800/40 whitespace-nowrap">
-                          {selectedCustomerObj.points} poin
-                        </span>
-                      )}
-
-                      {/* Icon-only Trash Button */}
+                      {/* Trash Button */}
                       <button
                         onClick={() => setPosCart([])}
                         disabled={posCart.length === 0}
@@ -1616,7 +1668,73 @@ export const POSPage: React.FC = () => {
                 {/* ── RIGHT 1/3 — Payment Summary (Desktop only) ── */}
                 <div className="hidden sm:flex sm:flex-1 sm:min-w-[260px] sm:max-w-sm flex-col gap-3">
 
-                  {/* Totals card */}
+                  {/* 1. INFORMASI CUSTOMER CARD */}
+                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-3.5 shadow-sm space-y-2">
+                    <Label className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block">Informasi Customer</Label>
+                    <div className="relative">
+                      <div className="flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/80 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-emerald-500">
+                        <User className="w-4 h-4 text-zinc-400 shrink-0" />
+                        <input
+                          type="text"
+                          placeholder="Pilih / Cari Pelanggan..."
+                          value={customerSearch || (selectedCustomerObj?.name || '')}
+                          onChange={e => { setCustomerSearch(e.target.value); setCustomerDropdownOpen(true); }}
+                          onFocus={() => setCustomerDropdownOpen(true)}
+                          className="w-full bg-transparent text-xs text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 outline-none font-medium"
+                        />
+                        {customerId && (
+                          <button
+                            onMouseDown={e => { e.preventDefault(); setCustomerId(''); setCustomerSearch(''); }}
+                            className="text-zinc-400 hover:text-red-500 transition-colors p-0.5"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      
+                      {/* Dropdown results */}
+                      {customerDropdownOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                          <div
+                            onMouseDown={e => { e.preventDefault(); setCustomerId(''); setCustomerSearch(''); setCustomerDropdownOpen(false); }}
+                            className="flex items-center gap-2 px-3 py-2 text-xs text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer border-b border-zinc-100 dark:border-zinc-800"
+                          >
+                            <span className="font-medium">Pelanggan Umum</span>
+                          </div>
+                          {state.customers
+                            .filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()))
+                            .slice(0, 6)
+                            .map(c => (
+                              <div
+                                key={c.id}
+                                onMouseDown={e => { e.preventDefault(); setCustomerId(c.id); setCustomerSearch(c.name); setCustomerDropdownOpen(false); }}
+                                className="flex items-center justify-between px-3 py-2 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer"
+                              >
+                                <span className="font-semibold text-zinc-800 dark:text-zinc-200">{c.name}</span>
+                                <span className="text-emerald-600 font-bold">{c.points} poin</span>
+                              </div>
+                            ))
+                          }
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedCustomerObj ? (
+                      <div className="flex items-center justify-between bg-emerald-50/60 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200/60 dark:border-emerald-800/40 text-xs">
+                        <div>
+                          <div className="font-bold text-slate-800 dark:text-zinc-200">{selectedCustomerObj.name}</div>
+                          <div className="text-[10px] text-slate-500">Tipe: <span className="font-bold text-slate-700 dark:text-zinc-300">{selectedCustomerObj.customerType}</span></div>
+                        </div>
+                        <span className="text-[10px] font-extrabold text-emerald-700 bg-white dark:bg-zinc-800 px-2 py-1 rounded-lg shadow-2xs">
+                          ⭐ {selectedCustomerObj.points} Poin
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-slate-400 italic px-1">Pelanggan Umum (Tanpa Member)</div>
+                    )}
+                  </div>
+
+                  {/* 2. RINGKASAN PEMBAYARAN & VOUCHER CARD */}
                   <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 shadow-sm space-y-2.5">
                     <h3 className="font-bold text-xs uppercase tracking-wider text-zinc-400 mb-3">Ringkasan Pembayaran</h3>
 
@@ -1631,6 +1749,72 @@ export const POSPage: React.FC = () => {
                       </div>
                     )}
 
+                    {cartTotals.autoPromoDiscount > 0 && (
+                      <div className="space-y-1 py-1">
+                        {cartTotals.appliedAutoPromosList.map((p, i) => (
+                          <div key={i} className="flex justify-between text-xs text-blue-600 dark:text-blue-400 font-bold">
+                            <span>🎁 Promo Otomatis ({p.name})</span>
+                            <span>−Rp{p.amount.toLocaleString('id-ID')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Voucher Input Box */}
+                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 space-y-1.5">
+                      <Label className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">Kode Voucher / Promo</Label>
+                      <div className="flex gap-1.5">
+                        <Input 
+                          placeholder="Kode Voucher (cth: DISKON20)"
+                          value={appliedVoucherCode}
+                          onChange={(e) => {
+                            setAppliedVoucherCode(e.target.value.toUpperCase());
+                            setVoucherErrorMsg('');
+                          }}
+                          className="h-8 text-xs font-mono uppercase bg-slate-50/50 dark:bg-zinc-800/50 rounded-xl"
+                        />
+                        {appliedVoucherCode && (
+                          <Button 
+                            type="button" 
+                            variant="secondary" 
+                            onClick={() => {
+                              setAppliedVoucherCode('');
+                              setVoucherErrorMsg('');
+                            }}
+                            className="h-8 text-[11px] px-2 text-rose-500 font-bold"
+                          >
+                            Hapus
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Error & Validation Messages */}
+                      {appliedVoucherCode && (() => {
+                        if (!cartTotals.activeVoucher) {
+                          return <p className="text-[10px] text-rose-500 font-bold">⚠️ Kode voucher tidak ditemukan atau tidak aktif.</p>;
+                        }
+                        if (cartTotals.eligibleItemsCount === 0) {
+                          return <p className="text-[10px] text-rose-500 font-bold">⚠️ Voucher ini tidak berlaku untuk produk di keranjang Anda.</p>;
+                        }
+                        const minVal = cartTotals.activeVoucher.condition.minPurchaseValue || 0;
+                        if (cartTotals.totalEligible < minVal) {
+                          return <p className="text-[10px] text-amber-600 font-bold">⚠️ Syarat minimal belanja produk promo (Rp{minVal.toLocaleString('id-ID')}) belum terpenuhi. (Eligible saat ini: Rp{cartTotals.totalEligible.toLocaleString('id-ID')})</p>;
+                        }
+                        return (
+                          <div className="bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded-lg border border-emerald-200 dark:border-emerald-800 text-[10px] text-emerald-700 dark:text-emerald-300 space-y-0.5 font-sans">
+                            <div className="font-bold">✓ Voucher Aktif: {cartTotals.activeVoucher.name}</div>
+                            <div>Total Produk Promo (Eligible): <span className="font-mono font-bold">Rp{cartTotals.totalEligible.toLocaleString('id-ID')}</span></div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {cartTotals.voucherDiscount > 0 && (
+                      <div className="flex justify-between text-sm text-purple-600 dark:text-purple-400 font-bold pt-1">
+                        <span>Diskon Voucher</span>
+                        <span>−Rp{cartTotals.voucherDiscount.toLocaleString('id-ID')}</span>
+                      </div>
+                    )}
 
                     <div className="pt-2.5 border-t border-zinc-100 dark:border-zinc-800">
                       <div className="flex justify-between items-baseline">
@@ -1642,102 +1826,17 @@ export const POSPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Block Tiles for Payment Methods Selection */}
-                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-3.5 shadow-sm space-y-3">
-                    <div>
-                      <Label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-2 block">Pilih Metode Pembayaran</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {(state.paymentMethods || []).map(pm => {
-                          const isSelected = paymentMethodId === pm.id;
-                          let IconComp = Banknote;
-                          if (pm.type === 'qris') IconComp = QrCode;
-                          else if (pm.type === 'edc' || pm.type === 'bank' || pm.type === 'bank_transfer') IconComp = CreditCard;
-                          else if (pm.type === 'ewallet') IconComp = Wallet;
-
-                          return (
-                            <button
-                              key={pm.id}
-                              type="button"
-                              onClick={() => setPaymentMethodId(pm.id)}
-                              className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all cursor-pointer text-center ${
-                                isSelected 
-                                  ? 'border-emerald-600 bg-emerald-50/70 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-500 shadow-sm scale-[1.02]' 
-                                  : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-850 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-700'
-                              }`}
-                            >
-                              <IconComp className={`w-5 h-5 mb-1 ${isSelected ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500'}`} />
-                              <span className="text-[11px] font-bold truncate max-w-full leading-tight">{pm.name}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Cash payment amount input & change display */}
-                    {state.paymentMethods.find(m => m.id === paymentMethodId)?.type === 'cash' && (
-                      <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-                        <Label htmlFor="sideAmountPaid" className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 block">Uang Diterima (Cash)</Label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 font-semibold text-xs">Rp</span>
-                          <Input 
-                            id="sideAmountPaid" 
-                            type="number" 
-                            value={amountPaid} 
-                            onChange={e => setAmountPaid(e.target.value)} 
-                            className="pl-8 h-10 text-xs border-zinc-200 dark:border-zinc-800 rounded-xl font-extrabold"
-                            placeholder="0" 
-                          />
-                        </div>
-
-                        {/* Kembalian */}
-                        <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-950/30 p-2.5 rounded-xl border border-emerald-200/60 dark:border-emerald-900/40">
-                          <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase">Kembalian:</span>
-                          <span className="text-sm font-black font-mono text-emerald-900 dark:text-emerald-200">
-                            Rp{Math.max(0, (parseFloat(amountPaid) || 0) - (cartTotals.grandTotal - safeDepositToUse)).toLocaleString('id-ID')}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Customer Deposit Use Option */}
-                    {selectedCustomerObj && selectedCustomerObj.depositBalance > 0 && (
-                      <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
-                        <Label htmlFor="sideDepositUsed" className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1 block">Gunakan Deposit (Maks: Rp{maxDepositToUse.toLocaleString('id-ID')})</Label>
-                        <Input 
-                          id="sideDepositUsed"
-                          type="number"
-                          value={depositToUse}
-                          onChange={e => setDepositToUse(e.target.value)}
-                          placeholder="0"
-                          max={maxDepositToUse}
-                          className="h-9 text-xs border-zinc-200 dark:border-zinc-800 rounded-xl"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Checkout button */}
+                  {/* Process Payment Button */}
                   <Button
                     onClick={() => {
                       if (posCart.length === 0) return;
-                      const selectedPm = state.paymentMethods.find(m => m.id === paymentMethodId);
-                      if (selectedPm?.type === 'qris') {
-                        setIsQrisModalOpen(true);
-                      } else if (selectedPm?.type === 'edc') {
-                        const ref = prompt("Masukkan Nomor Referensi Transaksi EDC:");
-                        if (ref !== null) {
-                          setEdcRefNumber(ref);
-                          handleCheckout();
-                        }
-                      } else {
-                        handleCheckout();
-                      }
+                      setCheckoutOpen(true);
                     }}
                     disabled={posCart.length === 0}
                     className={`w-full py-4 rounded-2xl font-black text-base tracking-tight text-white flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98] disabled:opacity-40 cursor-pointer ${preset.themeClasses.primaryBtn}`}
                   >
                     <CheckCircle2 className="w-5 h-5" />
-                    <span>PROSES BAYAR</span>
+                    <span>PROSES PEMBAYARAN</span>
                   </Button>
 
                 </div>
@@ -2130,6 +2229,208 @@ export const POSPage: React.FC = () => {
                     </div>
                 </div>
             </Modal>
+
+            {/* --- Halaman Baru Layar Penuh Proses Pembayaran POS (Kiri: Pratinjau Struk, Kanan: Metode & Bayar) --- */}
+            {isCheckoutOpen && (
+              <div className="fixed inset-0 z-50 bg-slate-100 dark:bg-zinc-950 flex flex-col overflow-hidden animate-in fade-in duration-200">
+                {/* Header Top Bar */}
+                <div className="bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 px-6 py-4 flex items-center justify-between shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setCheckoutOpen(false)}
+                      className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl transition-colors text-slate-600 dark:text-zinc-300"
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <div>
+                      <h1 className="font-black text-lg text-slate-900 dark:text-white leading-tight">Proses Pembayaran POS</h1>
+                      <p className="text-xs text-slate-500 font-medium">Pilih metode pembayaran & periksa pratinjau struk transaksi</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 font-mono">
+                    <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-3 py-1.5 rounded-xl font-bold text-xs">
+                      Total: Rp{(cartTotals.grandTotal - safeDepositToUse).toLocaleString('id-ID')}
+                    </div>
+                    <Button variant="secondary" onClick={() => setCheckoutOpen(false)} className="text-xs h-9">
+                      Kembali ke POS
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Full Screen Content Body */}
+                <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
+                  <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+                    
+                    {/* SISI KIRI (6/12): Pratinjau Nota / Struk Belanja Real-Time */}
+                    <div className="lg:col-span-6 bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-slate-200/90 dark:border-zinc-800 shadow-sm flex flex-col justify-between space-y-4">
+                      <div>
+                        <div className="text-center pb-4 border-b border-dashed border-slate-200 dark:border-zinc-700">
+                          <h3 className="font-black text-base text-slate-900 dark:text-white uppercase tracking-tight">{state.companyInformation?.companyName || 'POSNESIA STORE'}</h3>
+                          <p className="text-xs text-slate-400">Pratinjau Struk Penjualan</p>
+                          <p className="text-xs text-slate-600 dark:text-zinc-300 font-mono mt-1">Pelanggan: <strong className="text-emerald-600">{selectedCustomerObj?.name || 'Pelanggan Umum'}</strong></p>
+                        </div>
+
+                        {/* Items List */}
+                        <div className="py-4 space-y-2.5 max-h-[42vh] overflow-y-auto font-mono pr-1">
+                          {posCart.map(item => (
+                            <div key={item.id} className="flex justify-between items-start text-xs border-b border-dashed border-slate-100 dark:border-zinc-800/80 pb-2">
+                              <div>
+                                <div className="font-bold text-slate-800 dark:text-zinc-200">{item.product.name}</div>
+                                <div className="text-[11px] text-slate-400">Rp{getItemFinalPrice(item).toLocaleString('id-ID')} x {item.quantity}</div>
+                              </div>
+                              <div className="font-extrabold text-slate-900 dark:text-white">Rp{(getItemFinalPrice(item) * item.quantity).toLocaleString('id-ID')}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Ringkasan Biaya Pratinjau */}
+                      <div className="pt-4 border-t-2 border-slate-200 dark:border-zinc-700 space-y-2 font-mono text-xs">
+                        <div className="flex justify-between text-slate-600 dark:text-zinc-400">
+                          <span>Subtotal</span>
+                          <span>Rp{cartTotals.subtotal.toLocaleString('id-ID')}</span>
+                        </div>
+                        {cartTotals.discount > 0 && (
+                          <div className="flex justify-between text-emerald-600 font-semibold">
+                            <span>Diskon Grosir</span>
+                            <span>−Rp{cartTotals.discount.toLocaleString('id-ID')}</span>
+                          </div>
+                        )}
+                        {cartTotals.autoPromoDiscount > 0 && (
+                          <div className="flex justify-between text-blue-600 font-semibold">
+                            <span>Diskon Promo Otomatis</span>
+                            <span>−Rp{cartTotals.autoPromoDiscount.toLocaleString('id-ID')}</span>
+                          </div>
+                        )}
+                        {cartTotals.voucherDiscount > 0 && (
+                          <div className="flex justify-between text-purple-600 font-semibold">
+                            <span>Diskon Voucher ({appliedVoucherCode})</span>
+                            <span>−Rp{cartTotals.voucherDiscount.toLocaleString('id-ID')}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-lg font-black text-slate-900 dark:text-white pt-3 border-t dark:border-zinc-700">
+                          <span>TOTAL TAGIHAN</span>
+                          <span className="text-emerald-600 dark:text-emerald-400">Rp{(cartTotals.grandTotal - safeDepositToUse).toLocaleString('id-ID')}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SISI KANAN (6/12): Pilih Metode Pembayaran & Input Nominal */}
+                    <div className="lg:col-span-6 bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-slate-200/90 dark:border-zinc-800 shadow-sm flex flex-col justify-between space-y-6">
+                      <div className="space-y-5">
+                        <div>
+                          <Label className="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-3 block">1. Pilih Metode Pembayaran</Label>
+                          <div className="grid grid-cols-2 gap-3">
+                            {(state.paymentMethods || []).map(pm => {
+                              const isSelected = paymentMethodId === pm.id;
+                              let IconComp = Banknote;
+                              if (pm.type === 'qris') IconComp = QrCode;
+                              else if (pm.type === 'edc' || pm.type === 'bank' || pm.type === 'bank_transfer') IconComp = CreditCard;
+                              else if (pm.type === 'ewallet') IconComp = Wallet;
+
+                              return (
+                                <button
+                                  key={pm.id}
+                                  type="button"
+                                  onClick={() => setPaymentMethodId(pm.id)}
+                                  className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all cursor-pointer text-center ${
+                                    isSelected 
+                                      ? 'border-emerald-600 bg-emerald-50/70 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-500 font-bold shadow-xs scale-[1.01]' 
+                                      : 'border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-850 text-slate-600 dark:text-zinc-400 hover:border-slate-300'
+                                  }`}
+                                >
+                                  <IconComp className={`w-6 h-6 mb-1.5 ${isSelected ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`} />
+                                  <span className="text-xs truncate max-w-full font-bold">{pm.name}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Cash payment amount input */}
+                        {state.paymentMethods.find(m => m.id === paymentMethodId)?.type === 'cash' && (
+                          <div className="space-y-3 pt-3 border-t dark:border-zinc-800">
+                            <Label htmlFor="modalAmountPaid" className="text-xs font-extrabold uppercase tracking-wider text-slate-500 block">2. Uang Diterima (Cash)</Label>
+                            <div className="relative">
+                              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-base">Rp</span>
+                              <Input 
+                                id="modalAmountPaid" 
+                                type="number" 
+                                value={amountPaid} 
+                                onChange={e => setAmountPaid(e.target.value)} 
+                                className="pl-10 h-12 text-lg border-slate-300 dark:border-zinc-700 rounded-xl font-mono font-black text-slate-900 dark:text-white"
+                                placeholder="0" 
+                              />
+                            </div>
+
+                            {/* Quick Nominal Buttons */}
+                            <div className="grid grid-cols-3 gap-2 pt-1">
+                              {[
+                                cartTotals.grandTotal - safeDepositToUse,
+                                Math.ceil((cartTotals.grandTotal - safeDepositToUse) / 10000) * 10000,
+                                Math.ceil((cartTotals.grandTotal - safeDepositToUse) / 50000) * 50000 || 50000,
+                                100000
+                              ].filter((val, idx, self) => val > 0 && self.indexOf(val) === idx).slice(0, 3).map(nom => (
+                                <button
+                                  key={nom}
+                                  type="button"
+                                  onClick={() => setAmountPaid(nom.toString())}
+                                  className="py-2 text-xs font-bold bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded-xl font-mono text-slate-700 dark:text-zinc-200 border border-slate-200/80 dark:border-zinc-700"
+                                >
+                                  Rp{nom.toLocaleString('id-ID')}
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* Kembalian */}
+                            <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-950/30 p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-800 mt-2">
+                              <span className="text-xs font-extrabold text-emerald-800 dark:text-emerald-300 uppercase">Kembalian:</span>
+                              <span className="text-lg font-black font-mono text-emerald-900 dark:text-emerald-200">
+                                Rp{Math.max(0, (parseFloat(amountPaid) || 0) - (cartTotals.grandTotal - safeDepositToUse)).toLocaleString('id-ID')}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Submit Checkout Buttons */}
+                      <div className="flex items-center gap-3 pt-4 border-t dark:border-zinc-800">
+                        <Button type="button" variant="secondary" onClick={() => setCheckoutOpen(false)} className="w-1/3 h-12 text-xs font-bold">
+                          Batal
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            const selectedPm = state.paymentMethods.find(m => m.id === paymentMethodId);
+                            if (selectedPm?.type === 'qris') {
+                              setCheckoutOpen(false);
+                              setIsQrisModalOpen(true);
+                            } else if (selectedPm?.type === 'edc') {
+                              const ref = prompt("Masukkan Nomor Referensi Transaksi EDC:");
+                              if (ref !== null) {
+                                setEdcRefNumber(ref);
+                                setCheckoutOpen(false);
+                                handleCheckout();
+                              }
+                            } else {
+                              setCheckoutOpen(false);
+                              handleCheckout();
+                            }
+                          }}
+                          className="w-2/3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs h-12 rounded-xl shadow-lg flex items-center justify-center gap-2"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>KONFIRMASI SELESAI BAYAR</span>
+                        </Button>
+                      </div>
+
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Receipts print views */}
             {summaryForReceipt && (

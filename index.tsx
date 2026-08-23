@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import { AppProvider } from './hooks/useAppContext';
 import { I18nProvider } from './hooks/useTranslation';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -12,10 +13,12 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <AppProvider>
-      <I18nProvider>
-        <App />
-      </I18nProvider>
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <I18nProvider>
+          <App />
+        </I18nProvider>
+      </AppProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

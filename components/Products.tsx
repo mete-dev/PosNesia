@@ -1,11 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import * as XLSX from 'xlsx';
-import { Camera, Plus, Trash2, Layers, Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle, Printer } from 'lucide-react';
+import { Camera, Plus, Trash2, Layers, Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle, Printer, Eye, Edit, Power } from 'lucide-react';
 import { Product, Page, InventoryLevel, Status, BranchType, WarehouseType, Branch, Warehouse, ProductUnitTier } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
 import { Input, Select, Textarea, Label, Button, ActionsDropdown, DropdownItem, Modal, Badge, Table, Thead, Tbody, Tr, Th, Td } from './ui';
-import { PurchaseOrderDetailsModal } from './Purchases';
 
 // --- Shared Components ---
 export const ProductModal: React.FC<{
@@ -15,9 +14,11 @@ export const ProductModal: React.FC<{
   onSaveSuccess?: (newProduct: Product) => void;
 }> = ({ isOpen, onClose, existingProduct, onSaveSuccess }) => {
     const { state, dispatch } = useAppContext();
-    const { productCategories = [], vendors = [] } = state || {};
+    const { productCategories = [], vendors = [], shelves = [], productTypeLocations = [], currentBranchId, branches = [], branchTypes = [] } = state || {};
     const [formData, setFormData] = useState<Partial<Product>>({ isTaxable: true, pricingType: 'manual', status: 'active', unit: 'Pcs' });
     const [unitTiers, setUnitTiers] = useState<ProductUnitTier[]>([]);
+    const [selectedShelfId, setSelectedShelfId] = useState<string>('');
+    const [shelvingNumber, setShelvingNumber] = useState<string>('');
     
     // Camera scanner state
     const [isCameraScannerOpen, setCameraScannerOpen] = useState(false);
@@ -29,8 +30,19 @@ export const ProductModal: React.FC<{
             const initialFormData = existingProduct || { isTaxable: true, pricingType: 'manual', status: 'active', unit: 'Pcs' };
             setFormData(initialFormData);
             setUnitTiers(existingProduct?.unitTiers || []);
+
+            if (existingProduct) {
+                const currentBranch = branches.find(b => b.id === currentBranchId) || branches[0];
+                const currentBranchTypeId = currentBranch?.branchTypeId;
+                const locInfo = productTypeLocations.find(ptl => ptl.productId === existingProduct.id && (currentBranchTypeId ? ptl.locationTypeId === currentBranchTypeId : true));
+                setSelectedShelfId(locInfo?.shelfId || '');
+                setShelvingNumber(locInfo?.shelvingNumber || '');
+            } else {
+                setSelectedShelfId('');
+                setShelvingNumber('');
+            }
         }
-    }, [isOpen, existingProduct]);
+    }, [isOpen, existingProduct, currentBranchId, branches, productTypeLocations]);
 
     const handleAddUnitTier = () => {
         setUnitTiers(prev => [
@@ -91,6 +103,15 @@ export const ProductModal: React.FC<{
         e.preventDefault();
         
         const validTiers = unitTiers.filter(t => t.unitName.trim() !== '');
+        const currentBranch = branches.find(b => b.id === currentBranchId) || branches[0];
+        const branchTypeId = currentBranch?.branchTypeId || branchTypes[0]?.id || 'bt1';
+
+        const typeLocationsPayload = selectedShelfId ? [{
+            locationType: 'branch' as const,
+            locationTypeId: branchTypeId,
+            shelfId: selectedShelfId,
+            shelvingNumber: shelvingNumber || undefined
+        }] : [];
 
         if (existingProduct) {
              const payload = {
@@ -108,7 +129,7 @@ export const ProductModal: React.FC<{
                     unitTiers: validTiers,
                     status: formData.status || 'active',
                 } as Product,
-                typeLocations: []
+                typeLocations: typeLocationsPayload
             };
             dispatch({ type: 'products/update', payload });
         } else {
@@ -126,7 +147,7 @@ export const ProductModal: React.FC<{
                     status: 'active',
                     ...formData,
                 } as Omit<Product, 'id'>,
-                typeLocations: [],
+                typeLocations: typeLocationsPayload,
                 initialStocks: {}
             };
             dispatch({ type: 'products/add', payload });
@@ -275,8 +296,8 @@ export const ProductModal: React.FC<{
                         )}
                     </div>
 
-                    {/* Associations (Category & Vendor) */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Associations (Category, Vendor, & Lokasi Rak) */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <Label>Kategori Produk</Label>
                             <Select value={formData.categoryId || ''} onChange={e => setFormData({...formData, categoryId: e.target.value})}>
@@ -290,6 +311,21 @@ export const ProductModal: React.FC<{
                                 <option value="">Pilih Vendor</option>
                                 {(vendors || []).map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                             </Select>
+                        </div>
+                        <div>
+                            <Label>Lokasi Rak Display</Label>
+                            <div className="flex gap-2">
+                                <Select value={selectedShelfId} onChange={e => setSelectedShelfId(e.target.value)} className="flex-1">
+                                    <option value="">-- Pilih Rak --</option>
+                                    {(shelves || []).map(s => <option key={s.id} value={s.id}>{s.code} ({s.description || 'Rak'})</option>)}
+                                </Select>
+                                <Input 
+                                    placeholder="Selving (cth: 1)" 
+                                    value={shelvingNumber} 
+                                    onChange={e => setShelvingNumber(e.target.value)} 
+                                    className="w-28 shrink-0" 
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -378,48 +414,116 @@ const ProductDetailsModal: React.FC<{
     if (!isOpen || !product) return null;
 
     return (
-        <>
-            <Modal isOpen={isOpen} onClose={onClose} title={`Detail: ${product.name}`} maxWidth="max-w-4xl">
-                <div className="flex border-b dark:border-gray-700 mb-4">
-                    <button onClick={() => setView('purchase')} className={`py-2 px-4 ${view === 'purchase' ? 'border-b-2 border-primary-500 text-primary-600' : 'text-gray-500'}`}>Riwayat Pembelian</button>
-                    <button onClick={() => setView('stock')} className={`py-2 px-4 ${view === 'stock' ? 'border-b-2 border-primary-500 text-primary-600' : 'text-gray-500'}`}>Riwayat Stok</button>
+        <Modal isOpen={isOpen} onClose={onClose} title={`Detail Produk: ${product.name}`} maxWidth="max-w-4xl">
+                {/* Information Header Card */}
+                <div className="bg-slate-50 dark:bg-zinc-800/80 p-4 rounded-xl border border-slate-200/80 dark:border-zinc-700/80 mb-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div>
+                        <span className="text-slate-400 block font-semibold">Nama Produk</span>
+                        <span className="font-bold text-slate-800 dark:text-white text-sm">{product.name}</span>
+                    </div>
+                    <div>
+                        <span className="text-slate-400 block font-semibold">Barcode / SKU</span>
+                        <span className="font-mono font-bold text-slate-700 dark:text-slate-200">{product.barcode || product.sku || '-'}</span>
+                    </div>
+                    <div>
+                        <span className="text-slate-400 block font-semibold">Harga Jual</span>
+                        <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">Rp{(product.price || 0).toLocaleString('id-ID')} / {product.unit || 'Pcs'}</span>
+                    </div>
+                    <div>
+                        <span className="text-slate-400 block font-semibold">Harga Modal (HPP)</span>
+                        <span className="font-mono font-bold text-slate-700 dark:text-slate-300">Rp{(product.cost || 0).toLocaleString('id-ID')}</span>
+                    </div>
                 </div>
-                <div className="max-h-[60vh] overflow-y-auto">
-                    {view === 'purchase' ? (
-                        <table className="w-full text-sm">
-                            <thead><tr><th className="p-2 text-left">Tanggal</th><th className="p-2 text-left">No. PO</th><th className="p-2 text-left">Vendor</th><th className="p-2">Kuantitas</th><th className="p-2 text-right">Harga Beli</th></tr></thead>
-                            <tbody>
-                                {purchaseHistory.map(({ purchase, item }) => (
-                                    <tr key={purchase.id} className="border-t dark:border-gray-700">
-                                        <td className="p-2">{new Date(purchase.orderDate).toLocaleDateString()}</td>
-                                        <td className="p-2"><button onClick={() => setViewingPurchase(purchase)} className="text-primary-600 hover:underline">{purchase.id}</button></td>
-                                        <td className="p-2">{purchase.vendorName}</td>
-                                        <td className="p-2 text-center">{item.quantity}</td>
-                                        <td className="p-2 text-right">Rp{item.cost.toLocaleString('id-ID')}</td>
+
+                {/* Tab Navigation Header */}
+                <div className="flex space-x-1 border-b dark:border-zinc-700 mb-4">
+                    <button 
+                        onClick={() => setView('stock')} 
+                        className={`py-2 px-4 text-xs font-bold transition-colors ${view === 'stock' ? 'border-b-2 border-primary-500 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                    >
+                        📦 Riwayat Stok Mutasi ({stockHistory.length})
+                    </button>
+                    <button 
+                        onClick={() => setView('purchase')} 
+                        className={`py-2 px-4 text-xs font-bold transition-colors ${view === 'purchase' ? 'border-b-2 border-primary-500 text-primary-600 dark:text-primary-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                    >
+                        🛍️ Riwayat Pembelian ({purchaseHistory.length})
+                    </button>
+                </div>
+
+                {/* History Content List */}
+                <div className="max-h-[55vh] overflow-y-auto pr-1">
+                    {view === 'stock' ? (
+                         <table className="w-full text-xs text-left">
+                            <thead className="bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-300 uppercase font-bold sticky top-0">
+                                <tr>
+                                    <th className="p-2.5">Tanggal</th>
+                                    <th className="p-2.5">Tipe Mutasi</th>
+                                    <th className="p-2.5">Referensi ID</th>
+                                    <th className="p-2.5 text-center">Perubahan Qty</th>
+                                    <th className="p-2.5">Petugas</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                                {stockHistory.map(m => (
+                                    <tr key={m.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/50">
+                                        <td className="p-2.5 font-medium text-slate-600 dark:text-slate-400">{new Date(m.date).toLocaleString('id-ID')}</td>
+                                        <td className="p-2.5">
+                                            <span className="font-semibold text-slate-800 dark:text-slate-200 capitalize">{m.type.replace('_', ' ')}</span>
+                                        </td>
+                                        <td className="p-2.5 font-mono text-slate-500">{m.referenceId || '-'}</td>
+                                        <td className={`p-2.5 font-black text-center font-mono ${m.quantityChange > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                                            {m.quantityChange > 0 ? `+${m.quantityChange}` : m.quantityChange}
+                                        </td>
+                                        <td className="p-2.5 text-slate-500">{m.staffId ? staffMap.get(m.staffId) || 'Staff' : 'Sistem'}</td>
                                     </tr>
                                 ))}
+                                {stockHistory.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="p-6 text-center text-slate-400">Belum ada riwayat mutasi stok untuk produk ini.</td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     ) : (
-                         <table className="w-full text-sm">
-                            <thead><tr><th className="p-2 text-left">Tanggal</th><th className="p-2 text-left">Transaksi</th><th className="p-2 text-left">Partner</th><th className="p-2">Qty</th><th className="p-2 text-left">Oleh</th></tr></thead>
-                            <tbody>
-                                {stockHistory.map(m => (
-                                    <tr key={m.id} className="border-t dark:border-gray-700">
-                                        <td className="p-2">{new Date(m.date).toLocaleString('id-ID')}</td>
-                                        <td className="p-2">{m.type} #{m.referenceId}</td>
-                                        <td className="p-2">{m.partnerId ? partnerMap.get(m.partnerId) : 'N/A'}</td>
-                                        <td className={`p-2 font-bold text-center ${m.quantityChange > 0 ? 'text-green-500' : 'text-red-500'}`}>{m.quantityChange > 0 ? '+' : ''}{m.quantityChange}</td>
-                                        <td className="p-2">{m.staffId ? staffMap.get(m.staffId) : 'Sistem'}</td>
+                        <table className="w-full text-xs text-left">
+                            <thead className="bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-300 uppercase font-bold sticky top-0">
+                                <tr>
+                                    <th className="p-2.5">Tanggal</th>
+                                    <th className="p-2.5">No. PO</th>
+                                    <th className="p-2.5">Vendor</th>
+                                    <th className="p-2.5 text-center">Kuantitas</th>
+                                    <th className="p-2.5 text-right">Harga Beli</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                                {purchaseHistory.map(({ purchase, item }) => (
+                                    <tr key={purchase.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/50">
+                                        <td className="p-2.5 font-medium text-slate-600 dark:text-slate-400">{new Date(purchase.orderDate).toLocaleDateString('id-ID')}</td>
+                                        <td className="p-2.5 font-mono">
+                                            <button onClick={() => {
+                                                onClose();
+                                                dispatch({ type: 'purchases/setSelectedId', payload: purchase.id });
+                                                dispatch({ type: 'ui/setPage', payload: Page.PurchaseDetailsPage });
+                                            }} className="text-purple-600 font-bold hover:underline">
+                                                {purchase.id}
+                                            </button>
+                                        </td>
+                                        <td className="p-2.5 text-slate-700 dark:text-slate-300">{purchase.vendorName}</td>
+                                        <td className="p-2.5 text-center font-bold font-mono">{item.quantity}</td>
+                                        <td className="p-2.5 text-right font-mono font-bold text-slate-800 dark:text-white">Rp{item.cost.toLocaleString('id-ID')}</td>
                                     </tr>
                                 ))}
+                                {purchaseHistory.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="p-6 text-center text-slate-400">Belum ada riwayat pembelian untuk produk ini.</td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     )}
                 </div>
             </Modal>
-            <PurchaseOrderDetailsModal isOpen={!!viewingPurchase} onClose={() => setViewingPurchase(null)} purchaseOrder={viewingPurchase} />
-        </>
     );
 };
 // --- Import Product Modal ---
@@ -939,15 +1043,35 @@ export const ProductListPage: React.FC = () => {
                                         <Badge variant={product.status === 'active' ? 'success' : 'neutral'} className="text-[9px] px-1.5 py-0">{product.status || 'active'}</Badge>
                                     </Td>
                                     <Td className="text-right py-1 px-2">
-                                        <ActionsDropdown>
-                                            <DropdownItem onClick={() => handleOpenDetailsModal(product)}>Lihat Detail</DropdownItem>
-                                            <DropdownItem onClick={() => handleOpenModal(product)}>Ubah</DropdownItem>
-                                            {product.status !== 'archived' && (
-                                                <DropdownItem onClick={() => handleSetStatus(product.id, product.status === 'active' ? 'inactive' : 'active')}>
-                                                    {product.status === 'active' ? 'Non-aktifkan' : 'Aktifkan'}
-                                                </DropdownItem>
-                                            )}
-                                        </ActionsDropdown>
+                                         <div className="flex items-center justify-end gap-1">
+                                             <button
+                                                 onClick={() => handleOpenDetailsModal(product)}
+                                                 title="Lihat Detail"
+                                                 className="p-1.5 text-slate-500 hover:text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 rounded-lg transition-colors"
+                                             >
+                                                 <Eye className="w-4 h-4" />
+                                             </button>
+                                             <button
+                                                 onClick={() => handleOpenModal(product)}
+                                                 title="Ubah / Edit"
+                                                 className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg transition-colors"
+                                             >
+                                                 <Edit className="w-4 h-4" />
+                                             </button>
+                                             {product.status !== 'archived' && (
+                                                 <button
+                                                     onClick={() => handleSetStatus(product.id, product.status === 'active' ? 'inactive' : 'active')}
+                                                     title={product.status === 'active' ? 'Non-aktifkan' : 'Aktifkan'}
+                                                     className={`p-1.5 rounded-lg transition-colors ${
+                                                         product.status === 'active' 
+                                                             ? 'text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40' 
+                                                             : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                                                     }`}
+                                                 >
+                                                     <Power className="w-4 h-4" />
+                                                 </button>
+                                             )}
+                                         </div>
                                     </Td>
                                 </Tr>
                             );

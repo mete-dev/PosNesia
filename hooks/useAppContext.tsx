@@ -292,11 +292,17 @@ type Action =
   | { type: 'brands/add', payload: Omit<Brand, 'id'> }
   | { type: 'brands/update', payload: Brand }
   | { type: 'brands/delete', payload: string }
+  | { type: 'vendors/setSelectedId'; payload: string }
+  | { type: 'customers/setSelectedId'; payload: string }
   // Purchase actions
   | { type: 'purchases/add'; payload: Omit<PurchaseOrder, 'id'> }
   | { type: 'purchases/receive'; payload: string }
+  | { type: 'purchases/partialReceive'; payload: { poId: string, items: { productId: string, receivedQty: number }[] } }
+  | { type: 'purchases/addPayment'; payload: { poId: string, amount: number, paymentMethodId: string, sourceAccountId?: string, notes?: string } }
   | { type: 'purchases/cancel'; payload: string }
-  | { type: 'purchases/addAttachment'; payload: { purchaseOrderId: string, fileName: string } }
+  | { type: 'purchases/delete'; payload: string }
+  | { type: 'purchases/setSelectedId'; payload: string }
+  | { type: 'purchases/updateStatuses'; payload: { poId: string, itemStatus?: PurchaseItemStatus, paymentStatus?: PurchasePaymentStatus } }
   // Inventory actions
   | { type: 'inventory/adjustStock'; payload: { productId: string, newStock: number, reason: string, locationId: string } }
   | { type: 'inventory/addShelf'; payload: Omit<Shelf, 'id'> }
@@ -309,9 +315,13 @@ type Action =
   | { type: 'sales/add'; payload: Omit<Sale, 'id'> }
   | { type: 'sales/processFromCart'; payload: any }
   | { type: 'sales/cancel'; payload: string }
+  | { type: 'sales/delete'; payload: string }
+  | { type: 'sales/setSelectedId'; payload: string }
   | { type: 'sales/updateStatus'; payload: { saleId: string; fulfillmentStatus: FulfillmentStatus } }
+  | { type: 'sales/updateStatuses'; payload: { saleId: string, itemStatus?: SaleItemStatus, paymentStatus?: SalePaymentStatus } }
+  | { type: 'sales/partialDeliver'; payload: { saleId: string, items: { productId: string, deliveredQty: number }[] } }
+  | { type: 'sales/addPayment'; payload: { saleId: string, amount: number, paymentMethodId: string, sourceAccountId?: string, notes?: string } }
   | { type: 'sales/processCustomerOrder'; payload: { addressId: string, pointsToUse: number, depositToUse: number } }
-  | { type: 'sales/addAttachment'; payload: { saleId: string, fileName: string } }
   // Cart actions
   | { type: 'cart/add'; payload: Product }
   | { type: 'cart/updateQuantity'; payload: { productId: string; quantity: number } }
@@ -842,6 +852,202 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
         case 'customers/update': return { ...state, customers: state.customers.map(c => c.id === action.payload.id ? action.payload : c) };
         case 'customers/setStatus': return { ...state, customers: state.customers.map(c => c.id === action.payload.id ? { ...c, status: action.payload.status } : c) };
+        // --- VENDORS ---
+        case 'vendors/add': {
+            const newVendor: Vendor = {
+                ...action.payload,
+                id: generateId('v', state.vendors.length + Math.random()),
+                status: action.payload.status || 'active',
+            };
+            return { ...state, vendors: [...state.vendors, newVendor] };
+        }
+        case 'vendors/update': return { ...state, vendors: state.vendors.map(v => v.id === action.payload.id ? action.payload : v) };
+        case 'vendors/setStatus': return { ...state, vendors: state.vendors.map(v => v.id === action.payload.id ? { ...v, status: action.payload.status } : v) };
+        // --- PURCHASES ---
+        case 'purchases/add': {
+            const poDate = new Date(action.payload.orderDate || Date.now());
+            const newPO: PurchaseOrder = {
+                ...action.payload,
+                id: generateMonthlyTransactionalId('B', action.payload.destinationId || 'PST', poDate, state.purchases),
+            };
+            return { ...state, purchases: [newPO, ...state.purchases] };
+        }
+        case 'purchases/receive': {
+            const poId = action.payload;
+            const targetPO = state.purchases.find(p => p.id === poId);
+            if (!targetPO || targetPO.status === 'Received') return state;
+
+            const updatedPurchases = state.purchases.map(p => p.id === poId ? { ...p, status: 'Received' as const } : p);
+            
+            // Auto update stock for target location
+            let updatedInventoryLevels = [...state.inventoryLevels];
+            const newMovements = [...state.stockMovements];
+            const locId = targetPO.destinationId || state.currentBranchId || 'CAB-JPSTNH01';
+
+            targetPO.items.forEach(item => {
+                const invIndex = updatedInventoryLevels.findIndex(i => i.productId === item.productId && i.locationId === locId);
+                if (invIndex > -1) {
+                    updatedInventoryLevels[invIndex] = {
+                        ...updatedInventoryLevels[invIndex],
+                        quantity: updatedInventoryLevels[invIndex].quantity + item.quantity
+                    };
+                } else {
+                    updatedInventoryLevels.push({
+                        id: generateId('inv', updatedInventoryLevels.length + Math.random()),
+                        productId: item.productId,
+                        locationId: locId,
+                        locationType: 'branch',
+                        quantity: item.quantity
+                    });
+                }
+
+                newMovements.push({
+                    id: generateId('sm', newMovements.length + Math.random()),
+                    date: new Date().toISOString(),
+                    productId: item.productId,
+                    locationId: locId,
+                    type: 'Purchase_In',
+                    quantityChange: item.quantity,
+                    referenceId: targetPO.id,
+                    staffId: state.currentUser?.id || 'staff-1',
+                });
+            });
+
+            return {
+                ...state,
+                purchases: updatedPurchases,
+                inventoryLevels: updatedInventoryLevels,
+                stockMovements: newMovements
+            };
+        }
+        case 'purchases/cancel': {
+            return {
+                ...state,
+                purchases: state.purchases.map(p => p.id === action.payload ? { ...p, status: 'Cancelled' as const } : p)
+            };
+        }
+        case 'purchases/delete': {
+            return {
+                ...state,
+                purchases: state.purchases.filter(p => p.id !== action.payload)
+            };
+        }
+        case 'purchases/setSelectedId': {
+            return { ...state, selectedPurchaseOrderId: action.payload };
+        }
+        case 'vendors/setSelectedId': {
+            return { ...state, selectedVendorId: action.payload };
+        }
+        case 'customers/setSelectedId': {
+            return { ...state, selectedCustomerId: action.payload };
+        }
+        case 'purchases/addPayment': {
+            const { poId, amount, paymentMethodId, sourceAccountId, notes } = action.payload;
+            const targetPO = state.purchases.find(p => p.id === poId);
+            if (!targetPO) return state;
+
+            const pm = state.paymentMethods.find(p => p.id === paymentMethodId);
+            const acc = state.accounts.find(a => a.id === sourceAccountId);
+
+            const newRecord: PaymentRecord = {
+                id: generateId('pay', Math.random()),
+                date: new Date().toISOString(),
+                amount,
+                paymentMethodId,
+                paymentMethodName: pm?.name || 'Metode Pembayaran',
+                sourceAccountId,
+                sourceAccountName: acc?.name,
+                notes,
+            };
+
+            const updatedHistory = [...(targetPO.paymentHistory || []), newRecord];
+            const newAmountPaid = (targetPO.amountPaid || 0) + amount;
+            const isFullyPaid = newAmountPaid >= targetPO.grandTotal;
+            const newPaymentStatus: PurchasePaymentStatus = isFullyPaid ? 'Lunas' : 'Dicicil';
+
+            return {
+                ...state,
+                purchases: state.purchases.map(p => {
+                    if (p.id !== poId) return p;
+                    return {
+                        ...p,
+                        amountPaid: newAmountPaid,
+                        paymentStatus: newPaymentStatus,
+                        paymentHistory: updatedHistory,
+                    };
+                })
+            };
+        }
+        case 'purchases/partialReceive': {
+            const { poId, items: receivedItems } = action.payload;
+            const targetPO = state.purchases.find(p => p.id === poId);
+            if (!targetPO) return state;
+
+            let updatedInventoryLevels = [...state.inventoryLevels];
+            const newMovements = [...state.stockMovements];
+            const locId = targetPO.destinationId || state.currentBranchId || 'CAB-JPSTNH01';
+
+            const updatedItems = targetPO.items.map(item => {
+                const r = receivedItems.find(i => i.productId === item.productId);
+                if (!r || r.receivedQty <= 0) return item;
+
+                const addedQty = r.receivedQty;
+                const newRec = (item.receivedQuantity || 0) + addedQty;
+
+                const invIndex = updatedInventoryLevels.findIndex(i => i.productId === item.productId && i.locationId === locId);
+                if (invIndex > -1) {
+                    updatedInventoryLevels[invIndex] = {
+                        ...updatedInventoryLevels[invIndex],
+                        quantity: updatedInventoryLevels[invIndex].quantity + addedQty
+                    };
+                } else {
+                    updatedInventoryLevels.push({
+                        id: generateId('inv', updatedInventoryLevels.length + Math.random()),
+                        productId: item.productId,
+                        locationId: locId,
+                        locationType: 'branch',
+                        quantity: addedQty
+                    });
+                }
+
+                newMovements.push({
+                    id: generateId('sm', newMovements.length + Math.random()),
+                    date: new Date().toISOString(),
+                    productId: item.productId,
+                    locationId: locId,
+                    type: 'Purchase_In',
+                    quantityChange: addedQty,
+                    referenceId: targetPO.id,
+                    staffId: state.currentUser?.id || 'staff-1',
+                });
+
+                return { ...item, receivedQuantity: newRec };
+            });
+
+            const allItemsFullyReceived = updatedItems.every(i => (i.receivedQuantity || 0) >= i.quantity);
+            const newItemStatus: PurchaseItemStatus = allItemsFullyReceived ? 'Barang Diterima' : 'Menunggu Kedatangan';
+
+            return {
+                ...state,
+                purchases: state.purchases.map(p => p.id === poId ? { ...p, items: updatedItems, itemStatus: newItemStatus, status: allItemsFullyReceived ? 'Received' as const : 'Pending' as const } : p),
+                inventoryLevels: updatedInventoryLevels,
+                stockMovements: newMovements
+            };
+        }
+        case 'purchases/updateStatuses': {
+            const { poId, itemStatus, paymentStatus } = action.payload;
+            return {
+                ...state,
+                purchases: state.purchases.map(p => {
+                    if (p.id !== poId) return p;
+                    return {
+                        ...p,
+                        itemStatus: itemStatus || p.itemStatus,
+                        paymentStatus: paymentStatus || p.paymentStatus
+                    };
+                })
+            };
+        }
         case 'customers/addDeposit': {
             const { customerId, amount, paymentMethodId, posSessionId } = action.payload;
             const customer = state.customers.find(c => c.id === customerId);
@@ -1328,9 +1534,95 @@ const appReducer = (state: AppState, action: Action): AppState => {
             const totalSalary = activeStaff.reduce((sum, s) => sum + s.salary, 0);
             journalLines.push({ accountId: '5020', type: 'debit', amount: totalSalary }); // Beban Gaji
 
-            const journalResult = journalService.createJournalEntry(state.accounts, state.journalEntries, 'b1', 'Pembayaran Gaji Bulanan', journalLines, 'Gaji');
-            
             return { ...state, ...journalResult, staff: updatedStaff };
+        }
+        case 'sales/delete': {
+            return {
+                ...state,
+                sales: state.sales.filter(s => s.id !== action.payload)
+            };
+        }
+        case 'sales/setSelectedId': {
+            return { ...state, selectedSaleId: action.payload };
+        }
+        case 'sales/updateStatus': {
+            const { saleId, fulfillmentStatus } = action.payload;
+            return {
+                ...state,
+                sales: state.sales.map(s => s.id === saleId ? { ...s, fulfillmentStatus } : s)
+            };
+        }
+        case 'sales/addPayment': {
+            const { saleId, amount, paymentMethodId, sourceAccountId, notes } = action.payload;
+            const targetSale = state.sales.find(s => s.id === saleId);
+            if (!targetSale) return state;
+
+            const pm = state.paymentMethods.find(p => p.id === paymentMethodId);
+            const acc = state.accounts.find(a => a.id === sourceAccountId);
+
+            const newRecord: PaymentRecord = {
+                id: generateId('pay', Math.random()),
+                date: new Date().toISOString(),
+                amount,
+                paymentMethodId,
+                paymentMethodName: pm?.name || 'Metode Pembayaran',
+                sourceAccountId,
+                sourceAccountName: acc?.name,
+                notes,
+            };
+
+            const updatedHistory = [...(targetSale.paymentHistory || []), newRecord];
+            const newAmountPaid = (targetSale.amountPaid || 0) + amount;
+            const isFullyPaid = newAmountPaid >= targetSale.grandTotal;
+            const newPaymentStatus: SalePaymentStatus = isFullyPaid ? 'Lunas' : 'Belum Lunas';
+
+            return {
+                ...state,
+                sales: state.sales.map(s => {
+                    if (s.id !== saleId) return s;
+                    return {
+                        ...s,
+                        amountPaid: newAmountPaid,
+                        paymentStatus: newPaymentStatus,
+                        status: isFullyPaid ? 'Paid' as const : 'Unpaid' as const,
+                        paymentHistory: updatedHistory,
+                    };
+                })
+            };
+        }
+        case 'sales/partialDeliver': {
+            const { saleId, items: deliveredItems } = action.payload;
+            const targetSale = state.sales.find(s => s.id === saleId);
+            if (!targetSale) return state;
+
+            const updatedItems = targetSale.items.map(item => {
+                const r = deliveredItems.find(i => i.productId === item.productId);
+                if (!r || r.deliveredQty <= 0) return item;
+                const newDel = (item.deliveredQuantity || 0) + r.deliveredQty;
+                return { ...item, deliveredQuantity: newDel };
+            });
+
+            const allItemsFullyDelivered = updatedItems.every(i => (i.deliveredQuantity || 0) >= i.quantity);
+            const newItemStatus: SaleItemStatus = allItemsFullyDelivered ? 'Barang Diterima' : 'Diproses';
+
+            return {
+                ...state,
+                sales: state.sales.map(s => s.id === saleId ? { ...s, items: updatedItems, itemStatus: newItemStatus, fulfillmentStatus: allItemsFullyDelivered ? 'Delivered' as const : 'Pending' as const } : s)
+            };
+        }
+        case 'sales/updateStatuses': {
+            const { saleId, itemStatus, paymentStatus } = action.payload;
+            return {
+                ...state,
+                sales: state.sales.map(s => {
+                    if (s.id !== saleId) return s;
+                    return {
+                        ...s,
+                        itemStatus: itemStatus || s.itemStatus,
+                        paymentStatus: paymentStatus || s.paymentStatus
+                    };
+                })
+            };
         }
         case 'staff/addDeposit': {
             // Similar to customer deposit but for staff
@@ -1481,6 +1773,28 @@ const appReducer = (state: AppState, action: Action): AppState => {
             return {
                 ...state,
                 returnOrders: state.returnOrders.filter(r => r.id !== action.payload)
+            };
+        }
+        case 'promotions/add': {
+            const newPromo: Promotion = {
+                ...action.payload,
+                id: generateId('prm', state.promotions.length),
+            };
+            return {
+                ...state,
+                promotions: [...state.promotions, newPromo]
+            };
+        }
+        case 'promotions/update': {
+            return {
+                ...state,
+                promotions: state.promotions.map(p => p.id === action.payload.id ? action.payload : p)
+            };
+        }
+        case 'points/updateSettings': {
+            return {
+                ...state,
+                pointsSettings: action.payload
             };
         }
         default: return state;

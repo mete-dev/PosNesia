@@ -204,7 +204,7 @@ const getModuleInfoForPage = (currentPage: Page, userPermissions: Page[]) => {
             label: 'Pembelian',
             icon: '🛍️',
             subItems: [
-                { label: 'Pesanan Pembelian', page: Page.PurchaseList },
+                { label: 'Pembelian', page: Page.PurchaseList },
                 { label: 'Vendor', page: Page.Vendors }
             ],
             groups: null,
@@ -216,8 +216,8 @@ const getModuleInfoForPage = (currentPage: Page, userPermissions: Page[]) => {
             subItems: [
                 { label: 'Data Produk', page: Page.ProductList },
                 { label: 'Penyesuaian Stok', page: Page.InventoryAdjustment },
-                { label: 'Penerimaan Barang', page: Page.GoodsReceipt },
                 { label: 'Manajemen Retur', page: Page.ReturnManagement },
+                { label: 'Kelola Rak', page: Page.ManageShelves },
                 { label: 'Kategori Produk', page: Page.ProductCategories }
             ],
             groups: null,

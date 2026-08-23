@@ -80,20 +80,20 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
             label: 'Pembelian',
             pages: [Page.PurchaseList, Page.Vendors],
             subItems: [
-                { label: 'Pesanan Pembelian', page: Page.PurchaseList },
+                { label: 'Pembelian', page: Page.PurchaseList },
                 { label: 'Vendor', page: Page.Vendors },
             ]
         },
         {
             icon: <Boxes className="w-4 h-4" />,
             label: 'Inventaris',
-            pages: [Page.ProductList, Page.InventoryAdjustment, Page.GoodsReceipt, Page.ReturnManagement, Page.ProductCategories],
+            pages: [Page.ProductList, Page.InventoryAdjustment, Page.ReturnManagement, Page.ManageShelves, Page.ProductCategories],
             subItems: [
                 { label: 'Data Produk', page: Page.ProductList },
                 { label: 'Kategori Produk', page: Page.ProductCategories },
                 { label: 'Penyesuaian Stok', page: Page.InventoryAdjustment },
-                { label: 'Penerimaan Barang', page: Page.GoodsReceipt },
                 { label: 'Manajemen Retur', page: Page.ReturnManagement },
+                { label: 'Kelola Rak', page: Page.ManageShelves },
             ]
         },
         {

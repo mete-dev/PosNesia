@@ -50,13 +50,39 @@ export const createSale = (params: CreateSaleParams): CreateSaleResult => {
     const saleDate = new Date();
     const newSaleId = newSaleData.posSessionId 
         ? generatePosReceiptId(newSaleData.posSessionId, sales.filter(s => s.posSessionId === newSaleData.posSessionId))
-        : generateMonthlyTransactionalId('SO', newSaleData.branchId, saleDate, sales);
+        : generateMonthlyTransactionalId('J', newSaleData.branchId, saleDate, sales);
+
+    // Auto set status for POS sales: itemStatus -> Barang Diterima & paymentHistory with selected payment method details
+    const isPosSale = newSaleData.saleChannel === 'POS' || !!newSaleData.posSessionId;
+    const initialItemStatus = isPosSale ? 'Barang Diterima' : (newSaleData.itemStatus || 'Draft');
+    const initialItems = isPosSale 
+        ? newSaleData.items.map(item => ({ ...item, deliveredQuantity: item.quantity }))
+        : newSaleData.items;
+
+    // Create payment history entry for POS sales so payment details are recorded immediately
+    const initialPaymentHistory = isPosSale && newSaleData.payments && newSaleData.payments.length > 0
+        ? newSaleData.payments.map((p, idx) => {
+            const pm = paymentMethods.find(m => m.id === p.paymentMethodId);
+            return {
+                id: generateId('pay', idx + Math.random()),
+                date: saleDate.toISOString(),
+                amount: p.amount,
+                paymentMethodId: p.paymentMethodId,
+                paymentMethodName: pm?.name || 'Metode Pembayaran Kasir',
+                notes: 'Pembayaran Kasir POS (Lunas Otomatis)'
+            };
+        })
+        : (newSaleData.paymentHistory || []);
 
     const newSale: Sale = {
         ...newSaleData,
         id: newSaleId,
         date: saleDate.toISOString(),
-        status: newSaleData.paymentTermId === 'pt1' ? 'Paid' : 'Unpaid', // 'pt1' is 'Langsung'
+        items: initialItems,
+        itemStatus: initialItemStatus,
+        paymentStatus: isPosSale || newSaleData.paymentTermId === 'pt1' ? 'Lunas' : (newSaleData.paymentStatus || 'Belum Lunas'),
+        status: isPosSale || newSaleData.paymentTermId === 'pt1' ? 'Paid' : 'Unpaid',
+        paymentHistory: initialPaymentHistory,
         pointsEarned,
     };
     const updatedSales = [newSale, ...sales];

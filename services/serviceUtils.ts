@@ -80,28 +80,28 @@ export const generateAssetId = (
 };
 
 export const generateMonthlyTransactionalId = (
-    prefix: string,
+    prefix: string, // 'B' for Pembelian, 'J' for Penjualan
     branchId: string,
     date: Date,
-    collection: { id: string, date?: string, orderDate?: string, requestDate?: string, billDate?: string, branchId?: string, destinationId?: string, toBranchId?: string }[]
+    collection: { id: string, date?: string, orderDate?: string, requestDate?: string, billDate?: string }[]
 ): string => {
-    const branchCode = branchId.toUpperCase();
-    const yyyymm = `${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const targetYearMonth = `${year}${month}`;
 
-    const countInMonthForBranch = collection.filter(item => {
+    const countInMonth = collection.filter(item => {
         const itemDateStr = item.date || item.orderDate || item.requestDate || item.billDate;
         if (!itemDateStr) return false;
         
         const itemDate = new Date(itemDateStr);
-        const itemYYYYMM = `${itemDate.getFullYear()}${(itemDate.getMonth() + 1).toString().padStart(2, '0')}`;
+        const itemYearMonth = `${itemDate.getFullYear()}${(itemDate.getMonth() + 1).toString().padStart(2, '0')}`;
         
-        const itemBranchId = item.branchId || item.destinationId || item.toBranchId;
-        
-        return item.id.startsWith(prefix) && itemBranchId === branchId && itemYYYYMM === yyyymm;
+        return itemYearMonth === targetYearMonth;
     }).length;
 
-    const sequence = (countInMonthForBranch + 1).toString().padStart(5, '0');
-    return `${prefix}/${branchCode}/${yyyymm}/${sequence}`;
+    const sequence = (countInMonth + 1).toString().padStart(4, '0');
+    return `${prefix}/${year}/${month}/${day}/${sequence}`;
 };
 
 export const generateStockTransferId = (

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { PurchaseOrder, Vendor, Product, PurchaseOrderItem, Page } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
 import { ActionsDropdown, DropdownItem, Modal, Button, Input } from './ui';
@@ -6,62 +6,324 @@ import { VendorBillModal } from './Bills';
 import { ProductModal } from './Products';
 
 
-export const PurchaseOrderDetailsModal: React.FC<{ isOpen: boolean, onClose: () => void, purchaseOrder: PurchaseOrder | null }> = ({ isOpen, onClose, purchaseOrder }) => {
-    const { dispatch } = useAppContext();
-    if (!purchaseOrder) return null;
+export const PurchaseOrderDetailsPage: React.FC<{ purchaseOrderId?: string, onBack?: () => void }> = ({ purchaseOrderId, onBack }) => {
+    const { state, dispatch } = useAppContext();
+    const { purchases, paymentMethods, accounts, selectedPurchaseOrderId } = state;
 
-    const handleAddAttachment = () => {
-        const fileName = prompt("Masukkan nama file lampiran:", "");
-        if (fileName) {
-            dispatch({ type: 'purchases/addAttachment', payload: { purchaseOrderId: purchaseOrder.id, fileName } });
+    const targetId = purchaseOrderId || selectedPurchaseOrderId;
+    const purchaseOrder = useMemo(() => purchases.find(p => p.id === targetId), [purchases, targetId]);
+
+    const [activeTab, setActiveTab] = useState<'pesanan' | 'pembayaran'>('pesanan');
+    const [isPayModalOpen, setPayModalOpen] = useState(false);
+    const [isPartialModalOpen, setPartialModalOpen] = useState(false);
+
+    // Form bayar cicilan/lunas
+    const [payAmount, setPayAmount] = useState<number>(0);
+    const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState('');
+    const [selectedAccountId, setSelectedAccountId] = useState('');
+    const [payNotes, setPayNotes] = useState('');
+
+    // Partial receive form
+    const [partialQtys, setPartialQtys] = useState<Record<string, number>>({});
+
+    useEffect(() => {
+        if (purchaseOrder) {
+            const remaining = purchaseOrder.grandTotal - (purchaseOrder.amountPaid || 0);
+            setPayAmount(Math.max(0, remaining));
+            if (paymentMethods.length > 0) setSelectedPaymentMethodId(paymentMethods[0].id);
+            if (accounts.length > 0) setSelectedAccountId(accounts.find(a => a.isCashAccount)?.id || accounts[0].id);
+
+            const initialQtys: Record<string, number> = {};
+            purchaseOrder.items.forEach(i => {
+                const unrec = i.quantity - (i.receivedQuantity || 0);
+                initialQtys[i.productId] = Math.max(0, unrec);
+            });
+            setPartialQtys(initialQtys);
         }
+    }, [purchaseOrder, paymentMethods, accounts]);
+
+    const handleGoBack = () => {
+        if (onBack) onBack();
+        else dispatch({ type: 'ui/setPage', payload: Page.PurchaseList });
+    };
+
+    if (!purchaseOrder) {
+        return (
+            <div className="p-6 text-center space-y-4">
+                <p className="text-slate-400">Data pembelian tidak ditemukan.</p>
+                <Button onClick={handleGoBack}>Kembali ke Daftar Pembelian</Button>
+            </div>
+        );
+    }
+
+    const subtotal = purchaseOrder.items.reduce((sum, item) => sum + (item.cost * item.quantity), 0);
+    const amountPaid = purchaseOrder.amountPaid || 0;
+    const remainingBalance = Math.max(0, purchaseOrder.grandTotal - amountPaid);
+
+    const handleConfirmPayment = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (payAmount <= 0) {
+            alert('Nominal pembayaran harus lebih dari 0.');
+            return;
+        }
+        dispatch({
+            type: 'purchases/addPayment',
+            payload: {
+                poId: purchaseOrder.id,
+                amount: payAmount,
+                paymentMethodId: selectedPaymentMethodId,
+                sourceAccountId: selectedAccountId,
+                notes: payNotes,
+            }
+        });
+        setPayModalOpen(false);
+        setPayNotes('');
+    };
+
+    const handleConfirmPartialReceive = (e: React.FormEvent) => {
+        e.preventDefault();
+        const payloadItems = Object.entries(partialQtys).map(([productId, receivedQty]) => ({ productId, receivedQty: Number(receivedQty) || 0 }));
+        dispatch({
+            type: 'purchases/partialReceive',
+            payload: { poId: purchaseOrder.id, items: payloadItems }
+        });
+        setPartialModalOpen(false);
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Detail Pembelian #${purchaseOrder.id}`} maxWidth="max-w-3xl">
-            <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                    <p><strong>Vendor:</strong> {purchaseOrder.vendorName}</p>
-                    <p><strong>Tanggal Pesan:</strong> {new Date(purchaseOrder.orderDate).toLocaleDateString('id-ID')}</p>
-                    <p><strong>No. Faktur:</strong> {purchaseOrder.invoiceNumber || 'N/A'}</p>
-                    <p><strong>Perkiraan Tiba:</strong> {new Date(purchaseOrder.expectedDelivery).toLocaleDateString('id-ID')}</p>
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-4 overflow-y-auto bg-slate-50 dark:bg-zinc-950">
+            {/* Top Toolbar Navigation */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs">
+                <div>
+                    <nav className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-zinc-400 mb-1">
+                        <span onClick={handleGoBack} className="hover:underline cursor-pointer">Data Pembelian</span>
+                        <span>/</span>
+                        <span className="font-bold text-slate-700 dark:text-zinc-200">Detail #{purchaseOrder.id}</span>
+                    </nav>
+                    <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight flex items-center gap-2">
+                        Pembelian #{purchaseOrder.id}
+                    </h1>
                 </div>
-                <h3 className="font-semibold pt-2 border-t dark:border-gray-600">Item yang Dipesan</h3>
-                <table className="w-full text-sm">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th className="p-2 text-left">Produk</th>
-                            <th className="p-2 text-center">Qty</th>
-                            <th className="p-2 text-right">Harga Satuan</th>
-                            <th className="p-2 text-right">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {purchaseOrder.items.map(item => (
-                            <tr key={item.productId} className="border-b dark:border-gray-700">
-                                <td className="p-2">{item.productName}</td>
-                                <td className="p-2 text-center">{item.quantity}</td>
-                                <td className="p-2 text-right">Rp{item.cost.toLocaleString('id-ID')}</td>
-                                <td className="p-2 text-right">Rp{(item.cost * item.quantity).toLocaleString('id-ID')}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                 <div className="space-y-1 text-right font-medium mt-4">
-                    <p>Subtotal: Rp{purchaseOrder.subtotal.toLocaleString('id-ID')}</p>
-                    <p>Pajak: Rp{purchaseOrder.taxAmount.toLocaleString('id-ID')}</p>
-                    <p className="text-xl font-bold">Grand Total: Rp{purchaseOrder.grandTotal.toLocaleString('id-ID')}</p>
-                </div>
-                <div className="pt-2 border-t dark:border-gray-600">
-                    <h3 className="text-lg font-semibold">Lampiran</h3>
-                    <ul className="list-disc list-inside text-sm mt-2">
-                        {purchaseOrder.attachments?.map((att, index) => <li key={index}>{att.name}</li>)}
-                    </ul>
-                    {(!purchaseOrder.attachments || purchaseOrder.attachments.length === 0) && <p className="text-sm text-gray-500">Tidak ada lampiran.</p>}
-                    <Button onClick={handleAddAttachment} variant="secondary" size="sm" className="mt-2">Tambah Lampiran</Button>
+
+                <div className="flex items-center gap-2">
+                    <Button type="button" variant="secondary" onClick={handleGoBack} className="text-xs py-1.5 px-3">
+                        ← Kembali
+                    </Button>
                 </div>
             </div>
-        </Modal>
+
+            {/* Document Details Sheet */}
+            <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-xs border border-slate-200 dark:border-zinc-800 p-5 md:p-6 space-y-5 text-xs">
+                {/* Header Summary Card */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 dark:bg-zinc-800/60 p-4 rounded-xl border border-slate-200 dark:border-zinc-700">
+                    <div><p className="text-[11px] text-slate-400 font-bold uppercase">Vendor</p><p className="font-extrabold text-sm text-slate-900 dark:text-white">{purchaseOrder.vendorName}</p></div>
+                    <div><p className="text-[11px] text-slate-400 font-bold uppercase">Tgl. Pesan</p><p className="font-bold font-mono text-sm">{new Date(purchaseOrder.orderDate).toLocaleDateString('id-ID')}</p></div>
+                    <div><p className="text-[11px] text-slate-400 font-bold uppercase">Status Barang</p><p className="font-bold text-sm text-blue-600">{purchaseOrder.itemStatus || 'Draft'}</p></div>
+                    <div><p className="text-[11px] text-slate-400 font-bold uppercase">Status Bayar</p><p className={`font-bold text-sm ${purchaseOrder.paymentStatus === 'Lunas' ? 'text-emerald-600' : 'text-rose-600'}`}>{purchaseOrder.paymentStatus || 'Belum Lunas'}</p></div>
+                </div>
+
+                {/* 2 Tabs Header */}
+                <div className="flex border-b border-slate-200 dark:border-zinc-800">
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('pesanan')}
+                        className={`pb-3 px-5 font-bold text-xs border-b-2 transition-colors ${activeTab === 'pesanan' ? 'border-purple-600 text-purple-600 dark:text-purple-400' : 'border-transparent text-slate-400 hover:text-slate-700'}`}
+                    >
+                        📦 Detail Pesanan & Penerimaan Barang
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('pembayaran')}
+                        className={`pb-3 px-5 font-bold text-xs border-b-2 transition-colors ${activeTab === 'pembayaran' ? 'border-purple-600 text-purple-600 dark:text-purple-400' : 'border-transparent text-slate-400 hover:text-slate-700'}`}
+                    >
+                        💳 Detail & Riwayat Pembayaran
+                    </button>
+                </div>
+
+                {/* TAB 1: Detail Pesanan */}
+                {activeTab === 'pesanan' && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h3 className="font-bold text-sm text-slate-800 dark:text-zinc-200">Daftar Produk yang Dipesan</h3>
+                            {purchaseOrder.itemStatus !== 'Barang Diterima' && (
+                                <Button onClick={() => setPartialModalOpen(true)} size="sm" className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3">
+                                    📦 Catat Penerimaan Barang (Sebagian / Full)
+                                </Button>
+                            )}
+                        </div>
+
+                        <table className="w-full text-xs text-left">
+                            <thead className="bg-slate-100 dark:bg-zinc-800 uppercase font-bold text-slate-600 dark:text-zinc-400">
+                                <tr>
+                                    <th className="p-3">Produk</th>
+                                    <th className="p-3 text-center">Dipesan</th>
+                                    <th className="p-3 text-center">Diterima</th>
+                                    <th className="p-3 text-right">Harga Satuan</th>
+                                    <th className="p-3 text-right">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                                {purchaseOrder.items.map(item => (
+                                    <tr key={item.productId}>
+                                        <td className="p-3 font-medium text-slate-800 dark:text-zinc-200">{item.productName}</td>
+                                        <td className="p-3 text-center font-mono font-bold">{item.quantity}</td>
+                                        <td className="p-3 text-center font-mono font-bold text-emerald-600">{item.receivedQuantity || 0}</td>
+                                        <td className="p-3 text-right font-mono">Rp{item.cost.toLocaleString('id-ID')}</td>
+                                        <td className="p-3 text-right font-mono font-bold">Rp{(item.cost * item.quantity).toLocaleString('id-ID')}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        <div className="space-y-1 text-right font-medium mt-4 bg-slate-50 dark:bg-zinc-800/40 p-4 rounded-xl border border-slate-200 dark:border-zinc-800">
+                            <p className="text-slate-600 dark:text-zinc-400">Subtotal: <span className="font-mono font-bold text-slate-900 dark:text-white">Rp{subtotal.toLocaleString('id-ID')}</span></p>
+                            <p className="text-lg font-black text-purple-700 dark:text-purple-400 pt-1 border-t border-slate-200 dark:border-zinc-700">Grand Total: Rp{subtotal.toLocaleString('id-ID')}</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* TAB 2: Detail Pembayaran */}
+                {activeTab === 'pembayaran' && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center bg-purple-50 dark:bg-purple-950/20 p-4 rounded-xl border border-purple-200 dark:border-purple-900/60">
+                            <div>
+                                <p className="text-[10px] text-purple-600 dark:text-purple-400 font-bold uppercase">Sisa Tagihan Pembelian</p>
+                                <p className="text-xl font-black text-purple-900 dark:text-purple-200 font-mono">Rp{remainingBalance.toLocaleString('id-ID')}</p>
+                                <p className="text-xs text-slate-500">Sudah Dibayar: <span className="font-bold text-emerald-600">Rp{amountPaid.toLocaleString('id-ID')}</span> dari Total Rp{purchaseOrder.grandTotal.toLocaleString('id-ID')}</p>
+                            </div>
+                            {remainingBalance > 0 && (
+                                <Button onClick={() => setPayModalOpen(true)} className="bg-purple-700 hover:bg-purple-800 text-white font-bold px-4 py-2.5 text-xs rounded-xl shadow-xs">
+                                    💳 Bayar / Catat Cicilan
+                                </Button>
+                            )}
+                        </div>
+
+                        <h4 className="font-bold text-slate-800 dark:text-zinc-200 border-b pb-2 text-sm">Riwayat Pembayaran</h4>
+                        {(!purchaseOrder.paymentHistory || purchaseOrder.paymentHistory.length === 0) ? (
+                            <p className="text-slate-400 italic text-center py-6">Belum ada riwayat pembayaran yang dicatat.</p>
+                        ) : (
+                            <table className="w-full text-xs text-left">
+                                <thead className="bg-slate-100 dark:bg-zinc-800 uppercase font-bold text-slate-600 dark:text-zinc-400">
+                                    <tr>
+                                        <th className="p-3">Tgl. Bayar</th>
+                                        <th className="p-3">Metode Pembayaran</th>
+                                        <th className="p-3">Sumber Saldo/Akun</th>
+                                        <th className="p-3 text-right">Nominal</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                                    {purchaseOrder.paymentHistory.map(pay => (
+                                        <tr key={pay.id}>
+                                            <td className="p-3 font-mono">{new Date(pay.date).toLocaleString('id-ID')}</td>
+                                            <td className="p-3 font-semibold">{pay.paymentMethodName}</td>
+                                            <td className="p-3 text-slate-500">{pay.sourceAccountName || '-'}</td>
+                                            <td className="p-3 text-right font-mono font-bold text-emerald-600">Rp{pay.amount.toLocaleString('id-ID')}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Modal Pop-up Bayar / Cicilan */}
+            <Modal isOpen={isPayModalOpen} onClose={() => setPayModalOpen(false)} title="Catat Pembayaran / Cicilan Pembelian" maxWidth="max-w-md">
+                <form onSubmit={handleConfirmPayment} className="space-y-4 text-xs">
+                    <div>
+                        <label className="block font-bold text-slate-700 dark:text-zinc-300 mb-1">Nominal yang Dibayarkan (Rp)</label>
+                        <Input 
+                            type="number" 
+                            value={payAmount} 
+                            onChange={e => setPayAmount(Number(e.target.value))} 
+                            required 
+                            className="text-sm font-mono font-bold"
+                        />
+                        <p className="text-[10px] text-slate-400 mt-1">Sisa tagihan saat ini: Rp{remainingBalance.toLocaleString('id-ID')}</p>
+                    </div>
+
+                    <div>
+                        <label className="block font-bold text-slate-700 dark:text-zinc-300 mb-1">Metode Pembayaran</label>
+                        <select 
+                            value={selectedPaymentMethodId} 
+                            onChange={e => setSelectedPaymentMethodId(e.target.value)}
+                            required
+                            className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-2 font-semibold outline-none"
+                        >
+                            {paymentMethods.map(pm => <option key={pm.id} value={pm.id}>{pm.name}</option>)}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block font-bold text-slate-700 dark:text-zinc-300 mb-1">Sumber Saldo / Akun Kas</label>
+                        <select 
+                            value={selectedAccountId} 
+                            onChange={e => setSelectedAccountId(e.target.value)}
+                            required
+                            className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs p-2 font-semibold outline-none"
+                        >
+                            {accounts.filter(a => a.isCashAccount || a.type === 'Asset').map(a => (
+                                <option key={a.id} value={a.id}>{a.name} (Saldo: Rp{a.balance.toLocaleString('id-ID')})</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block font-bold text-slate-700 dark:text-zinc-300 mb-1">Catatan / Keterangan (Opsional)</label>
+                        <Input value={payNotes} onChange={e => setPayNotes(e.target.value)} placeholder="Contoh: Cicilan tahap 1 via Kasir" className="text-xs" />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t dark:border-zinc-800">
+                        <Button type="button" variant="secondary" onClick={() => setPayModalOpen(false)}>Batal</Button>
+                        <Button type="submit" className="bg-purple-700 hover:bg-purple-800 text-white font-bold">Proses Pembayaran</Button>
+                    </div>
+                </form>
+            </Modal>
+
+            {/* Modal Pop-up Terima Barang Sebagian */}
+            <Modal isOpen={isPartialModalOpen} onClose={() => setPartialModalOpen(false)} title="Catat Penerimaan Barang (Sebagian / Full)" maxWidth="max-w-lg">
+                <form onSubmit={handleConfirmPartialReceive} className="space-y-4 text-xs">
+                    <p className="text-slate-500">Masukkan jumlah unit barang yang baru saja diterima di lokasi toko/gudang:</p>
+                    <table className="w-full text-xs text-left">
+                        <thead className="bg-slate-100 dark:bg-zinc-800 font-bold">
+                            <tr>
+                                <th className="p-2">Produk</th>
+                                <th className="p-2 text-center">Dipesan</th>
+                                <th className="p-2 text-center">Sudah Diterima</th>
+                                <th className="p-2 text-center">Terima Sekarang</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                            {purchaseOrder.items.map(item => {
+                                const maxAllowed = item.quantity - (item.receivedQuantity || 0);
+                                return (
+                                    <tr key={item.productId}>
+                                        <td className="p-2 font-semibold">{item.productName}</td>
+                                        <td className="p-2 text-center font-mono">{item.quantity}</td>
+                                        <td className="p-2 text-center font-mono text-emerald-600">{item.receivedQuantity || 0}</td>
+                                        <td className="p-2 text-center">
+                                            <input 
+                                                type="number"
+                                                min={0}
+                                                max={maxAllowed}
+                                                value={partialQtys[item.productId] ?? 0}
+                                                onChange={e => setPartialQtys({ ...partialQtys, [item.productId]: Math.min(maxAllowed, Math.max(0, Number(e.target.value))) })}
+                                                className="w-16 text-center font-bold font-mono border rounded p-1 bg-white dark:bg-zinc-800"
+                                            />
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t dark:border-zinc-800">
+                        <Button type="button" variant="secondary" onClick={() => setPartialModalOpen(false)}>Batal</Button>
+                        <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">Simpan Penerimaan Stok</Button>
+                    </div>
+                </form>
+            </Modal>
+        </div>
     );
 };
 
@@ -85,7 +347,21 @@ export const AddPurchasePage: React.FC = () => {
     const [dueDate, setDueDate] = useState('');
     const [expectedDelivery, setExpectedDelivery] = useState('');
     const [items, setItems] = useState<Partial<PurchaseOrderItem>[]>([{ productId: '', quantity: 1, cost: 0 }]);
-    const [taxType, setTaxType] = useState<'exclusive' | 'inclusive' | 'none'>('exclusive');
+    const [taxType, setTaxType] = useState<'exclusive' | 'inclusive' | 'none'>('none');
+    const [vendorSearch, setVendorSearch] = useState('');
+    const [isVendorSuggestionOpen, setVendorSuggestionOpen] = useState(false);
+
+    const vendorSuggestions = useMemo(() => {
+        if (!vendorSearch) return vendors;
+        const query = vendorSearch.toLowerCase();
+        return vendors.filter(v => v.name.toLowerCase().includes(query) || v.phone?.includes(query));
+    }, [vendorSearch, vendors]);
+
+    const handleVendorSelect = (vendor: Vendor) => {
+        setVendorId(vendor.id);
+        setVendorSearch(vendor.name);
+        setVendorSuggestionOpen(false);
+    };
 
     const [productSearch, setProductSearch] = useState<string[]>(['']);
     const [activeSuggestionBox, setActiveSuggestionBox] = useState<number | null>(null);
@@ -191,7 +467,7 @@ export const AddPurchasePage: React.FC = () => {
             dueDate: dueDate || orderDate,
             invoiceNumber,
             vendorNoteNumber,
-            status: billingType === 'cash' ? 'Purchased' : 'Pending',
+            status: 'Pending',
             items: finalItems,
             taxType,
             taxRate: taxType !== 'none' ? (defaultTax?.rate || 0) : 0,
@@ -253,19 +529,39 @@ export const AddPurchasePage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3 pb-4 border-b border-slate-100 dark:border-zinc-800 text-xs">
                     {/* Left Side */}
                     <div className="space-y-3">
-                        <div className="grid grid-cols-12 items-center gap-2">
+                        <div className="grid grid-cols-12 items-center gap-2 relative">
                             <label className="col-span-4 font-bold text-slate-700 dark:text-zinc-300">
                                 Vendor <span className="text-rose-500">*</span>
                             </label>
-                            <select 
-                                value={vendorId} 
-                                onChange={e => setVendorId(e.target.value)} 
-                                required 
-                                className="col-span-8 rounded-lg border border-purple-200 dark:border-purple-900/60 bg-purple-50/30 dark:bg-purple-950/20 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
-                            >
-                                <option value="">Pilih Vendor...</option>
-                                {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                            </select>
+                            <div className="col-span-8 relative">
+                                <input 
+                                    type="text"
+                                    value={vendorSearch} 
+                                    onChange={e => {
+                                        setVendorSearch(e.target.value);
+                                        setVendorSuggestionOpen(true);
+                                    }}
+                                    onFocus={() => setVendorSuggestionOpen(true)}
+                                    onBlur={() => setTimeout(() => setVendorSuggestionOpen(false), 200)}
+                                    placeholder="Ketik nama / no. vendor..." 
+                                    required 
+                                    className="w-full rounded-lg border border-purple-200 dark:border-purple-900/60 bg-purple-50/30 dark:bg-purple-950/20 text-xs font-semibold p-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                                />
+                                {isVendorSuggestionOpen && vendorSuggestions.length > 0 && (
+                                    <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl shadow-2xl max-h-52 overflow-y-auto p-1">
+                                        {vendorSuggestions.map(v => (
+                                            <div 
+                                                key={v.id} 
+                                                onMouseDown={() => handleVendorSelect(v)} 
+                                                className="p-2 hover:bg-purple-50 dark:hover:bg-zinc-700 rounded-lg cursor-pointer flex justify-between items-center text-xs transition-colors"
+                                            >
+                                                <span className="font-bold text-slate-900 dark:text-white">{v.name}</span>
+                                                {v.phone && <span className="text-[10px] text-slate-400 font-mono">{v.phone}</span>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-12 items-center gap-2">
@@ -544,95 +840,219 @@ export const PurchaseListPage: React.FC = () => {
     dispatch({ type: 'billing/clearLastGeneratedBill' });
   };
 
-  const getStatusChip = (status: PurchaseOrder['status']) => {
-    switch(status) {
-        case 'Pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-        case 'Received': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-        case 'Cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-    }
-  }
-
-  const handleCreateBill = (purchaseOrderId: string) => {
-    dispatch({ type: 'billing/createVendorBillFromPo', payload: { purchaseOrderId } });
-  }
-
-  const handleCancelPO = (purchaseOrderId: string) => {
-    if (window.confirm("Anda yakin ingin membatalkan pesanan pembelian ini?")) {
-        dispatch({ type: 'purchases/cancel', payload: purchaseOrderId });
+  const getItemStatusChip = (status?: PurchaseItemStatus) => {
+    switch(status || 'Draft') {
+        case 'Draft': return 'bg-slate-100 text-slate-700 border border-slate-300';
+        case 'Validasi': return 'bg-blue-100 text-blue-800 border border-blue-300';
+        case 'Menunggu Kedatangan': return 'bg-amber-100 text-amber-800 border border-amber-300';
+        case 'Barang Diterima': return 'bg-emerald-100 text-emerald-800 border border-emerald-300';
     }
   };
-  
+
+  const getPaymentStatusChip = (status?: PurchasePaymentStatus) => {
+    switch(status || 'Belum Lunas') {
+        case 'Belum Lunas': return 'bg-rose-100 text-rose-800 border border-rose-300';
+        case 'Dicicil': return 'bg-purple-100 text-purple-800 border border-purple-300';
+        case 'Lunas': return 'bg-emerald-100 text-emerald-800 border border-emerald-300';
+    }
+  };
+
+  const handleUpdateItemStatus = (poId: string, itemStatus: PurchaseItemStatus) => {
+    dispatch({ type: 'purchases/updateStatuses', payload: { poId, itemStatus } });
+    if (itemStatus === 'Barang Diterima') {
+        dispatch({ type: 'purchases/receive', payload: poId });
+    }
+  };
+
+  const handleUpdatePaymentStatus = (poId: string, paymentStatus: PurchasePaymentStatus) => {
+    dispatch({ type: 'purchases/updateStatuses', payload: { poId, paymentStatus } });
+  };
+
+  const handleDeletePO = (poId: string) => {
+    if (window.confirm("Apakah Anda yakin ingin menghapus data pembelian ini?")) {
+        dispatch({ type: 'purchases/delete', payload: poId });
+    }
+  };
+
   const handleViewDetails = (po: PurchaseOrder) => {
-      setSelectedPO(po);
-      setDetailsModalOpen(true);
+    dispatch({ type: 'purchases/setSelectedId', payload: po.id });
+    dispatch({ type: 'ui/setPage', payload: Page.PurchaseDetailsPage });
   };
-
-  const billedPurchaseIds = useMemo(() => new Set(vendorBills.map(b => b.purchaseOrderId)), [vendorBills]);
 
   return (
-    <div className="p-8 h-full flex flex-col">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Pesanan Pembelian</h1>
-        <Button 
-          onClick={() => dispatch({ type: 'ui/setPage', payload: Page.AddPurchase })}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-xl shadow-md transition-all shrink-0"
-        >
-          <span className="text-lg font-bold">+</span> Buat Pembelian
-        </Button>
+    <div className="p-3 md:p-5 h-full flex flex-col gap-3 overflow-hidden bg-slate-50 dark:bg-zinc-950">
+      {/* Top Header Control Bar */}
+      <div className="bg-white dark:bg-zinc-900 px-4 py-2.5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
+        {/* Title & Count */}
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-black text-sm shrink-0">
+            🛍️
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-base font-black text-slate-900 dark:text-white tracking-tight">Data Pembelian</h1>
+              <span className="bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded-full font-mono">{purchases.length}</span>
+            </div>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Faktur pesanan & penerimaan stok vendor</p>
+          </div>
+        </div>
+
+        {/* Top Right Action Button */}
+        <div className="flex items-center gap-2 justify-end">
+          <Button 
+            onClick={() => dispatch({ type: 'ui/setPage', payload: Page.AddPurchase })}
+            className="text-xs h-8 px-3 font-bold bg-purple-700 hover:bg-purple-800 text-white rounded-xl shadow-xs shrink-0 flex items-center gap-1.5 whitespace-nowrap ml-auto"
+          >
+            <span>+ Buat Pembelian Baru</span>
+          </Button>
+        </div>
       </div>
-      <div className="flex-grow bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-y-auto">
-        <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-          <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
-            <tr>
-              <th scope="col" className="px-6 py-3">ID Pesanan</th>
-              <th scope="col" className="px-6 py-3">Vendor</th>
-              <th scope="col" className="px-6 py-3">Tgl. Pesan</th>
-              <th scope="col" className="px-6 py-3">Status</th>
-              <th scope="col" className="px-6 py-3">Status Tagihan</th>
-              <th scope="col" className="px-6 py-3 text-right">Total</th>
-              <th scope="col" className="px-6 py-3 text-center">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {purchases.map((po) => (
-              <tr key={po.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{po.id}</td>
-                <td className="px-6 py-4">{po.vendorName}</td>
-                <td className="px-6 py-4">{new Date(po.orderDate).toLocaleDateString()}</td>
-                <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusChip(po.status)}`}>
-                        {po.status}
-                    </span>
-                </td>
-                 <td className="px-6 py-4">
-                  {po.status === 'Received' ? (
-                    billedPurchaseIds.has(po.id) ? (
-                      <span className="text-xs text-green-500 font-semibold">Sudah Ditagih</span>
-                    ) : (
-                      <button onClick={() => handleCreateBill(po.id)} className="text-xs text-white bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded-md">
-                        Buat Tagihan
-                      </button>
-                    )
-                  ) : (
-                    <span className="text-xs text-gray-500">N/A</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 font-semibold text-right">Rp{po.grandTotal.toLocaleString('id-ID')}</td>
-                <td className="px-6 py-4 text-center">
-                    <ActionsDropdown>
-                        <DropdownItem onClick={() => handleViewDetails(po)}>Lihat Detail</DropdownItem>
-                        {po.status === 'Pending' && (
-                             <DropdownItem onClick={() => handleCancelPO(po.id)} className="text-red-500">Batalkan</DropdownItem>
-                        )}
-                    </ActionsDropdown>
-                </td>
+
+      {/* Main Content Area */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {/* 1. DESKTOP VIEW: Table Layout */}
+        <div className="hidden md:block bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xs overflow-hidden h-full">
+          <table className="w-full text-xs text-left text-gray-500 dark:text-gray-400">
+            <thead className="text-[11px] font-extrabold text-gray-700 uppercase bg-slate-50 dark:bg-zinc-800/60 dark:text-gray-400 sticky top-0 border-b border-zinc-200/80 dark:border-zinc-800">
+              <tr>
+                <th scope="col" className="px-4 py-3">ID Pesanan</th>
+                <th scope="col" className="px-4 py-3">Vendor</th>
+                <th scope="col" className="px-4 py-3">Tgl. Pesan</th>
+                <th scope="col" className="px-4 py-3 text-center">Status Barang</th>
+                <th scope="col" className="px-4 py-3 text-center">Status Pembayaran</th>
+                <th scope="col" className="px-4 py-3 text-right">Total</th>
+                <th scope="col" className="px-4 py-3 text-center">Aksi</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
+              {purchases.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-slate-400">
+                    Tidak ada data pembelian yang tersedia.
+                  </td>
+                </tr>
+              ) : (
+                purchases.map((po) => {
+                  const itemStatus: PurchaseItemStatus = po.itemStatus || (po.status === 'Received' ? 'Barang Diterima' : 'Draft');
+                  const paymentStatus: PurchasePaymentStatus = po.paymentStatus || 'Belum Lunas';
+
+                  return (
+                    <tr 
+                      key={po.id} 
+                      onClick={() => handleViewDetails(po)}
+                      className="hover:bg-purple-50/50 dark:hover:bg-zinc-800/60 cursor-pointer transition-colors"
+                    >
+                      <td className="px-4 py-3 font-bold font-mono text-purple-700 dark:text-purple-400">{po.id}</td>
+                      <td className="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200">{po.vendorName}</td>
+                      <td className="px-4 py-3 text-slate-500 font-mono">{new Date(po.orderDate).toLocaleDateString('id-ID')}</td>
+                      
+                      {/* Status Barang Badge */}
+                      <td className="px-4 py-3 text-center">
+                        <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${getItemStatusChip(itemStatus)}`}>
+                          {itemStatus}
+                        </span>
+                      </td>
+
+                      {/* Status Pembayaran Badge */}
+                      <td className="px-4 py-3 text-center">
+                        <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${getPaymentStatusChip(paymentStatus)}`}>
+                          {paymentStatus}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3 font-black text-right text-slate-900 dark:text-white font-mono">
+                        Rp{po.grandTotal.toLocaleString('id-ID')}
+                      </td>
+                      <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleViewDetails(po)}
+                            title="Lihat Detail Pesanan & Pembayaran"
+                            className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-50 dark:hover:bg-zinc-800 transition-colors"
+                          >
+                            👁️
+                          </button>
+                          {itemStatus === 'Draft' ? (
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePO(po.id)}
+                              title="Hapus Pembelian (Hanya Draft)"
+                              className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-zinc-800 transition-colors"
+                            >
+                              🗑️
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              title="🔒 Hapus Terkunci (Sudah Diproses)"
+                              className="p-1.5 rounded-lg text-slate-300 dark:text-zinc-700 cursor-not-allowed opacity-50"
+                            >
+                              🔒
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 2. MOBILE VIEW: Compact Cards */}
+        <div className="block md:hidden space-y-3">
+          {purchases.length === 0 ? (
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 text-center border border-zinc-200 dark:border-zinc-800 text-slate-400 text-xs">
+              Tidak ada data pembelian.
+            </div>
+          ) : (
+            purchases.map((po) => {
+              const itemStatus: PurchaseItemStatus = po.itemStatus || (po.status === 'Received' ? 'Barang Diterima' : 'Draft');
+              const paymentStatus: PurchasePaymentStatus = po.paymentStatus || 'Belum Lunas';
+
+              return (
+                <div key={po.id} className="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 p-3.5 shadow-2xs space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="font-extrabold text-xs font-mono text-slate-900 dark:text-white">{po.id}</h3>
+                      <p className="text-[10px] text-slate-400 font-medium">Vendor: {po.vendorName}</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${getPaymentStatusChip(paymentStatus)}`}>
+                      {paymentStatus}
+                    </span>
+                  </div>
+                  <div className="space-y-1 text-xs text-slate-600 dark:text-zinc-300 border-y border-slate-100 dark:border-zinc-800 py-2 font-mono">
+                    <div>Tgl: {new Date(po.orderDate).toLocaleDateString('id-ID')}</div>
+                    <div>Status Barang: <span className="font-bold">{itemStatus}</span></div>
+                    <div className="text-[11px] text-purple-700 dark:text-purple-400 font-black">Total: Rp{po.grandTotal.toLocaleString('id-ID')}</div>
+                  </div>
+                  <div className="flex justify-end items-center gap-2">
+                    <Button onClick={() => handleViewDetails(po)} variant="secondary" className="text-[10px] py-1 px-2.5">
+                      Detail
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
-      <PurchaseOrderDetailsModal isOpen={isDetailsModalOpen} onClose={() => setDetailsModalOpen(false)} purchaseOrder={selectedPO} />
       <VendorBillModal isOpen={isBillModalOpen} onClose={handleCloseBillModal} bill={lastGeneratedVendorBill} />
     </div>
   );
+};
+
+export const Purchases: React.FC = () => {
+    const { state } = useAppContext();
+    switch (state.currentPage) {
+        case Page.AddPurchase:
+            return <AddPurchasePage />;
+        case Page.PurchaseDetailsPage:
+            return <PurchaseOrderDetailsPage />;
+        default:
+            return <PurchaseListPage />;
+    }
 };

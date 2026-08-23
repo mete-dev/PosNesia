@@ -3,12 +3,12 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Dashboard } from './Dashboard';
 import { ProductListPage, SetPricingPage } from './components/Products';
-import { CustomerListPage } from './components/Customers';
-import { SalesListPage, OrderFulfillmentPage, CreateManualSalePage } from './components/Sales';
+import { Customers } from './components/Customers';
+import { Sales } from './components/Sales';
 import { CompanyInformationSettingsPage, DisplaySettingsPage, ReportSizesSettingsPage, BackupRestorePage, AboutPage } from './components/Settings';
 import { Page, Theme } from './types';
 import { Vendors } from './components/Vendors';
-import { PurchaseListPage, AddPurchasePage } from './components/Purchases';
+import { Purchases } from './components/Purchases';
 import { StaffListPage, StaffAttendancePage, StaffAttendanceReportPage, RoleManagementPage, PayrollPage, RecruitmentPage, TimeOffPage, JobOpeningManagementPage } from './components/Staff';
 import { ChartOfAccountsPage, GeneralJournalPage, LedgerPage, CashAccountListPage, AccountStatementPage, CashTransactionPage, CashTransferPage, PaymentMethodsPage, PaymentTermsPage, CashierDepositVerificationPage } from './components/Finance';
 import { AssetListPage, AssetPurchasePage, AssetSalePage, AssetCategoryManagementPage } from './components/Assets';
@@ -132,18 +132,22 @@ export const App: React.FC = () => {
             case Page.Calendar: return <CalendarPage />;
             case Page.ProductList: return <ProductListPage />;
             case Page.SetPricing: return <SetPricingPage />;
-            case Page.CustomerList: return <CustomerListPage />;
-            case Page.SalesList: return <SalesListPage />;
-            case Page.CreateManualSale: return <CreateManualSalePage />;
+            case Page.CustomerList: 
+            case Page.CustomerDetailsPage: return <Customers />;
+            case Page.SalesList: 
+            case Page.CreateManualSale: 
+            case Page.SaleDetailsPage: return <Sales />;
             case Page.OrderFulfillment: return <OrderFulfillmentPage />;
             case Page.CompanyInformationSettings: return <CompanyInformationSettingsPage />;
             case Page.BackupRestore: return <BackupRestorePage />;
             case Page.DisplaySettings: return <DisplaySettingsPage />;
             case Page.ReportSizesSettings: return <ReportSizesSettingsPage />;
             case Page.About: return <AboutPage />;
-            case Page.Vendors: return <Vendors />;
-            case Page.PurchaseList: return <PurchaseListPage />;
-            case Page.AddPurchase: return <AddPurchasePage />;
+            case Page.Vendors: 
+            case Page.VendorDetailsPage: return <Vendors />;
+            case Page.PurchaseList: 
+            case Page.AddPurchase: 
+            case Page.PurchaseDetailsPage: return <Purchases />;
             case Page.StaffList: return <StaffListPage />;
             case Page.RoleManagement: return <RoleManagementPage />;
             case Page.StaffPermissions: return <RoleManagementPage />;
