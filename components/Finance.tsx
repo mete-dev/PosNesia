@@ -584,7 +584,7 @@ export const AccountStatementPage: React.FC = () => {
     };
 
     return (
-        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-4 overflow-y-auto">
+        <div className="w-full h-full flex flex-col p-3 md:p-5 space-y-3 overflow-y-auto">
             {/* Print CSS Stylesheet */}
             <style>{`
                 @media print {
@@ -610,8 +610,8 @@ export const AccountStatementPage: React.FC = () => {
             `}</style>
 
             {/* Header Controls (Hidden during print) */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0 no-print">
-                <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 shrink-0 no-print">
+                <div className="flex items-center gap-2.5">
                     <Button 
                         variant="secondary" 
                         onClick={() => dispatch({ type: 'ui/setPage', payload: Page.CashAccountList })}
@@ -620,7 +620,7 @@ export const AccountStatementPage: React.FC = () => {
                         ← Kembali ke Dompet & Kas
                     </Button>
                     <div>
-                        <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
                             Rekening Koran & Mutasi Kas
                         </h1>
                     </div>
@@ -628,38 +628,38 @@ export const AccountStatementPage: React.FC = () => {
 
                 <div className="flex items-center gap-2">
                     <Button onClick={() => window.print()} className="gap-1.5 text-xs py-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white shadow-2xs">
-                        <Printer className="w-4 h-4" />
+                        <Printer className="w-3.5 h-3.5" />
                         Cetak / Download PDF
                     </Button>
                 </div>
             </div>
 
             {/* Main Printable Document Container */}
-            <div id="printable-statement" className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs p-6 space-y-6 text-slate-900 dark:text-white">
+            <div id="printable-statement" className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs p-4 md:p-5 space-y-4 text-slate-900 dark:text-white">
                 
                 {/* Official Letterhead Header for Print */}
-                <div className="flex justify-between items-start border-b border-slate-200 pb-4">
+                <div className="flex justify-between items-start border-b border-slate-200 dark:border-zinc-800 pb-3">
                     <div>
-                        <h2 className="text-2xl font-black uppercase text-blue-900 dark:text-blue-400">{companyInfo.name || 'POSNESIA POS'}</h2>
-                        <p className="text-xs text-slate-500">{companyInfo.address || 'Jl. Raya Utama PosNesia No. 88'}</p>
-                        <p className="text-xs text-slate-500">Telp: {companyInfo.phone || '-'} • Email: {companyInfo.email || '-'}</p>
+                        <h2 className="text-xl font-black uppercase text-blue-900 dark:text-blue-400">{companyInfo.name || 'POSNESIA POS'}</h2>
+                        <p className="text-[11px] text-slate-500">{companyInfo.address || 'Jl. Raya Utama PosNesia No. 88'}</p>
+                        <p className="text-[11px] text-slate-500">Telp: {companyInfo.phone || '-'} • Email: {companyInfo.email || '-'}</p>
                     </div>
                     <div className="text-right">
-                        <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-wider">REKENING KORAN</h3>
-                        <p className="text-xs font-mono text-slate-500">Periode: {startDate} s/d {endDate}</p>
-                        <p className="text-xs font-mono text-slate-500">Tgl Cetak: {new Date().toLocaleDateString('id-ID')}</p>
+                        <h3 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-wider">REKENING KORAN</h3>
+                        <p className="text-[11px] font-mono text-slate-500">Periode: {startDate} s/d {endDate}</p>
+                        <p className="text-[11px] font-mono text-slate-500">Tgl Cetak: {new Date().toLocaleDateString('id-ID')}</p>
                     </div>
                 </div>
 
-                {/* Account Selection & Period Selector (Interactive, No-Print controls) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-zinc-800/60 p-4 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 no-print">
-                    <div>
-                        <Label htmlFor="statement_acc" className="font-bold text-xs">Pilih Rekening Kas / Dompet</Label>
+                {/* Compact Integrated Controls: Account Selector & Period Selector */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-slate-50/80 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 no-print items-center">
+                    <div className="md:col-span-6">
+                        <Label htmlFor="statement_acc" className="font-extrabold text-[11px] text-slate-600 dark:text-zinc-400 uppercase tracking-wider block mb-1">Pilih Rekening Kas / Dompet</Label>
                         <Select
                             id="statement_acc"
                             value={selectedAccountId}
                             onChange={e => setSelectedAccountId(e.target.value)}
-                            className="text-xs py-2 w-full mt-1 font-bold"
+                            className="text-xs py-1.5 w-full font-bold bg-white dark:bg-zinc-900"
                         >
                             {accounts.filter(a => a.isCashAccount).map(acc => (
                                 <option key={acc.id} value={acc.id}>
@@ -669,34 +669,34 @@ export const AccountStatementPage: React.FC = () => {
                         </Select>
                     </div>
 
-                    <div>
-                        <Label className="font-bold text-xs mb-1 block">Filter Periode Waktu</Label>
-                        <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="md:col-span-6">
+                        <Label className="font-extrabold text-[11px] text-slate-600 dark:text-zinc-400 uppercase tracking-wider block mb-1">Filter Periode Waktu Mutasi</Label>
+                        <div className="flex flex-wrap items-center gap-1">
                             <button
                                 type="button"
                                 onClick={() => setPeriodFilter('today')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === 'today' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-zinc-300'}`}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === 'today' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300'}`}
                             >
                                 Hari Ini
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setPeriodFilter('7days')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === '7days' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-zinc-300'}`}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === '7days' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300'}`}
                             >
                                 7 Hari
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setPeriodFilter('30days')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === '30days' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-zinc-300'}`}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === '30days' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300'}`}
                             >
                                 30 Hari
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setPeriodFilter('custom')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === 'custom' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 text-slate-700 dark:text-zinc-300'}`}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === 'custom' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300'}`}
                             >
                                 Custom
                             </button>
@@ -704,14 +704,14 @@ export const AccountStatementPage: React.FC = () => {
                     </div>
 
                     {periodFilter === 'custom' && (
-                        <div className="col-span-1 md:col-span-2 grid grid-cols-2 gap-3 pt-2">
+                        <div className="md:col-span-12 grid grid-cols-2 gap-3 pt-1 border-t border-slate-200 dark:border-zinc-700">
                             <div>
-                                <Label className="text-[11px] text-slate-500">Tanggal Mulai</Label>
-                                <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-xs py-1.5" />
+                                <Label className="text-[10px] text-slate-500">Tanggal Mulai</Label>
+                                <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-xs py-1" />
                             </div>
                             <div>
-                                <Label className="text-[11px] text-slate-500">Tanggal Selesai</Label>
-                                <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-xs py-1.5" />
+                                <Label className="text-[10px] text-slate-500">Tanggal Selesai</Label>
+                                <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-xs py-1" />
                             </div>
                         </div>
                     )}
@@ -719,29 +719,29 @@ export const AccountStatementPage: React.FC = () => {
 
                 {/* Redesigned Account Details Card & Summary Banner */}
                 {account && (
-                    <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden">
+                    <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-xl p-4 shadow-md relative overflow-hidden">
                         <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 opacity-10 pointer-events-none">
-                            <Wallet className="w-64 h-64 text-white" />
+                            <Wallet className="w-56 h-56 text-white" />
                         </div>
-                        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                            <div className="flex items-center gap-3.5">
-                                <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shrink-0">
-                                    <Wallet className="w-6 h-6" />
+                        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shrink-0">
+                                    <Wallet className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2">
-                                        <h2 className="text-lg font-black text-white">{account.name}</h2>
-                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                                        <h2 className="text-base font-black text-white">{account.name}</h2>
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-blue-500/30 text-blue-200 border border-blue-400/30">
                                             {account.cashAccountType || 'Tunai'}
                                         </span>
                                     </div>
-                                    <p className="text-xs text-blue-200/80 font-mono mt-0.5">Kode Akun: #{account.id}</p>
+                                    <p className="text-[11px] text-blue-200/80 font-mono mt-0.5">Kode Rekening: #{account.id}</p>
                                 </div>
                             </div>
 
-                            <div className="text-left md:text-right bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/10 w-full md:w-auto">
+                            <div className="text-left md:text-right bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/10 w-full md:w-auto">
                                 <span className="text-[10px] font-bold text-blue-200 uppercase tracking-wider block">Saldo Rekening Kas Saat Ini</span>
-                                <strong className="font-mono text-2xl font-black text-emerald-400">
+                                <strong className="font-mono text-xl font-black text-emerald-400">
                                     Rp{statementData.activeAccountBalance.toLocaleString('id-ID')}
                                 </strong>
                             </div>
@@ -750,40 +750,40 @@ export const AccountStatementPage: React.FC = () => {
                 )}
 
                 {/* Mutasi Summary Cards (Modern Styled) */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="p-4 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/40 flex items-center justify-between shadow-2xs">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/40 flex items-center justify-between shadow-2xs">
                         <div>
                             <span className="text-slate-500 dark:text-zinc-400 text-[10px] font-black uppercase tracking-wider block">Total Pemasukan (Debit)</span>
-                            <p className="font-mono text-lg font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                            <p className="font-mono text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
                                 Rp{statementData.totalDebit.toLocaleString('id-ID')}
                             </p>
                         </div>
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                            <ArrowDownLeft className="w-5 h-5" />
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                            <ArrowDownLeft className="w-4 h-4" />
                         </div>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/40 flex items-center justify-between shadow-2xs">
+                    <div className="p-3 rounded-xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/40 flex items-center justify-between shadow-2xs">
                         <div>
                             <span className="text-slate-500 dark:text-zinc-400 text-[10px] font-black uppercase tracking-wider block">Total Pengeluaran (Kredit)</span>
-                            <p className="font-mono text-lg font-black text-rose-600 dark:text-rose-400 mt-0.5">
+                            <p className="font-mono text-base font-black text-rose-600 dark:text-rose-400 mt-0.5">
                                 Rp{statementData.totalCredit.toLocaleString('id-ID')}
                             </p>
                         </div>
-                        <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-                            <ArrowUpRight className="w-5 h-5" />
+                        <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                            <ArrowUpRight className="w-4 h-4" />
                         </div>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/40 flex items-center justify-between shadow-2xs">
+                    <div className="p-3 rounded-xl bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/40 flex items-center justify-between shadow-2xs">
                         <div>
                             <span className="text-slate-500 dark:text-zinc-400 text-[10px] font-black uppercase tracking-wider block">Mutasi Bersih Periode Ini</span>
-                            <p className={`font-mono text-lg font-black mt-0.5 ${(statementData.totalDebit - statementData.totalCredit) >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600'}`}>
+                            <p className={`font-mono text-base font-black mt-0.5 ${(statementData.totalDebit - statementData.totalCredit) >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600'}`}>
                                 Rp{(statementData.totalDebit - statementData.totalCredit).toLocaleString('id-ID')}
                             </p>
                         </div>
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                            <ArrowRightLeft className="w-5 h-5" />
+                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                            <ArrowRightLeft className="w-4 h-4" />
                         </div>
                     </div>
                 </div>
@@ -1076,9 +1076,25 @@ export const CashAccountListPage: React.FC = () => {
         setEditModalOpen(true);
     };
 
+    const getActiveAccountBalance = (accId: string, initialBal: number) => {
+        const netJournals = state.journalEntries.reduce((sum, je) => {
+            if (je.status === 'cancelled' || je.status === 'corrected') return sum;
+            let net = 0;
+            je.lines.forEach(l => {
+                if (l.accountId === accId) {
+                    net += (l.type === 'debit' ? l.amount : -l.amount);
+                }
+            });
+            return sum + net;
+        }, 0);
+        return netJournals;
+    };
+
     const totalCashBalance = useMemo(() => {
-        return state.accounts.filter(a => a.isCashAccount).reduce((sum, a) => sum + a.balance, 0);
-    }, [state.accounts]);
+        return state.accounts
+            .filter(a => a.isCashAccount)
+            .reduce((sum, a) => sum + getActiveAccountBalance(a.id, a.balance), 0);
+    }, [state.accounts, state.journalEntries]);
 
     return (
         <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
@@ -1206,7 +1222,7 @@ export const CashAccountListPage: React.FC = () => {
                                             <Badge variant="primary">{account.cashAccountType || 'N/A'}</Badge>
                                         </Td>
                                         <Td className="text-right font-mono font-bold text-base text-emerald-600 dark:text-emerald-400">
-                                            Rp{account.balance.toLocaleString('id-ID')}
+                                            Rp{getActiveAccountBalance(account.id, account.balance).toLocaleString('id-ID')}
                                         </Td>
                                         <Td className="text-right" onClick={e => e.stopPropagation()}>
                                             <div className="flex items-center justify-end gap-1.5">
