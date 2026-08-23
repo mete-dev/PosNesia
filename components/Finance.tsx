@@ -421,7 +421,7 @@ export const AccountStatementPage: React.FC = () => {
 
     // Calculate chronological statement lines with running balance & CRUC status
     const statementData = useMemo(() => {
-        if (!account) return { rows: [], totalDebit: 0, totalCredit: 0 };
+        if (!account) return { rows: [], totalDebit: 0, totalCredit: 0, activeAccountBalance: 0 };
 
         const accJournals: { 
             id: string; 
@@ -484,10 +484,16 @@ export const AccountStatementPage: React.FC = () => {
         const totalDebit = activeOnly.reduce((sum, r) => sum + r.debit, 0);
         const totalCredit = activeOnly.reduce((sum, r) => sum + r.credit, 0);
 
+        // Active balance from all active journal entries for this account
+        const activeAccountBalance = accJournals
+            .filter(j => j.status !== 'cancelled' && j.status !== 'corrected')
+            .reduce((sum, j) => sum + (j.debit - j.credit), 0);
+
         return {
             rows: filtered.reverse(), // Show newest first
             totalDebit,
-            totalCredit
+            totalCredit,
+            activeAccountBalance
         };
     }, [account, journalEntries, startDate, endDate]);
 
@@ -736,7 +742,7 @@ export const AccountStatementPage: React.FC = () => {
                             <div className="text-left md:text-right bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/10 w-full md:w-auto">
                                 <span className="text-[10px] font-bold text-blue-200 uppercase tracking-wider block">Saldo Rekening Kas Saat Ini</span>
                                 <strong className="font-mono text-2xl font-black text-emerald-400">
-                                    Rp{account.balance.toLocaleString('id-ID')}
+                                    Rp{statementData.activeAccountBalance.toLocaleString('id-ID')}
                                 </strong>
                             </div>
                         </div>
