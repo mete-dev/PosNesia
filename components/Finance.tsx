@@ -734,33 +734,34 @@ export const AccountStatementPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Sleek Odoo/ERP Style 2-Column Statement Header */}
+                {/* Refined ERP Style 2-Column Statement Header */}
                 <div className="bg-slate-50/80 dark:bg-zinc-800/50 p-4 rounded-xl border border-slate-200/80 dark:border-zinc-700/80 space-y-3">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 dark:border-zinc-700 pb-3">
+                    <div className="flex flex-row justify-between items-center border-b border-slate-200/80 dark:border-zinc-700 pb-2.5">
                         <div>
                             <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 block">Laporan Mutasi Rekening</span>
-                            <h2 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
-                                {account?.name || 'Kasir'} <span className="text-xs font-normal text-slate-500 font-mono">({account?.cashAccountType || 'Tunai'})</span>
+                            <h2 className="text-lg font-black text-slate-900 dark:text-white leading-tight flex items-center gap-2">
+                                {account?.name || 'Kasir'} <span className="text-xs font-semibold text-slate-500 font-mono">({account?.cashAccountType || 'Tunai'})</span>
                             </h2>
                         </div>
-                        <div className="text-left sm:text-right">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Nomor Rekening / Kode</span>
+                        <div className="text-right">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Kode Akun</span>
                             <span className="font-mono text-sm font-black text-slate-700 dark:text-zinc-300">#{account?.id || '1010'}</span>
                         </div>
                     </div>
 
-                    {/* 2-Column Summary Data */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                        {/* Left Column: Metadata */}
-                        <div className="space-y-1.5 border-b md:border-b-0 md:border-r border-slate-200 dark:border-zinc-700 pb-2 md:pb-0 md:pr-4">
-                            <div className="flex justify-between items-center">
-                                <span className="text-slate-500 font-medium">Nama Dompet / Kas:</span>
-                                <div className="no-print">
+                    {/* Clean 2-Column Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+                        {/* Left Column: Key Specs & Filters */}
+                        <div className="space-y-2 md:border-r border-slate-200/80 dark:border-zinc-700/80 md:pr-6">
+                            <div className="grid grid-cols-12 items-center">
+                                <span className="col-span-5 text-slate-500 font-medium">Nama Dompet / Kas</span>
+                                <span className="col-span-1 text-slate-400 text-center">:</span>
+                                <div className="col-span-6 no-print">
                                     <Select
                                         id="statement_acc"
                                         value={selectedAccountId}
                                         onChange={e => setSelectedAccountId(e.target.value)}
-                                        className="text-xs py-0.5 px-2 font-bold bg-white dark:bg-zinc-900"
+                                        className="text-xs py-1 px-2 font-bold bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-700 w-full"
                                     >
                                         {accounts.filter(a => a.isCashAccount).map(acc => (
                                             <option key={acc.id} value={acc.id}>
@@ -769,53 +770,62 @@ export const AccountStatementPage: React.FC = () => {
                                         ))}
                                     </Select>
                                 </div>
-                                <span className="font-bold text-slate-800 dark:text-zinc-200 hidden print:inline">{account?.name}</span>
+                                <span className="col-span-6 font-bold text-slate-900 dark:text-white hidden print:inline">{account?.name}</span>
                             </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-slate-500 font-medium">Rentang Tanggal Periode:</span>
-                                <div className="flex items-center gap-1">
-                                    <span className="font-mono font-semibold text-slate-800 dark:text-zinc-200">{startDate} s/d {endDate}</span>
-                                    <div className="no-print flex items-center gap-1 ml-1">
+
+                            <div className="grid grid-cols-12 items-center">
+                                <span className="col-span-5 text-slate-500 font-medium">Rentang Tanggal</span>
+                                <span className="col-span-1 text-slate-400 text-center">:</span>
+                                <div className="col-span-6 flex items-center justify-between gap-1">
+                                    <span className="font-mono font-semibold text-slate-800 dark:text-zinc-200 text-[11px]">{startDate} s/d {endDate}</span>
+                                    <div className="no-print flex items-center gap-1 shrink-0">
                                         <button
                                             type="button"
                                             onClick={() => setPeriodFilter('today')}
-                                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${periodFilter === 'today' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700 dark:bg-zinc-700 dark:text-zinc-300'}`}
+                                            className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${periodFilter === 'today' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-slate-200/70 text-slate-700 dark:bg-zinc-700 dark:text-zinc-300'}`}
                                         >
                                             Hari Ini
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setPeriodFilter('30days')}
-                                            className={`px-1.5 py-1 rounded text-[10px] font-bold ${periodFilter === '30days' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700 dark:bg-zinc-700 dark:text-zinc-300'}`}
+                                            className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${periodFilter === '30days' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-slate-200/70 text-slate-700 dark:bg-zinc-700 dark:text-zinc-300'}`}
                                         >
                                             30 Hari
                                         </button>
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-slate-500 font-medium">Tanggal Cetak Dokumen:</span>
-                                <span className="font-mono font-semibold text-slate-800 dark:text-zinc-200">{new Date().toLocaleDateString('id-ID')}</span>
+
+                            <div className="grid grid-cols-12 items-center">
+                                <span className="col-span-5 text-slate-500 font-medium">Tanggal Cetak</span>
+                                <span className="col-span-1 text-slate-400 text-center">:</span>
+                                <span className="col-span-6 font-mono font-semibold text-slate-800 dark:text-zinc-200">{new Date().toLocaleDateString('id-ID')}</span>
                             </div>
                         </div>
 
-                        {/* Right Column: Financial Totals */}
-                        <div className="space-y-1.5 md:pl-2">
-                            <div className="flex justify-between items-center">
-                                <span className="text-slate-500 font-medium">Total Debit (Pemasukan):</span>
-                                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                        {/* Right Column: Key Totals */}
+                        <div className="space-y-2">
+                            <div className="grid grid-cols-12 items-center">
+                                <span className="col-span-6 text-slate-500 font-medium">Total Debit (Pemasukan)</span>
+                                <span className="col-span-1 text-slate-400 text-center">:</span>
+                                <span className="col-span-5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
                                     +Rp{statementData.totalDebit.toLocaleString('id-ID')}
                                 </span>
                             </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-slate-500 font-medium">Total Kredit (Pengeluaran):</span>
-                                <span className="font-mono font-bold text-rose-600 dark:text-rose-400 text-sm">
+
+                            <div className="grid grid-cols-12 items-center">
+                                <span className="col-span-6 text-slate-500 font-medium">Total Kredit (Pengeluaran)</span>
+                                <span className="col-span-1 text-slate-400 text-center">:</span>
+                                <span className="col-span-5 text-right font-mono font-bold text-rose-600 dark:text-rose-400 text-xs">
                                     -Rp{statementData.totalCredit.toLocaleString('id-ID')}
                                 </span>
                             </div>
-                            <div className="flex justify-between items-center pt-1 border-t border-slate-200 dark:border-zinc-700">
-                                <span className="text-slate-900 dark:text-white font-extrabold">Saldo Kas Saat Ini:</span>
-                                <strong className="font-mono font-black text-blue-600 dark:text-blue-400 text-base">
+
+                            <div className="grid grid-cols-12 items-center pt-2 border-t border-slate-200/80 dark:border-zinc-700/80">
+                                <span className="col-span-6 text-slate-900 dark:text-white font-extrabold text-xs">Saldo Kas Saat Ini</span>
+                                <span className="col-span-1 text-slate-400 text-center">:</span>
+                                <strong className="col-span-5 text-right font-mono font-black text-blue-600 dark:text-blue-400 text-base">
                                     Rp{statementData.activeAccountBalance.toLocaleString('id-ID')}
                                 </strong>
                             </div>
