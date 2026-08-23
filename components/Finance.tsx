@@ -459,7 +459,15 @@ export const AccountStatementPage: React.FC = () => {
         // Sort ascending by date for chronological running balance
         accJournals.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-        let runningBalance = 0;
+        // Calculate initial balance prior to start date or start of journal entries
+        // Net change from all active journal entries
+        const netJournalChange = accJournals
+            .filter(j => j.status !== 'cancelled' && j.status !== 'corrected')
+            .reduce((sum, j) => sum + (j.debit - j.credit), 0);
+
+        const initialBaseBalance = account.balance - netJournalChange;
+
+        let runningBalance = initialBaseBalance;
         const allRows = accJournals.map(j => {
             // Only active transactions impact running balance!
             if (j.status !== 'cancelled' && j.status !== 'corrected') {
@@ -840,23 +848,23 @@ export const AccountStatementPage: React.FC = () => {
                                                         <Button
                                                             onClick={() => openEditModal(row)}
                                                             variant="secondary"
-                                                            className="text-[10px] py-1 px-2.5 shadow-2xs gap-1 text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300"
+                                                            title="Perbaiki Transaksi"
+                                                            className="p-1.5 shadow-2xs text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 rounded-lg"
                                                         >
-                                                            <Edit2 className="w-3 h-3" />
-                                                            Perbaiki
+                                                            <Edit2 className="w-3.5 h-3.5" />
                                                         </Button>
                                                         <Button
                                                             onClick={() => openCancelModal(row.id, row.description)}
                                                             variant="secondary"
-                                                            className="text-[10px] py-1 px-2.5 shadow-2xs gap-1 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300"
+                                                            title="Batalkan Transaksi"
+                                                            className="p-1.5 shadow-2xs text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 rounded-lg"
                                                         >
-                                                            <Trash2 className="w-3 h-3" />
-                                                            Batal
+                                                            <Trash2 className="w-3.5 h-3.5" />
                                                         </Button>
                                                     </div>
                                                 ) : (
                                                     <span className="no-underline text-[10px] text-slate-400 font-bold uppercase">
-                                                        Tidak Aktif
+                                                        -
                                                     </span>
                                                 )}
                                             </Td>
