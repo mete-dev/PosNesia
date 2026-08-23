@@ -360,7 +360,7 @@ export interface AttendanceRecord { id: string; staffId: string; staffName: stri
 export enum AccountType { Asset = 'Asset', Liability = 'Liability', Equity = 'Equity', Revenue = 'Revenue', Expense = 'Expense' }
 export interface Account { id: string; name: string; type: AccountType; balance: number; isCashAccount?: boolean; cashAccountType?: 'Tunai' | 'Rekening' | 'Brankas' | 'Lainnya'; branchId?: string; }
 export interface JournalEntryLine { accountId: string; accountName: string; type: 'debit' | 'credit'; amount: number; }
-export interface JournalEntry { id: string; date: string; description: string; lines: JournalEntryLine[]; branchId: string; reference?: string; posSessionId?: string; }
+export interface JournalEntry { id: string; date: string; description: string; lines: JournalEntryLine[]; branchId: string; reference?: string; posSessionId?: string; status?: 'active' | 'cancelled' | 'corrected'; originalEntryId?: string; correctionNote?: string; correctedAt?: string; }
 export interface TaxRate { id: string; name: string; rate: number; isDefault?: boolean; }
 export interface Shelf { id: string; code: string; description?: string; shelvingCount: number; locationType: 'warehouse' | 'branch'; locationId: string; }
 export interface ProductCategory { id: string; name: string; parentId?: string; }

@@ -426,6 +426,8 @@ type Action =
   | { type: 'finance/addCashAccount'; payload: { name: string, initialBalance: number, sourceAccountId: string, cashAccountType: Account['cashAccountType'] } }
   | { type: 'finance/updateCashAccount'; payload: { accountId: string; name: string } }
   | { type: 'finance/addJournalEntry'; payload: { description: string, lines: Omit<JournalEntryLine, 'accountName'>[], reference?: string, posSessionId?: string } }
+  | { type: 'finance/cancelJournalEntry'; payload: { entryId: string, cancelNote: string } }
+  | { type: 'finance/updateJournalEntry'; payload: { entryId: string, description: string, lines: Omit<JournalEntryLine, 'accountName'>[], correctionNote: string } }
   | { type: 'finance/addInvestor'; payload: Omit<Investor, 'id' | 'ownershipPercentage'> }
   | { type: 'finance/addCapitalTransaction'; payload: { investorId: string, type: 'Deposit' | 'Withdrawal', amount: number, cashAccountId: string } }
   | { type: 'finance/distributeProfit'; payload: { totalProfitDistributed: number, distributions: { investorId: string, amount: number }[], cashAccountId: string } }
@@ -1433,6 +1435,38 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 lines,
                 reference,
                 posSessionId
+            );
+            return {
+                ...state,
+                accounts: journalResult.accounts,
+                journalEntries: journalResult.journalEntries,
+            };
+        }
+        case 'finance/cancelJournalEntry': {
+            const { entryId, cancelNote } = action.payload;
+            const journalResult = journalService.cancelJournalEntry(
+                state.accounts,
+                state.journalEntries,
+                entryId,
+                cancelNote
+            );
+            return {
+                ...state,
+                accounts: journalResult.accounts,
+                journalEntries: journalResult.journalEntries,
+            };
+        }
+        case 'finance/updateJournalEntry': {
+            const { entryId, description, lines, correctionNote } = action.payload;
+            const branchId = state.currentUser?.branchId || state.branches[0]?.id || 'CAB-JPSTNH01';
+            const journalResult = journalService.updateJournalEntryWithAudit(
+                state.accounts,
+                state.journalEntries,
+                entryId,
+                description,
+                lines,
+                correctionNote,
+                branchId
             );
             return {
                 ...state,

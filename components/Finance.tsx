@@ -419,22 +419,38 @@ export const AccountStatementPage: React.FC = () => {
         }
     }, [periodFilter]);
 
-    // Calculate chronological statement lines with running balance
+    // Calculate chronological statement lines with running balance & CRUC status
     const statementData = useMemo(() => {
         if (!account) return { rows: [], totalDebit: 0, totalCredit: 0 };
 
-        const accJournals: { date: Date; description: string; reference?: string; debit: number; credit: number }[] = [];
+        const accJournals: { 
+            id: string; 
+            date: Date; 
+            description: string; 
+            reference?: string; 
+            debit: number; 
+            credit: number;
+            status?: 'active' | 'cancelled' | 'corrected';
+            correctionNote?: string;
+            originalEntryId?: string;
+            lines: JournalEntryLine[];
+        }[] = [];
 
         journalEntries.forEach(je => {
             const jeDate = new Date(je.date);
             je.lines.forEach(l => {
                 if (l.accountId === account.id) {
                     accJournals.push({
+                        id: je.id,
                         date: jeDate,
                         description: je.description || 'Transaksi Kas',
                         reference: je.reference,
                         debit: l.type === 'debit' ? l.amount : 0,
                         credit: l.type === 'credit' ? l.amount : 0,
+                        status: je.status || 'active',
+                        correctionNote: je.correctionNote,
+                        originalEntryId: je.originalEntryId,
+                        lines: je.lines
                     });
                 }
             });
@@ -445,7 +461,10 @@ export const AccountStatementPage: React.FC = () => {
 
         let runningBalance = 0;
         const allRows = accJournals.map(j => {
-            runningBalance += (j.debit - j.credit);
+            // Only active transactions impact running balance!
+            if (j.status !== 'cancelled' && j.status !== 'corrected') {
+                runningBalance += (j.debit - j.credit);
+            }
             return {
                 ...j,
                 runningBalance
@@ -460,8 +479,10 @@ export const AccountStatementPage: React.FC = () => {
 
         const filtered = allRows.filter(r => r.date >= startD && r.date <= endD);
 
-        const totalDebit = filtered.reduce((sum, r) => sum + r.debit, 0);
-        const totalCredit = filtered.reduce((sum, r) => sum + r.credit, 0);
+        // Only count active transactions for totals
+        const activeOnly = filtered.filter(r => r.status !== 'cancelled' && r.status !== 'corrected');
+        const totalDebit = activeOnly.reduce((sum, r) => sum + r.debit, 0);
+        const totalCredit = activeOnly.reduce((sum, r) => sum + r.credit, 0);
 
         return {
             rows: filtered.reverse(), // Show newest first
@@ -469,6 +490,92 @@ export const AccountStatementPage: React.FC = () => {
             totalCredit
         };
     }, [account, journalEntries, startDate, endDate]);
+
+    // CRUC Modal States
+    const [cancelModalEntry, setCancelModalEntry] = useState<{ id: string; description: string } | null>(null);
+    const [cancelReason, setCancelReason] = useState('');
+
+    const [editModalEntry, setEditModalEntry] = useState<{ 
+        id: string; 
+        description: string; 
+        amount: number; 
+        type: 'debit' | 'credit'; 
+        counterAccountId: string;
+    } | null>(null);
+    const [editDescription, setEditDescription] = useState('');
+    const [editAmount, setEditAmount] = useState('');
+    const [editCounterAccountId, setEditCounterAccountId] = useState('');
+    const [editCorrectionNote, setEditCorrectionNote] = useState('');
+
+    const openCancelModal = (id: string, description: string) => {
+        setCancelModalEntry({ id, description });
+        setCancelReason('');
+    };
+
+    const handleConfirmCancel = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!cancelModalEntry) return;
+        if (!cancelReason.trim()) {
+            alert("Harap masukkan catatan/alasan pembatalan.");
+            return;
+        }
+        dispatch({
+            type: 'finance/cancelJournalEntry',
+            payload: {
+                entryId: cancelModalEntry.id,
+                cancelNote: cancelReason
+            }
+        });
+        setCancelModalEntry(null);
+    };
+
+    const openEditModal = (entry: typeof statementData.rows[0]) => {
+        const counterLine = entry.lines.find(l => l.accountId !== account?.id);
+        const selfLine = entry.lines.find(l => l.accountId === account?.id);
+        
+        const entryType = selfLine?.type === 'debit' ? 'debit' : 'credit';
+
+        setEditModalEntry({
+            id: entry.id,
+            description: entry.description,
+            amount: selfLine?.amount || 0,
+            type: entryType,
+            counterAccountId: counterLine?.accountId || ''
+        });
+        setEditDescription(entry.description);
+        setEditAmount((selfLine?.amount || 0).toString());
+        setEditCounterAccountId(counterLine?.accountId || '');
+        setEditCorrectionNote('');
+    };
+
+    const handleConfirmEdit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editModalEntry || !account) return;
+        const numAmount = parseFloat(editAmount);
+        if (!numAmount || !editCounterAccountId || !editCorrectionNote.trim()) {
+            alert("Harap lengkapi semua field dan beri Catatan Perbaikan.");
+            return;
+        }
+
+        const lines = editModalEntry.type === 'debit' ? [
+            { accountId: account.id, type: 'debit' as const, amount: numAmount },
+            { accountId: editCounterAccountId, type: 'credit' as const, amount: numAmount }
+        ] : [
+            { accountId: account.id, type: 'credit' as const, amount: numAmount },
+            { accountId: editCounterAccountId, type: 'debit' as const, amount: numAmount }
+        ];
+
+        dispatch({
+            type: 'finance/updateJournalEntry',
+            payload: {
+                entryId: editModalEntry.id,
+                description: editDescription,
+                lines,
+                correctionNote: editCorrectionNote
+            }
+        });
+        setEditModalEntry(null);
+    };
 
     return (
         <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-4 overflow-y-auto">
@@ -646,45 +753,116 @@ export const AccountStatementPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Statement Journal Table */}
+                {/* Statement Journal Table with CRUC Audit Trail */}
                 <div className="border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden">
                     <Table>
                         <Thead>
                             <Tr className="bg-slate-100 dark:bg-zinc-800">
                                 <Th>Tanggal & Waktu</Th>
                                 <Th>Keterangan / Deskripsi Mutasi</Th>
-                                <Th>Referensi</Th>
+                                <Th>Referensi / Catatan Audit</Th>
                                 <Th className="text-right font-mono">Pemasukan (+)</Th>
                                 <Th className="text-right font-mono">Pengeluaran (-)</Th>
                                 <Th className="text-right font-mono">Saldo Running</Th>
+                                <Th className="text-center no-print">Aksi CRUC</Th>
                             </Tr>
                         </Thead>
                         <Tbody>
                             {statementData.rows.length === 0 ? (
                                 <Tr>
-                                    <Td colSpan={6} className="text-center py-12 text-slate-400">
+                                    <Td colSpan={7} className="text-center py-12 text-slate-400">
                                         Tidak ada data mutasi transaksi pada periode ini.
                                     </Td>
                                 </Tr>
                             ) : (
-                                statementData.rows.map((row, idx) => (
-                                    <Tr key={idx} className="hover:bg-slate-50 dark:hover:bg-zinc-800/40 border-b border-slate-100 dark:border-zinc-800">
-                                        <Td className="text-slate-600 dark:text-slate-400 font-mono text-xs">
-                                            {row.date.toLocaleString('id-ID')}
-                                        </Td>
-                                        <Td className="font-bold text-slate-900 dark:text-white">{row.description}</Td>
-                                        <Td className="text-slate-500 italic font-mono text-xs">{row.reference || '-'}</Td>
-                                        <Td className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                                            {row.debit > 0 ? `+Rp${row.debit.toLocaleString('id-ID')}` : '-'}
-                                        </Td>
-                                        <Td className="text-right font-mono font-bold text-rose-600 dark:text-rose-400">
-                                            {row.credit > 0 ? `-Rp${row.credit.toLocaleString('id-ID')}` : '-'}
-                                        </Td>
-                                        <Td className="text-right font-mono font-bold text-slate-900 dark:text-white">
-                                            Rp{row.runningBalance.toLocaleString('id-ID')}
-                                        </Td>
-                                    </Tr>
-                                ))
+                                statementData.rows.map((row, idx) => {
+                                    const isCancelled = row.status === 'cancelled';
+                                    const isCorrected = row.status === 'corrected';
+                                    const isInactive = isCancelled || isCorrected;
+
+                                    return (
+                                        <Tr 
+                                            key={idx} 
+                                            className={`border-b border-slate-100 dark:border-zinc-800 transition-all ${
+                                                isInactive 
+                                                    ? 'opacity-40 line-through bg-slate-100/80 dark:bg-zinc-900/80 select-none' 
+                                                    : 'hover:bg-slate-50 dark:hover:bg-zinc-800/40'
+                                            }`}
+                                        >
+                                            <Td className="text-slate-600 dark:text-slate-400 font-mono text-xs">
+                                                {row.date.toLocaleString('id-ID')}
+                                                {isCancelled && (
+                                                    <span className="no-underline block text-[10px] text-rose-600 dark:text-rose-400 font-bold uppercase tracking-wider">
+                                                        [DIBATALKAN]
+                                                    </span>
+                                                )}
+                                                {isCorrected && (
+                                                    <span className="no-underline block text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider">
+                                                        [DIPERBAIKI]
+                                                    </span>
+                                                )}
+                                            </Td>
+
+                                            <Td className="font-bold text-slate-900 dark:text-white">
+                                                {row.description}
+                                                {row.originalEntryId && (
+                                                    <span className="no-underline block text-[10px] text-blue-600 dark:text-blue-400 font-mono">
+                                                        ↳ Perbaikan dari Transaksi #{row.originalEntryId}
+                                                    </span>
+                                                )}
+                                            </Td>
+
+                                            <Td className="text-slate-500 italic text-xs">
+                                                <div className="no-underline">
+                                                    <span>{row.reference || '-'}</span>
+                                                    {row.correctionNote && (
+                                                        <p className="text-[11px] text-amber-700 dark:text-amber-300 font-semibold mt-0.5 not-italic">
+                                                            📝 Catatan: {row.correctionNote}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </Td>
+
+                                            <Td className="text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                                {row.debit > 0 ? `+Rp${row.debit.toLocaleString('id-ID')}` : '-'}
+                                            </Td>
+                                            <Td className="text-right font-mono font-bold text-rose-600 dark:text-rose-400">
+                                                {row.credit > 0 ? `-Rp${row.credit.toLocaleString('id-ID')}` : '-'}
+                                            </Td>
+
+                                            <Td className="text-right font-mono font-bold text-slate-900 dark:text-white">
+                                                {isInactive ? '-' : `Rp${row.runningBalance.toLocaleString('id-ID')}`}
+                                            </Td>
+
+                                            <Td className="text-center no-print">
+                                                {!isInactive ? (
+                                                    <div className="flex items-center justify-center gap-1.5">
+                                                        <Button
+                                                            onClick={() => openEditModal(row)}
+                                                            variant="secondary"
+                                                            className="text-[10px] py-1 px-2.5 shadow-2xs gap-1 text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300"
+                                                        >
+                                                            <Edit2 className="w-3 h-3" />
+                                                            Perbaiki
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => openCancelModal(row.id, row.description)}
+                                                            variant="secondary"
+                                                            className="text-[10px] py-1 px-2.5 shadow-2xs gap-1 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300"
+                                                        >
+                                                            <Trash2 className="w-3 h-3" />
+                                                            Batal
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <span className="no-underline text-[10px] text-slate-400 font-bold uppercase">
+                                                        Tidak Aktif
+                                                    </span>
+                                                )}
+                                            </Td>
+                                        </Tr>
+                                    );
+                                })
                             )}
                         </Tbody>
                     </Table>
@@ -702,6 +880,118 @@ export const AccountStatementPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Modal Cancel Transaksi */}
+            {cancelModalEntry && (
+                <Modal
+                    isOpen={!!cancelModalEntry}
+                    onClose={() => setCancelModalEntry(null)}
+                    title="🔴 Batalkan Transaksi Kas"
+                    maxWidth="max-w-md"
+                    footer={
+                        <div className="flex justify-end gap-2">
+                            <button type="button" onClick={() => setCancelModalEntry(null)} className="px-4 py-2 rounded-md bg-slate-200 dark:bg-zinc-700 text-xs font-bold">
+                                Batal
+                            </button>
+                            <Button onClick={handleConfirmCancel} className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold">
+                                Konfirmasi Pembatalan
+                            </Button>
+                        </div>
+                    }
+                >
+                    <form onSubmit={handleConfirmCancel} className="space-y-4">
+                        <div className="p-3 bg-rose-50 dark:bg-rose-950/40 rounded-xl border border-rose-200 text-xs text-rose-800 dark:text-rose-300">
+                            ⚠️ Transaksi <strong>"{cancelModalEntry.description}"</strong> akan dibatalkan & saldo kas dikembalikan secara otomatis. Transaksi tidak akan dihapus melainkan ditampilkan pudar.
+                        </div>
+                        <div>
+                            <Label htmlFor="cancel_reason">Catatan / Alasan Pembatalan*</Label>
+                            <Input
+                                id="cancel_reason"
+                                type="text"
+                                value={cancelReason}
+                                onChange={e => setCancelReason(e.target.value)}
+                                placeholder="Contoh: Salah catat nominal, transaksi ganda..."
+                                required
+                            />
+                        </div>
+                    </form>
+                </Modal>
+            )}
+
+            {/* Modal Edit / Perbaiki Transaksi */}
+            {editModalEntry && (
+                <Modal
+                    isOpen={!!editModalEntry}
+                    onClose={() => setEditModalEntry(null)}
+                    title="📝 Perbaiki Kesalahan Transaksi Kas"
+                    maxWidth="max-w-md"
+                    footer={
+                        <div className="flex justify-end gap-2">
+                            <button type="button" onClick={() => setEditModalEntry(null)} className="px-4 py-2 rounded-md bg-slate-200 dark:bg-zinc-700 text-xs font-bold">
+                                Batal
+                            </button>
+                            <Button onClick={handleConfirmEdit} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">
+                                Simpan Perbaikan
+                            </Button>
+                        </div>
+                    }
+                >
+                    <form onSubmit={handleConfirmEdit} className="space-y-4">
+                        <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 text-xs text-amber-800 dark:text-amber-300">
+                            ℹ️ Transaksi lama akan ditandai pudar <strong>[DIPERBAIKI]</strong>, dan transaksi perbaikan baru akan dibuat dengan merevisi saldo kas Anda.
+                        </div>
+
+                        <div>
+                            <Label htmlFor="edit_desc">Deskripsi Transaksi Baru</Label>
+                            <Input
+                                id="edit_desc"
+                                type="text"
+                                value={editDescription}
+                                onChange={e => setEditDescription(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="edit_amount">Jumlah Nominal Baru (Rp)</Label>
+                            <Input
+                                id="edit_amount"
+                                type="number"
+                                value={editAmount}
+                                onChange={e => setEditAmount(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="edit_counter">Kategori / Akun Kontra</Label>
+                            <Select
+                                id="edit_counter"
+                                value={editCounterAccountId}
+                                onChange={e => setEditCounterAccountId(e.target.value)}
+                                required
+                            >
+                                <option value="">-- Pilih Kategori --</option>
+                                {accounts.filter(a => a.id !== account?.id).map(acc => (
+                                    <option key={acc.id} value={acc.id}>{acc.name} ({acc.type})</option>
+                                ))}
+                            </Select>
+                        </div>
+
+                        <div>
+                            <Label htmlFor="edit_note">Catatan Alasan Perbaikan*</Label>
+                            <Input
+                                id="edit_note"
+                                type="text"
+                                value={editCorrectionNote}
+                                onChange={e => setEditCorrectionNote(e.target.value)}
+                                placeholder="Contoh: Koreksi nominal dari Rp10.000 jadi Rp100.000"
+                                required
+                            />
+                        </div>
+                    </form>
+                </Modal>
+            )}
         </div>
     );
 };

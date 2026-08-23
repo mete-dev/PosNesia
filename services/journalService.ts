@@ -51,6 +51,7 @@ export const createJournalEntry = (
         description,
         reference,
         posSessionId,
+        status: 'active',
         lines: lines.map(line => ({
             ...line,
             accountName: currentAccounts.find(a => a.id === line.accountId)?.name || 'Unknown Account'
@@ -60,4 +61,99 @@ export const createJournalEntry = (
     const updatedJournalEntries = [newEntry, ...currentJournalEntries];
 
     return { accounts: finalAccounts, journalEntries: updatedJournalEntries };
+};
+
+export const cancelJournalEntry = (
+    currentAccounts: Account[],
+    currentJournalEntries: JournalEntry[],
+    entryId: string,
+    cancelNote: string
+): { accounts: Account[]; journalEntries: JournalEntry[] } => {
+    const targetEntry = currentJournalEntries.find(j => j.id === entryId);
+    if (!targetEntry || targetEntry.status === 'cancelled' || targetEntry.status === 'corrected') {
+        alert("Transaksi tidak dapat dibatalkan atau sudah pernah dibatalkan.");
+        return { accounts: currentAccounts, journalEntries: currentJournalEntries };
+    }
+
+    // Reverse account balance changes
+    const updatedAccounts = currentAccounts.map(acc => ({ ...acc }));
+    const accountMap = new Map(updatedAccounts.map(acc => [acc.id, acc]));
+
+    for (const line of targetEntry.lines) {
+        const account = accountMap.get(line.accountId);
+        if (account) {
+            if (line.type === 'debit') {
+                account.balance -= line.amount; // reverse debit
+            } else {
+                account.balance += line.amount; // reverse credit
+            }
+        }
+    }
+
+    const finalAccounts = Array.from(accountMap.values());
+    const updatedEntries = currentJournalEntries.map(entry => {
+        if (entry.id === entryId) {
+            return {
+                ...entry,
+                status: 'cancelled' as const,
+                correctionNote: cancelNote || 'Dibatalkan oleh Pengguna',
+                correctedAt: new Date().toISOString()
+            };
+        }
+        return entry;
+    });
+
+    return { accounts: finalAccounts, journalEntries: updatedEntries };
+};
+
+export const updateJournalEntryWithAudit = (
+    currentAccounts: Account[],
+    currentJournalEntries: JournalEntry[],
+    entryId: string,
+    newDescription: string,
+    newLines: Omit<JournalEntryLine, 'accountName'>[],
+    correctionNote: string,
+    branchId: string
+): { accounts: Account[]; journalEntries: JournalEntry[] } => {
+    const targetEntry = currentJournalEntries.find(j => j.id === entryId);
+    if (!targetEntry || targetEntry.status === 'cancelled' || targetEntry.status === 'corrected') {
+        alert("Transaksi tidak ditemukan atau sudah dibatalkan/diubah.");
+        return { accounts: currentAccounts, journalEntries: currentJournalEntries };
+    }
+
+    // Step 1: Cancel/Reverse the old entry
+    const cancelRes = cancelJournalEntry(currentAccounts, currentJournalEntries, entryId, `Diperbaiki: ${correctionNote}`);
+    
+    // Mark the old entry as 'corrected' instead of 'cancelled'
+    const entriesAfterCorrection = cancelRes.journalEntries.map(entry => {
+        if (entry.id === entryId) {
+            return { ...entry, status: 'corrected' as const, correctionNote };
+        }
+        return entry;
+    });
+
+    // Step 2: Create new active entry linking back to originalEntryId
+    const newJournalResult = createJournalEntry(
+        cancelRes.accounts,
+        entriesAfterCorrection,
+        branchId,
+        newDescription,
+        newLines,
+        `Perbaikan #${entryId}`,
+        targetEntry.posSessionId
+    );
+
+    // Attach originalEntryId & correctionNote to the new entry
+    const finalEntries = newJournalResult.journalEntries.map((entry, idx) => {
+        if (idx === 0) { // Newest created entry
+            return {
+                ...entry,
+                originalEntryId: entryId,
+                correctionNote: `Perbaikan dari #${entryId}: ${correctionNote}`
+            };
+        }
+        return entry;
+    });
+
+    return { accounts: newJournalResult.accounts, journalEntries: finalEntries };
 };
