@@ -720,144 +720,91 @@ export const AccountStatementPage: React.FC = () => {
             {/* Main Printable Document Container */}
             <div id="printable-statement" className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs p-4 md:p-5 space-y-4 text-slate-900 dark:text-white">
                 
-                {/* Official Letterhead Header for Print */}
-                <div className="flex justify-between items-start border-b border-slate-200 dark:border-zinc-800 pb-3">
-                    <div>
-                        <h2 className="text-xl font-black uppercase text-blue-900 dark:text-blue-400">{companyInfo.name || 'POSNESIA POS'}</h2>
-                        <p className="text-[11px] text-slate-500">{companyInfo.address || 'Jl. Raya Utama PosNesia No. 88'}</p>
-                        <p className="text-[11px] text-slate-500">Telp: {companyInfo.phone || '-'} • Email: {companyInfo.email || '-'}</p>
-                    </div>
-                    <div className="text-right">
-                        <h3 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-wider">REKENING KORAN</h3>
-                        <p className="text-[11px] font-mono text-slate-500">Periode: {startDate} s/d {endDate}</p>
-                        <p className="text-[11px] font-mono text-slate-500">Tgl Cetak: {new Date().toLocaleDateString('id-ID')}</p>
-                    </div>
-                </div>
-
-                {/* Unified Single-Row Control & Account Header Banner */}
-                <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-xl p-3 md:p-3.5 shadow-md relative overflow-hidden flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-                    <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 opacity-10 pointer-events-none">
-                        <Wallet className="w-56 h-56 text-white" />
-                    </div>
-
-                    <div className="relative z-10 flex flex-wrap items-center gap-3">
-                        {/* Account Selector Dropdown */}
-                        <div className="no-print">
-                            <Select
-                                id="statement_acc"
-                                value={selectedAccountId}
-                                onChange={e => setSelectedAccountId(e.target.value)}
-                                className="text-xs py-1.5 px-3 font-bold bg-white/10 text-white border-white/20 backdrop-blur-md rounded-lg"
-                            >
-                                {accounts.filter(a => a.isCashAccount).map(acc => (
-                                    <option key={acc.id} value={acc.id} className="text-slate-900 bg-white dark:bg-zinc-900 dark:text-white">
-                                        🏦 {acc.name} ({acc.cashAccountType || 'Tunai'})
-                                    </option>
-                                ))}
-                            </Select>
+                {/* Sleek Odoo/ERP Style 2-Column Statement Header */}
+                <div className="bg-slate-50/80 dark:bg-zinc-800/50 p-4 rounded-xl border border-slate-200/80 dark:border-zinc-700/80 space-y-3">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 dark:border-zinc-700 pb-3">
+                        <div>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 block">Laporan Mutasi Rekening</span>
+                            <h2 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                                {account?.name || 'Kasir'} <span className="text-xs font-normal text-slate-500 font-mono">({account?.cashAccountType || 'Tunai'})</span>
+                            </h2>
                         </div>
+                        <div className="text-left sm:text-right">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Nomor Rekening / Kode</span>
+                            <span className="font-mono text-sm font-black text-slate-700 dark:text-zinc-300">#{account?.id || '1010'}</span>
+                        </div>
+                    </div>
 
-                        {/* Account Info Badge */}
-                        {account && (
-                            <div className="flex items-center gap-2">
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-blue-500/30 text-blue-200 border border-blue-400/30">
-                                    {account.cashAccountType || 'Tunai'}
-                                </span>
-                                <span className="text-[11px] text-blue-200/80 font-mono">#{account.id}</span>
+                    {/* 2-Column Summary Data */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        {/* Left Column: Metadata */}
+                        <div className="space-y-1.5 border-b md:border-b-0 md:border-r border-slate-200 dark:border-zinc-700 pb-2 md:pb-0 md:pr-4">
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-500 font-medium">Nama Dompet / Kas:</span>
+                                <div className="no-print">
+                                    <Select
+                                        id="statement_acc"
+                                        value={selectedAccountId}
+                                        onChange={e => setSelectedAccountId(e.target.value)}
+                                        className="text-xs py-0.5 px-2 font-bold bg-white dark:bg-zinc-900"
+                                    >
+                                        {accounts.filter(a => a.isCashAccount).map(acc => (
+                                            <option key={acc.id} value={acc.id}>
+                                                🏦 {acc.name} ({acc.cashAccountType || 'Tunai'})
+                                            </option>
+                                        ))}
+                                    </Select>
+                                </div>
+                                <span className="font-bold text-slate-800 dark:text-zinc-200 hidden print:inline">{account?.name}</span>
                             </div>
-                        )}
-                    </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-500 font-medium">Rentang Tanggal Periode:</span>
+                                <div className="flex items-center gap-1">
+                                    <span className="font-mono font-semibold text-slate-800 dark:text-zinc-200">{startDate} s/d {endDate}</span>
+                                    <div className="no-print flex items-center gap-1 ml-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setPeriodFilter('today')}
+                                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${periodFilter === 'today' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700 dark:bg-zinc-700 dark:text-zinc-300'}`}
+                                        >
+                                            Hari Ini
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPeriodFilter('30days')}
+                                            className={`px-1.5 py-1 rounded text-[10px] font-bold ${periodFilter === '30days' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700 dark:bg-zinc-700 dark:text-zinc-300'}`}
+                                        >
+                                            30 Hari
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-500 font-medium">Tanggal Cetak Dokumen:</span>
+                                <span className="font-mono font-semibold text-slate-800 dark:text-zinc-200">{new Date().toLocaleDateString('id-ID')}</span>
+                            </div>
+                        </div>
 
-                    {/* Middle: Period Filter (Single Line) */}
-                    <div className="relative z-10 flex flex-wrap items-center gap-1.5 no-print">
-                        <span className="text-[10px] font-extrabold uppercase text-blue-200/80 tracking-wider mr-1 hidden sm:inline">Periode:</span>
-                        <button
-                            type="button"
-                            onClick={() => setPeriodFilter('today')}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === 'today' ? 'bg-blue-500 text-white shadow-2xs' : 'bg-white/10 hover:bg-white/20 text-blue-100 border border-white/10'}`}
-                        >
-                            Hari Ini
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setPeriodFilter('7days')}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === '7days' ? 'bg-blue-500 text-white shadow-2xs' : 'bg-white/10 hover:bg-white/20 text-blue-100 border border-white/10'}`}
-                        >
-                            7 Hari
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setPeriodFilter('30days')}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === '30days' ? 'bg-blue-500 text-white shadow-2xs' : 'bg-white/10 hover:bg-white/20 text-blue-100 border border-white/10'}`}
-                        >
-                            30 Hari
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setPeriodFilter('custom')}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === 'custom' ? 'bg-blue-500 text-white shadow-2xs' : 'bg-white/10 hover:bg-white/20 text-blue-100 border border-white/10'}`}
-                        >
-                            Custom
-                        </button>
-                    </div>
-
-                    {/* Right: Saldo Saat Ini Badge */}
-                    <div className="relative z-10 text-left lg:text-right bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 shrink-0">
-                        <span className="text-[9px] font-bold text-blue-200 uppercase tracking-wider block">Saldo Saat Ini</span>
-                        <strong className="font-mono text-lg font-black text-emerald-400">
-                            Rp{statementData.activeAccountBalance.toLocaleString('id-ID')}
-                        </strong>
-                    </div>
-                </div>
-
-                {periodFilter === 'custom' && (
-                    <div className="grid grid-cols-2 gap-3 p-2 bg-slate-50 dark:bg-zinc-800/60 rounded-lg border border-slate-200 dark:border-zinc-700 no-print">
-                        <div>
-                            <Label className="text-[10px] text-slate-500">Tanggal Mulai</Label>
-                            <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-xs py-1" />
-                        </div>
-                        <div>
-                            <Label className="text-[10px] text-slate-500">Tanggal Selesai</Label>
-                            <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-xs py-1" />
-                        </div>
-                    </div>
-                )}
-
-                {/* Mutasi Summary Cards (Modern Styled) */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/40 flex items-center justify-between shadow-2xs">
-                        <div>
-                            <span className="text-slate-500 dark:text-zinc-400 text-[10px] font-black uppercase tracking-wider block">Total Pemasukan (Debit)</span>
-                            <p className="font-mono text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
-                                Rp{statementData.totalDebit.toLocaleString('id-ID')}
-                            </p>
-                        </div>
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                            <ArrowDownLeft className="w-4 h-4" />
-                        </div>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/40 flex items-center justify-between shadow-2xs">
-                        <div>
-                            <span className="text-slate-500 dark:text-zinc-400 text-[10px] font-black uppercase tracking-wider block">Total Pengeluaran (Kredit)</span>
-                            <p className="font-mono text-base font-black text-rose-600 dark:text-rose-400 mt-0.5">
-                                Rp{statementData.totalCredit.toLocaleString('id-ID')}
-                            </p>
-                        </div>
-                        <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-                            <ArrowUpRight className="w-4 h-4" />
-                        </div>
-                    </div>
-
-                    <div className="p-3 rounded-xl bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/40 flex items-center justify-between shadow-2xs">
-                        <div>
-                            <span className="text-slate-500 dark:text-zinc-400 text-[10px] font-black uppercase tracking-wider block">Mutasi Bersih Periode Ini</span>
-                            <p className={`font-mono text-base font-black mt-0.5 ${(statementData.totalDebit - statementData.totalCredit) >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600'}`}>
-                                Rp{(statementData.totalDebit - statementData.totalCredit).toLocaleString('id-ID')}
-                            </p>
-                        </div>
-                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                            <ArrowRightLeft className="w-4 h-4" />
+                        {/* Right Column: Financial Totals */}
+                        <div className="space-y-1.5 md:pl-2">
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-500 font-medium">Total Debit (Pemasukan):</span>
+                                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                                    +Rp{statementData.totalDebit.toLocaleString('id-ID')}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-slate-500 font-medium">Total Kredit (Pengeluaran):</span>
+                                <span className="font-mono font-bold text-rose-600 dark:text-rose-400 text-sm">
+                                    -Rp{statementData.totalCredit.toLocaleString('id-ID')}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center pt-1 border-t border-slate-200 dark:border-zinc-700">
+                                <span className="text-slate-900 dark:text-white font-extrabold">Saldo Kas Saat Ini:</span>
+                                <strong className="font-mono font-black text-blue-600 dark:text-blue-400 text-base">
+                                    Rp{statementData.activeAccountBalance.toLocaleString('id-ID')}
+                                </strong>
+                            </div>
                         </div>
                     </div>
                 </div>
