@@ -294,6 +294,7 @@ type Action =
   | { type: 'brands/delete', payload: string }
   | { type: 'vendors/setSelectedId'; payload: string }
   | { type: 'customers/setSelectedId'; payload: string }
+  | { type: 'finance/setSelectedAccountId'; payload: string }
   // Purchase actions
   | { type: 'purchases/add'; payload: Omit<PurchaseOrder, 'id'> }
   | { type: 'purchases/receive'; payload: string }
@@ -1422,6 +1423,12 @@ const appReducer = (state: AppState, action: Action): AppState => {
                 accounts: currentAccounts,
                 journalEntries: currentJournals,
                 posSessionSummaries: updatedSummaries,
+            };
+        }
+        case 'finance/setSelectedAccountId': {
+            return {
+                ...state,
+                selectedAccountId: action.payload,
             };
         }
         case 'finance/addJournalEntry': {

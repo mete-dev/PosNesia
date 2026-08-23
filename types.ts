@@ -591,4 +591,5 @@ export interface AppState {
     selectedSaleId?: string;
     selectedVendorId?: string;
     selectedCustomerId?: string;
+    selectedAccountId?: string;
 }

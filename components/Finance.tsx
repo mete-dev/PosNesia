@@ -392,7 +392,16 @@ export const AccountStatementPage: React.FC = () => {
     const { state, dispatch } = useAppContext();
     const { accounts, journalEntries, companyInfo } = state;
 
-    const [selectedAccountId, setSelectedAccountId] = useState<string>(accounts.filter(a => a.isCashAccount)[0]?.id || '1010');
+    const [selectedAccountId, setSelectedAccountId] = useState<string>(
+        state.selectedAccountId || accounts.filter(a => a.isCashAccount)[0]?.id || '1010'
+    );
+
+    useEffect(() => {
+        if (state.selectedAccountId) {
+            setSelectedAccountId(state.selectedAccountId);
+        }
+    }, [state.selectedAccountId]);
+
     const account = useMemo(() => accounts.find(a => a.id === selectedAccountId) || null, [accounts, selectedAccountId]);
 
     const todayStr = new Date().toISOString().split('T')[0];
@@ -651,100 +660,91 @@ export const AccountStatementPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Compact Integrated Controls: Account Selector & Period Selector */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-slate-50/80 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-zinc-700/60 no-print items-center">
-                    <div className="md:col-span-6">
-                        <Label htmlFor="statement_acc" className="font-extrabold text-[11px] text-slate-600 dark:text-zinc-400 uppercase tracking-wider block mb-1">Pilih Rekening Kas / Dompet</Label>
-                        <Select
-                            id="statement_acc"
-                            value={selectedAccountId}
-                            onChange={e => setSelectedAccountId(e.target.value)}
-                            className="text-xs py-1.5 w-full font-bold bg-white dark:bg-zinc-900"
+                {/* Unified Single-Row Control & Account Header Banner */}
+                <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-xl p-3 md:p-3.5 shadow-md relative overflow-hidden flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+                    <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 opacity-10 pointer-events-none">
+                        <Wallet className="w-56 h-56 text-white" />
+                    </div>
+
+                    <div className="relative z-10 flex flex-wrap items-center gap-3">
+                        {/* Account Selector Dropdown */}
+                        <div className="no-print">
+                            <Select
+                                id="statement_acc"
+                                value={selectedAccountId}
+                                onChange={e => setSelectedAccountId(e.target.value)}
+                                className="text-xs py-1.5 px-3 font-bold bg-white/10 text-white border-white/20 backdrop-blur-md rounded-lg"
+                            >
+                                {accounts.filter(a => a.isCashAccount).map(acc => (
+                                    <option key={acc.id} value={acc.id} className="text-slate-900 bg-white dark:bg-zinc-900 dark:text-white">
+                                        🏦 {acc.name} ({acc.cashAccountType || 'Tunai'})
+                                    </option>
+                                ))}
+                            </Select>
+                        </div>
+
+                        {/* Account Info Badge */}
+                        {account && (
+                            <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                                    {account.cashAccountType || 'Tunai'}
+                                </span>
+                                <span className="text-[11px] text-blue-200/80 font-mono">#{account.id}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Middle: Period Filter (Single Line) */}
+                    <div className="relative z-10 flex flex-wrap items-center gap-1.5 no-print">
+                        <span className="text-[10px] font-extrabold uppercase text-blue-200/80 tracking-wider mr-1 hidden sm:inline">Periode:</span>
+                        <button
+                            type="button"
+                            onClick={() => setPeriodFilter('today')}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === 'today' ? 'bg-blue-500 text-white shadow-2xs' : 'bg-white/10 hover:bg-white/20 text-blue-100 border border-white/10'}`}
                         >
-                            {accounts.filter(a => a.isCashAccount).map(acc => (
-                                <option key={acc.id} value={acc.id}>
-                                    🏦 {acc.name} ({acc.cashAccountType || 'Tunai'}) - Saldo: Rp{acc.balance.toLocaleString('id-ID')}
-                                </option>
-                            ))}
-                        </Select>
+                            Hari Ini
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setPeriodFilter('7days')}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === '7days' ? 'bg-blue-500 text-white shadow-2xs' : 'bg-white/10 hover:bg-white/20 text-blue-100 border border-white/10'}`}
+                        >
+                            7 Hari
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setPeriodFilter('30days')}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === '30days' ? 'bg-blue-500 text-white shadow-2xs' : 'bg-white/10 hover:bg-white/20 text-blue-100 border border-white/10'}`}
+                        >
+                            30 Hari
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setPeriodFilter('custom')}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === 'custom' ? 'bg-blue-500 text-white shadow-2xs' : 'bg-white/10 hover:bg-white/20 text-blue-100 border border-white/10'}`}
+                        >
+                            Custom
+                        </button>
                     </div>
 
-                    <div className="md:col-span-6">
-                        <Label className="font-extrabold text-[11px] text-slate-600 dark:text-zinc-400 uppercase tracking-wider block mb-1">Filter Periode Waktu Mutasi</Label>
-                        <div className="flex flex-wrap items-center gap-1">
-                            <button
-                                type="button"
-                                onClick={() => setPeriodFilter('today')}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === 'today' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300'}`}
-                            >
-                                Hari Ini
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setPeriodFilter('7days')}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === '7days' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300'}`}
-                            >
-                                7 Hari
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setPeriodFilter('30days')}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === '30days' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300'}`}
-                            >
-                                30 Hari
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setPeriodFilter('custom')}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${periodFilter === 'custom' ? 'bg-blue-600 text-white shadow-2xs' : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300'}`}
-                            >
-                                Custom
-                            </button>
-                        </div>
+                    {/* Right: Saldo Saat Ini Badge */}
+                    <div className="relative z-10 text-left lg:text-right bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 shrink-0">
+                        <span className="text-[9px] font-bold text-blue-200 uppercase tracking-wider block">Saldo Saat Ini</span>
+                        <strong className="font-mono text-lg font-black text-emerald-400">
+                            Rp{statementData.activeAccountBalance.toLocaleString('id-ID')}
+                        </strong>
                     </div>
-
-                    {periodFilter === 'custom' && (
-                        <div className="md:col-span-12 grid grid-cols-2 gap-3 pt-1 border-t border-slate-200 dark:border-zinc-700">
-                            <div>
-                                <Label className="text-[10px] text-slate-500">Tanggal Mulai</Label>
-                                <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-xs py-1" />
-                            </div>
-                            <div>
-                                <Label className="text-[10px] text-slate-500">Tanggal Selesai</Label>
-                                <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-xs py-1" />
-                            </div>
-                        </div>
-                    )}
                 </div>
 
-                {/* Redesigned Account Details Card & Summary Banner */}
-                {account && (
-                    <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-xl p-4 shadow-md relative overflow-hidden">
-                        <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 opacity-10 pointer-events-none">
-                            <Wallet className="w-56 h-56 text-white" />
+                {periodFilter === 'custom' && (
+                    <div className="grid grid-cols-2 gap-3 p-2 bg-slate-50 dark:bg-zinc-800/60 rounded-lg border border-slate-200 dark:border-zinc-700 no-print">
+                        <div>
+                            <Label className="text-[10px] text-slate-500">Tanggal Mulai</Label>
+                            <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="text-xs py-1" />
                         </div>
-                        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shrink-0">
-                                    <Wallet className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h2 className="text-base font-black text-white">{account.name}</h2>
-                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-blue-500/30 text-blue-200 border border-blue-400/30">
-                                            {account.cashAccountType || 'Tunai'}
-                                        </span>
-                                    </div>
-                                    <p className="text-[11px] text-blue-200/80 font-mono mt-0.5">Kode Rekening: #{account.id}</p>
-                                </div>
-                            </div>
-
-                            <div className="text-left md:text-right bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/10 w-full md:w-auto">
-                                <span className="text-[10px] font-bold text-blue-200 uppercase tracking-wider block">Saldo Rekening Kas Saat Ini</span>
-                                <strong className="font-mono text-xl font-black text-emerald-400">
-                                    Rp{statementData.activeAccountBalance.toLocaleString('id-ID')}
-                                </strong>
-                            </div>
+                        <div>
+                            <Label className="text-[10px] text-slate-500">Tanggal Selesai</Label>
+                            <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="text-xs py-1" />
                         </div>
                     </div>
                 )}
@@ -1207,7 +1207,10 @@ export const CashAccountListPage: React.FC = () => {
                                     <Tr 
                                         key={account.id} 
                                         className="hover:bg-blue-50/50 dark:hover:bg-zinc-800/70 cursor-pointer transition-colors"
-                                        onClick={() => dispatch({ type: 'ui/setPage', payload: Page.AccountStatement })}
+                                        onClick={() => {
+                                            dispatch({ type: 'finance/setSelectedAccountId', payload: account.id });
+                                            dispatch({ type: 'ui/setPage', payload: Page.AccountStatement });
+                                        }}
                                     >
                                         <Td className="font-mono text-xs font-bold text-slate-600 dark:text-zinc-400">{account.id}</Td>
                                         <Td className="font-bold text-slate-900 dark:text-white">
@@ -1227,7 +1230,10 @@ export const CashAccountListPage: React.FC = () => {
                                         <Td className="text-right" onClick={e => e.stopPropagation()}>
                                             <div className="flex items-center justify-end gap-1.5">
                                                 <Button 
-                                                    onClick={() => dispatch({ type: 'ui/setPage', payload: Page.AccountStatement })}
+                                                    onClick={() => {
+                                                        dispatch({ type: 'finance/setSelectedAccountId', payload: account.id });
+                                                        dispatch({ type: 'ui/setPage', payload: Page.AccountStatement });
+                                                    }}
                                                     variant="secondary"
                                                     className="text-[11px] py-1 px-2.5 shadow-2xs gap-1 text-blue-600"
                                                 >
