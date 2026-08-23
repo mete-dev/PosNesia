@@ -1178,26 +1178,16 @@ export const CashAccountListPage: React.FC = () => {
         setEditingAccount(account);
         setEditModalOpen(true);
     };
-
-    const getActiveAccountBalance = (accId: string, initialBal: number) => {
-        const netJournals = state.journalEntries.reduce((sum, je) => {
-            if (je.status === 'cancelled' || je.status === 'corrected') return sum;
-            let net = 0;
-            je.lines.forEach(l => {
-                if (l.accountId === accId) {
-                    net += (l.type === 'debit' ? l.amount : -l.amount);
-                }
-            });
-            return sum + net;
-        }, 0);
-        return netJournals;
+    
+    const getActiveAccountBalance = (account: Account) => {
+        return account.balance || 0;
     };
 
     const totalCashBalance = useMemo(() => {
         return state.accounts
             .filter(a => a.isCashAccount)
-            .reduce((sum, a) => sum + getActiveAccountBalance(a.id, a.balance), 0);
-    }, [state.accounts, state.journalEntries]);
+            .reduce((sum, a) => sum + (a.balance || 0), 0);
+    }, [state.accounts]);
 
     return (
         <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
@@ -1248,45 +1238,50 @@ export const CashAccountListPage: React.FC = () => {
                     <button
                         type="button"
                         onClick={() => setAddModalOpen(true)}
-                        className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 border border-slate-200 dark:border-zinc-700 hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all cursor-pointer"
+                        className="flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition-all cursor-pointer"
                     >
-                        <Plus className="w-3.5 h-3.5 text-blue-600" />
+                        <Plus className="w-3.5 h-3.5" />
                         Tambah Pos Kas
                     </button>
                 </div>
             </div>
 
-            {/* Main Table Area */}
-            <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col">
-                {/* Search & Category Filter Header Bar */}
-                <div className="p-3 border-b border-slate-100 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 bg-slate-50/50 dark:bg-zinc-900/50">
-                    <div className="relative w-full sm:w-72">
+            {/* Main Content Card with Table */}
+            <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col p-4">
+                {/* Search & Filter Bar */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4 shrink-0">
+                    <div className="relative w-full sm:w-80">
                         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <Input 
+                        <Input
+                            type="text"
                             placeholder="Cari nama atau nomor akun..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="pl-9 text-xs py-1.5"
+                            className="pl-9 text-xs"
                         />
                     </div>
-                    <div className="w-full sm:w-48">
-                        <Select value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)} className="text-xs py-1.5">
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <select
+                            value={typeFilter}
+                            onChange={e => setTypeFilter(e.target.value as any)}
+                            className="w-full sm:w-auto rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs px-3 py-1.5 font-medium outline-none"
+                        >
                             <option value="all">Semua Kategori</option>
                             <option value="Tunai">Tunai</option>
                             <option value="Rekening">Rekening Bank</option>
                             <option value="Brankas">Brankas</option>
-                            <option value="Lainnya">Lainnya</option>
-                        </Select>
+                        </select>
                     </div>
                 </div>
 
-                {/* Table Content */}
-                <div className="overflow-x-auto flex-1">
+                {/* Table List */}
+                <div className="flex-1 overflow-y-auto border border-slate-200/80 dark:border-zinc-800 rounded-xl">
                     <Table>
                         <Thead>
-                            <Tr>
-                                <Th>No. Akun</Th>
-                                <Th>Nama Rekening Kas / Dompet</Th>
+                            <Tr className="bg-slate-50 dark:bg-zinc-800/80 border-b border-slate-200 dark:border-zinc-700">
+                                <Th>NO. AKUN</Th>
+                                <Th>NAMA REKENING KAS / DOMPET</Th>
                                 <Th className="text-center">Kategori</Th>
                                 <Th className="text-right">Saldo Saat Ini</Th>
                                 <Th className="text-right">Aksi</Th>
@@ -1322,7 +1317,7 @@ export const CashAccountListPage: React.FC = () => {
                                             <Badge variant="primary">{account.cashAccountType || 'N/A'}</Badge>
                                         </Td>
                                         <Td className="text-right font-mono font-bold text-base text-emerald-600 dark:text-emerald-400">
-                                            Rp{getActiveAccountBalance(account.id, account.balance).toLocaleString('id-ID')}
+                                            Rp{(account.balance || 0).toLocaleString('id-ID')}
                                         </Td>
                                         <Td className="text-right" onClick={e => e.stopPropagation()}>
                                             <div className="flex items-center justify-end gap-1.5">
