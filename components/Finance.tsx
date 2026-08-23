@@ -459,15 +459,7 @@ export const AccountStatementPage: React.FC = () => {
         // Sort ascending by date for chronological running balance
         accJournals.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-        // Calculate initial balance prior to start date or start of journal entries
-        // Net change from all active journal entries
-        const netJournalChange = accJournals
-            .filter(j => j.status !== 'cancelled' && j.status !== 'corrected')
-            .reduce((sum, j) => sum + (j.debit - j.credit), 0);
-
-        const initialBaseBalance = account.balance - netJournalChange;
-
-        let runningBalance = initialBaseBalance;
+        let runningBalance = 0;
         const allRows = accJournals.map(j => {
             // Only active transactions impact running balance!
             if (j.status !== 'cancelled' && j.status !== 'corrected') {
@@ -719,60 +711,89 @@ export const AccountStatementPage: React.FC = () => {
                     )}
                 </div>
 
-                {/* Account Details Box */}
+                {/* Redesigned Account Details Card & Summary Banner */}
                 {account && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 dark:bg-zinc-800/40 p-4 rounded-xl border border-slate-200 dark:border-zinc-700 text-xs">
-                        <div>
-                            <span className="text-slate-500 block">Nama Rekening</span>
-                            <strong className="text-slate-900 dark:text-white font-bold text-sm">🏦 {account.name}</strong>
+                    <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden">
+                        <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 opacity-10 pointer-events-none">
+                            <Wallet className="w-64 h-64 text-white" />
                         </div>
-                        <div>
-                            <span className="text-slate-500 block">No. Akun / Kode</span>
-                            <strong className="font-mono text-slate-800 dark:text-zinc-200 font-bold">{account.id}</strong>
-                        </div>
-                        <div>
-                            <span className="text-slate-500 block">Kategori Rekening</span>
-                            <strong className="text-slate-800 dark:text-zinc-200 font-bold">{account.cashAccountType || 'Tunai'}</strong>
-                        </div>
-                        <div className="text-right">
-                            <span className="text-slate-500 block">Saldo Saat Ini</span>
-                            <strong className="font-mono text-base font-black text-emerald-600 dark:text-emerald-400">
-                                Rp{account.balance.toLocaleString('id-ID')}
-                            </strong>
+                        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div className="flex items-center gap-3.5">
+                                <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shrink-0">
+                                    <Wallet className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h2 className="text-lg font-black text-white">{account.name}</h2>
+                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                                            {account.cashAccountType || 'Tunai'}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-blue-200/80 font-mono mt-0.5">Kode Akun: #{account.id}</p>
+                                </div>
+                            </div>
+
+                            <div className="text-left md:text-right bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/10 w-full md:w-auto">
+                                <span className="text-[10px] font-bold text-blue-200 uppercase tracking-wider block">Saldo Rekening Kas Saat Ini</span>
+                                <strong className="font-mono text-2xl font-black text-emerald-400">
+                                    Rp{account.balance.toLocaleString('id-ID')}
+                                </strong>
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* Mutasi Summary Cards */}
-                <div className="grid grid-cols-3 gap-3 text-center text-xs">
-                    <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/50">
-                        <span className="text-slate-500 text-[11px] font-semibold uppercase tracking-wider block">Total Pemasukan (Debit)</span>
-                        <p className="font-mono text-base font-black text-emerald-600 dark:text-emerald-400">Rp{statementData.totalDebit.toLocaleString('id-ID')}</p>
+                {/* Mutasi Summary Cards (Modern Styled) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="p-4 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/40 flex items-center justify-between shadow-2xs">
+                        <div>
+                            <span className="text-slate-500 dark:text-zinc-400 text-[10px] font-black uppercase tracking-wider block">Total Pemasukan (Debit)</span>
+                            <p className="font-mono text-lg font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                Rp{statementData.totalDebit.toLocaleString('id-ID')}
+                            </p>
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                            <ArrowDownLeft className="w-5 h-5" />
+                        </div>
                     </div>
-                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-900/50">
-                        <span className="text-slate-500 text-[11px] font-semibold uppercase tracking-wider block">Total Pengeluaran (Kredit)</span>
-                        <p className="font-mono text-base font-black text-rose-600 dark:text-rose-400">Rp{statementData.totalCredit.toLocaleString('id-ID')}</p>
+
+                    <div className="p-4 rounded-xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/40 flex items-center justify-between shadow-2xs">
+                        <div>
+                            <span className="text-slate-500 dark:text-zinc-400 text-[10px] font-black uppercase tracking-wider block">Total Pengeluaran (Kredit)</span>
+                            <p className="font-mono text-lg font-black text-rose-600 dark:text-rose-400 mt-0.5">
+                                Rp{statementData.totalCredit.toLocaleString('id-ID')}
+                            </p>
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                            <ArrowUpRight className="w-5 h-5" />
+                        </div>
                     </div>
-                    <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-900/50">
-                        <span className="text-slate-500 text-[11px] font-semibold uppercase tracking-wider block">Mutasi Bersih</span>
-                        <p className={`font-mono text-base font-black ${(statementData.totalDebit - statementData.totalCredit) >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600'}`}>
-                            Rp{(statementData.totalDebit - statementData.totalCredit).toLocaleString('id-ID')}
-                        </p>
+
+                    <div className="p-4 rounded-xl bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/40 flex items-center justify-between shadow-2xs">
+                        <div>
+                            <span className="text-slate-500 dark:text-zinc-400 text-[10px] font-black uppercase tracking-wider block">Mutasi Bersih Periode Ini</span>
+                            <p className={`font-mono text-lg font-black mt-0.5 ${(statementData.totalDebit - statementData.totalCredit) >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600'}`}>
+                                Rp{(statementData.totalDebit - statementData.totalCredit).toLocaleString('id-ID')}
+                            </p>
+                        </div>
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                            <ArrowRightLeft className="w-5 h-5" />
+                        </div>
                     </div>
                 </div>
 
                 {/* Statement Journal Table with CRUC Audit Trail */}
-                <div className="border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+                <div className="border border-slate-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-2xs">
                     <Table>
                         <Thead>
-                            <Tr className="bg-slate-100 dark:bg-zinc-800">
-                                <Th>Tanggal & Waktu</Th>
-                                <Th>Keterangan / Deskripsi Mutasi</Th>
-                                <Th>Referensi / Catatan Audit</Th>
-                                <Th className="text-right font-mono">Pemasukan (+)</Th>
-                                <Th className="text-right font-mono">Pengeluaran (-)</Th>
-                                <Th className="text-right font-mono">Saldo Running</Th>
-                                <Th className="text-center no-print">Aksi CRUC</Th>
+                            <Tr className="bg-slate-50 dark:bg-zinc-800/80 border-b border-slate-200 dark:border-zinc-700">
+                                <Th className="font-black text-slate-700 dark:text-zinc-200">WAKTU</Th>
+                                <Th className="font-black text-slate-700 dark:text-zinc-200">DESKRIPSI MUTASI</Th>
+                                <Th className="font-black text-slate-700 dark:text-zinc-200">REFERENSI / CATATAN AUDIT</Th>
+                                <Th className="text-right font-mono font-black text-slate-700 dark:text-zinc-200">PEMASUKAN (+)</Th>
+                                <Th className="text-right font-mono font-black text-slate-700 dark:text-zinc-200">PENGELUARAN (-)</Th>
+                                <Th className="text-right font-mono font-black text-slate-700 dark:text-zinc-200">SALDO RUNNING</Th>
+                                <Th className="text-center font-black text-slate-700 dark:text-zinc-200 no-print">AKSI</Th>
                             </Tr>
                         </Thead>
                         <Tbody>
@@ -794,18 +815,18 @@ export const AccountStatementPage: React.FC = () => {
                                             className={`border-b border-slate-100 dark:border-zinc-800 transition-all ${
                                                 isInactive 
                                                     ? 'opacity-40 line-through bg-slate-100/80 dark:bg-zinc-900/80 select-none' 
-                                                    : 'hover:bg-slate-50 dark:hover:bg-zinc-800/40'
+                                                    : 'hover:bg-slate-50/80 dark:hover:bg-zinc-800/40'
                                             }`}
                                         >
-                                            <Td className="text-slate-600 dark:text-slate-400 font-mono text-xs">
+                                            <Td className="text-slate-600 dark:text-slate-400 font-mono text-xs whitespace-nowrap">
                                                 {row.date.toLocaleString('id-ID')}
                                                 {isCancelled && (
-                                                    <span className="no-underline block text-[10px] text-rose-600 dark:text-rose-400 font-bold uppercase tracking-wider">
+                                                    <span className="no-underline block text-[10px] text-rose-600 dark:text-rose-400 font-bold uppercase tracking-wider mt-0.5">
                                                         [DIBATALKAN]
                                                     </span>
                                                 )}
                                                 {isCorrected && (
-                                                    <span className="no-underline block text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider">
+                                                    <span className="no-underline block text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider mt-0.5">
                                                         [DIPERBAIKI]
                                                     </span>
                                                 )}
@@ -814,7 +835,7 @@ export const AccountStatementPage: React.FC = () => {
                                             <Td className="font-bold text-slate-900 dark:text-white">
                                                 {row.description}
                                                 {row.originalEntryId && (
-                                                    <span className="no-underline block text-[10px] text-blue-600 dark:text-blue-400 font-mono">
+                                                    <span className="no-underline block text-[10px] text-blue-600 dark:text-blue-400 font-mono mt-0.5">
                                                         ↳ Perbaikan dari Transaksi #{row.originalEntryId}
                                                     </span>
                                                 )}
