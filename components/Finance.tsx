@@ -128,7 +128,8 @@ const UnifiedCashTransactionModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
     initialMode?: 'income' | 'expense' | 'transfer';
-}> = ({ isOpen, onClose, initialMode = 'income' }) => {
+    defaultAccountId?: string;
+}> = ({ isOpen, onClose, initialMode = 'income', defaultAccountId }) => {
     const { state, dispatch } = useAppContext();
     const [mode, setMode] = useState<'income' | 'expense' | 'transfer'>(initialMode);
 
@@ -137,22 +138,32 @@ const UnifiedCashTransactionModal: React.FC<{
     const [description, setDescription] = useState('');
     const [cashAccountId, setCashAccountId] = useState('');
     const [counterAccountId, setCounterAccountId] = useState('');
+    const [selectedPoId, setSelectedPoId] = useState('');
     const [toAccountId, setToAccountId] = useState('');
 
     const cashAccounts = useMemo(() => state.accounts.filter(a => a.isCashAccount), [state.accounts]);
     const revenueAccounts = useMemo(() => state.accounts.filter(a => a.type === AccountType.Revenue || a.type === AccountType.Equity || a.type === AccountType.Asset), [state.accounts]);
     const expenseAccounts = useMemo(() => state.accounts.filter(a => a.type === AccountType.Expense || a.type === AccountType.Asset || a.type === AccountType.Liability), [state.accounts]);
 
+    // Unpaid Purchase Orders for Hutang Dagang settlement
+    const unpaidPurchases = useMemo(() => {
+        return (state.purchases || []).filter(p => {
+            const remaining = p.grandTotal - (p.amountPaid || 0);
+            return remaining > 0 && p.status !== 'Cancelled';
+        });
+    }, [state.purchases]);
+
     useEffect(() => {
         if (isOpen) {
             setMode(initialMode);
             setAmount('');
             setDescription('');
-            setCashAccountId(cashAccounts[0]?.id || '');
+            setCashAccountId(defaultAccountId || cashAccounts[0]?.id || '');
             setCounterAccountId('');
+            setSelectedPoId('');
             setToAccountId('');
         }
-    }, [isOpen, initialMode, cashAccounts]);
+    }, [isOpen, initialMode, defaultAccountId, cashAccounts]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -202,17 +213,31 @@ const UnifiedCashTransactionModal: React.FC<{
                 alert('Harap pilih rekening kas sumber dan kategori pengeluaran.');
                 return;
             }
-            dispatch({
-                type: 'finance/addJournalEntry',
-                payload: {
-                    description: description || 'Pengeluaran Kas',
-                    lines: [
-                        { accountId: cashAccountId, type: 'credit', amount: numAmount },
-                        { accountId: counterAccountId, type: 'debit', amount: numAmount },
-                    ],
-                    reference: 'Pengeluaran Kas'
-                }
-            });
+
+            // Check if paying Hutang Dagang (2010) linked to a Purchase Order
+            if (counterAccountId === '2010' && selectedPoId) {
+                dispatch({
+                    type: 'purchases/addPayment',
+                    payload: {
+                        poId: selectedPoId,
+                        amount: numAmount,
+                        sourceAccountId: cashAccountId,
+                        notes: description || 'Pembayaran Hutang Dagang'
+                    }
+                });
+            } else {
+                dispatch({
+                    type: 'finance/addJournalEntry',
+                    payload: {
+                        description: description || 'Pengeluaran Kas',
+                        lines: [
+                            { accountId: cashAccountId, type: 'credit', amount: numAmount },
+                            { accountId: counterAccountId, type: 'debit', amount: numAmount },
+                        ],
+                        reference: 'Pengeluaran Kas'
+                    }
+                });
+            }
         }
 
         onClose();
@@ -291,7 +316,7 @@ const UnifiedCashTransactionModal: React.FC<{
                     {mode === 'income' && (
                         <>
                             <div>
-                                <Label htmlFor="inc_cashAcc">Setor ke Rekening Kas / Dompet</Label>
+                                <Label htmlFor="inc_cashAcc">Setor ke Rekening Kas / Dompet Tujuan</Label>
                                 <Select id="inc_cashAcc" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} required className="w-full mt-1">
                                     <option value="">-- Pilih Rekening Kas Tujuan --</option>
                                     {cashAccounts.map(acc => (
@@ -314,7 +339,7 @@ const UnifiedCashTransactionModal: React.FC<{
                     {mode === 'expense' && (
                         <>
                             <div>
-                                <Label htmlFor="exp_cashAcc">Ambil Dari Rekening Kas / Dompet</Label>
+                                <Label htmlFor="exp_cashAcc">Ambil Dari Rekening Kas / Dompet Sumber</Label>
                                 <Select id="exp_cashAcc" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} required className="w-full mt-1">
                                     <option value="">-- Pilih Rekening Kas Sumber --</option>
                                     {cashAccounts.map(acc => (
@@ -324,13 +349,65 @@ const UnifiedCashTransactionModal: React.FC<{
                             </div>
                             <div>
                                 <Label htmlFor="exp_counterAcc">Kategori / Pos Pengeluaran</Label>
-                                <Select id="exp_counterAcc" value={counterAccountId} onChange={e => setCounterAccountId(e.target.value)} required className="w-full mt-1">
+                                <Select 
+                                    id="exp_counterAcc" 
+                                    value={counterAccountId} 
+                                    onChange={e => {
+                                        const newCounter = e.target.value;
+                                        setCounterAccountId(newCounter);
+                                        if (newCounter !== '2010') {
+                                            setSelectedPoId('');
+                                        }
+                                    }} 
+                                    required 
+                                    className="w-full mt-1"
+                                >
                                     <option value="">-- Pilih Kategori Pengeluaran --</option>
-                                    {expenseAccounts.map(acc => (
+                                    <option value="2010" className="font-bold text-blue-600">🏷️ 2010 - Pembayaran Hutang Dagang (Vendor PO)</option>
+                                    {expenseAccounts.filter(a => a.id !== '2010').map(acc => (
                                         <option key={acc.id} value={acc.id}>{acc.name} ({acc.type})</option>
                                     ))}
                                 </Select>
                             </div>
+
+                            {counterAccountId === '2010' && (
+                                <div className="p-3 bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-800/60 space-y-2">
+                                    <Label htmlFor="exp_poSelect" className="font-bold text-blue-900 dark:text-blue-300">
+                                        Pilih Tagihan Pembelian (PO) yang Belum Lunas
+                                    </Label>
+                                    <Select
+                                        id="exp_poSelect"
+                                        value={selectedPoId}
+                                        onChange={e => {
+                                            const poId = e.target.value;
+                                            setSelectedPoId(poId);
+                                            const po = unpaidPurchases.find(p => p.id === poId);
+                                            if (po) {
+                                                const remaining = po.grandTotal - (po.amountPaid || 0);
+                                                setAmount(remaining.toString());
+                                                setDescription(`Pembayaran Pembelian PO #${po.id} ke ${po.vendorName}`);
+                                            }
+                                        }}
+                                        required
+                                        className="w-full"
+                                    >
+                                        <option value="">-- Pilih Tagihan Pembelian Belum Lunas --</option>
+                                        {unpaidPurchases.map(po => {
+                                            const remaining = po.grandTotal - (po.amountPaid || 0);
+                                            return (
+                                                <option key={po.id} value={po.id}>
+                                                    PO #{po.id} - {po.vendorName} (Sisa Hutang: Rp{remaining.toLocaleString('id-ID')})
+                                                </option>
+                                            );
+                                        })}
+                                    </Select>
+                                    {unpaidPurchases.length === 0 && (
+                                        <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                                            ℹ️ Tidak ada tagihan pembelian yang belum lunas.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </>
                     )}
 
