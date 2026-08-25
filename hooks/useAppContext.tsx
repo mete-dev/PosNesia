@@ -471,8 +471,54 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     r.id === 'admin' ? { ...r, permissions: allPages } : r
                 );
 
-                // Calculate all account balances purely from active journalEntries starting from 0
-                const rawJournals = parsed.journalEntries || defaultState.journalEntries;
+                // 1. Auto-generate double-entry journals for any past purchases/payments that lacked journals
+                const rawPurchases: PurchaseOrder[] = parsed.purchases || defaultState.purchases;
+                let syncedJournals: JournalEntry[] = [...(parsed.journalEntries || defaultState.journalEntries)];
+
+                rawPurchases.forEach(po => {
+                    const isReceived = po.status === 'Received' || po.itemStatus === 'Barang Diterima';
+                    const hasReceiveJournal = syncedJournals.some(je => je.reference === `PO-REC-${po.id}` || je.reference === `PO-PREC-${po.id}`);
+
+                    if (isReceived && !hasReceiveJournal) {
+                        const totalCost = (po.items || []).reduce((sum, item) => sum + ((item.cost || 0) * (item.quantity || 0)), 0);
+                        if (totalCost > 0) {
+                            syncedJournals.push({
+                                id: `JE-AUTO-REC-${po.id}`,
+                                date: po.orderDate || new Date().toISOString(),
+                                branchId: mainBranchId,
+                                description: `Penerimaan Barang PO #${po.id} (${po.vendorName || 'Vendor'})`,
+                                reference: `PO-REC-${po.id}`,
+                                status: 'active',
+                                lines: [
+                                    { accountId: '1210', type: 'debit', amount: totalCost }, // Persediaan Barang Dagang
+                                    { accountId: '2010', type: 'credit', amount: totalCost } // Utang Usaha
+                                ]
+                            });
+                        }
+                    }
+
+                    if (po.paymentHistory && po.paymentHistory.length > 0) {
+                        po.paymentHistory.forEach(pay => {
+                            const hasPayJournal = syncedJournals.some(je => je.reference === `PO-PAY-${po.id}` || je.description?.includes(po.id));
+                            if (!hasPayJournal && pay.amount > 0) {
+                                syncedJournals.push({
+                                    id: `JE-AUTO-PAY-${po.id}-${pay.id}`,
+                                    date: pay.date || new Date().toISOString(),
+                                    branchId: mainBranchId,
+                                    description: `Pembayaran Pembelian #${po.id} ke ${po.vendorName || 'Vendor'}`,
+                                    reference: `PO-PAY-${po.id}`,
+                                    status: 'active',
+                                    lines: [
+                                        { accountId: '2010', type: 'debit', amount: pay.amount }, // Utang Usaha
+                                        { accountId: pay.sourceAccountId || '1020', type: 'credit', amount: pay.amount } // Kas/Brankas
+                                    ]
+                                });
+                            }
+                        });
+                    }
+                });
+
+                // 2. Calculate all account balances purely from synced journal entries starting from 0
                 const baseAccounts = defaultState.accounts;
                 const userAccounts = parsed.accounts || defaultState.accounts;
 
@@ -485,8 +531,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     }
                 });
 
-                // Apply journal entries to calculate real balances from 0
-                rawJournals.forEach((je: any) => {
+                // Apply every balanced journal entry to calculate real realtime balances
+                syncedJournals.forEach((je: any) => {
                     if (je.status === 'cancelled' || je.status === 'corrected') return;
                     (je.lines || []).forEach((l: any) => {
                         const target = mergedAccountMap.get(l.accountId);
@@ -545,26 +591,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     locationId: mainBranchId
                 }));
 
-                // Auto-reconcile 1210 inventory account balance if it was negative due to legacy unjournaled purchases
-                const productsList: Product[] = parsed.products || defaultState.products;
-                const totalStockValue = unifiedInventoryLevels.reduce((sum, inv) => {
-                    const prod = productsList.find(p => p.id === inv.productId);
-                    return sum + ((prod?.cost || 0) * Math.max(0, inv.quantity));
-                }, 0);
-
-                accounts = accounts.map((a: any) => {
-                    if (a.id === '1210' && (a.balance < 0 || (a.balance === 0 && totalStockValue > 0))) {
-                        return { ...a, balance: totalStockValue };
-                    }
-                    return a;
-                });
-
                 return { 
                     ...defaultState, 
                     ...parsed,
                     warehouses,
                     branches,
                     accounts,
+                    journalEntries: syncedJournals,
                     paymentMethods,
                     roles: mergedRoles,
                     companyInfo,

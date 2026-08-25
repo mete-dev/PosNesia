@@ -2151,13 +2151,13 @@ export const FinancialPositionReportPage: React.FC = () => {
                                 {isBalanced ? 'Status Neraca: Seimbang (Balanced)' : 'Status Neraca: Tidak Seimbang (Unbalanced)'}
                             </div>
                             <div className="text-xs opacity-80">
-                                Formulasi Akuntansi: Aset (Rp{reportData.assets.toLocaleString('id-ID')}) = Liabilitas + Ekuitas (Rp{(reportData.liabilities + reportData.equity).toLocaleString('id-ID')})
+                                Formulasi Akuntansi: Aset (Rp{reportData.assets.toLocaleString('id-ID')}) = Liabilitas + Ekuitas (Rp{(reportData.liabilities + reportData.equity + reportData.netIncome).toLocaleString('id-ID')})
                             </div>
                         </div>
                     </div>
 
                     <div className="font-mono font-extrabold text-sm px-3 py-1 rounded-lg bg-white/70 dark:bg-zinc-800/70 shrink-0">
-                        Selisih: Rp{Math.abs(reportData.assets - (reportData.liabilities + reportData.equity)).toLocaleString('id-ID')}
+                        Selisih: Rp{Math.abs(reportData.assets - (reportData.liabilities + reportData.equity + reportData.netIncome)).toLocaleString('id-ID')}
                     </div>
                 </div>
             </div>
