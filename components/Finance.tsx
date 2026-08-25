@@ -1692,48 +1692,448 @@ export const CashierDepositVerificationPage: React.FC = () => {
 };
 
 export const ChartOfAccountsPage: React.FC = () => {
-    const { state } = useAppContext();
+    const { state, dispatch } = useAppContext();
     const { accounts } = state;
 
-    const groupedAccounts = useMemo(() => {
-        return accounts.reduce((acc, account) => {
-            const type = account.type;
-            if (!acc[type]) {
-                acc[type] = [];
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedType, setSelectedType] = useState<string>('ALL');
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+    // Form state for adding custom COA
+    const [newAccountCode, setNewAccountCode] = useState('');
+    const [newAccountName, setNewAccountName] = useState('');
+    const [newAccountType, setNewAccountType] = useState<AccountType>(AccountType.Asset);
+    const [isCashAcc, setIsCashAcc] = useState(false);
+    const [cashType, setCashType] = useState<Account['cashAccountType']>('Tunai');
+
+    // Totals by Category
+    const categoryTotals = useMemo(() => {
+        const totals: Record<string, { count: number; totalBalance: number }> = {
+            [AccountType.Asset]: { count: 0, totalBalance: 0 },
+            [AccountType.Liability]: { count: 0, totalBalance: 0 },
+            [AccountType.Equity]: { count: 0, totalBalance: 0 },
+            [AccountType.Revenue]: { count: 0, totalBalance: 0 },
+            [AccountType.Expense]: { count: 0, totalBalance: 0 },
+        };
+
+        accounts.forEach(a => {
+            if (totals[a.type]) {
+                totals[a.type].count += 1;
+                totals[a.type].totalBalance += (a.balance || 0);
             }
-            acc[type].push(account);
-            return acc;
-        }, {} as Record<AccountType, Account[]>);
+        });
+
+        return totals;
     }, [accounts]);
 
+    const filteredAccounts = useMemo(() => {
+        const query = searchTerm.toLowerCase().trim();
+        return accounts.filter(a => {
+            const matchesQuery = a.name.toLowerCase().includes(query) || a.id.toLowerCase().includes(query);
+            const matchesType = selectedType === 'ALL' || a.type === selectedType;
+            return matchesQuery && matchesType;
+        });
+    }, [accounts, searchTerm, selectedType]);
+
+    const groupedFilteredAccounts = useMemo(() => {
+        const groups: Record<string, Account[]> = {};
+        const order = [AccountType.Asset, AccountType.Liability, AccountType.Equity, AccountType.Revenue, AccountType.Expense];
+        
+        order.forEach(type => {
+            const list = filteredAccounts.filter(a => a.type === type);
+            if (list.length > 0) {
+                groups[type] = list.sort((a, b) => a.id.localeCompare(b.id));
+            }
+        });
+
+        return groups;
+    }, [filteredAccounts]);
+
+    const handleAddAccount = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newAccountCode || !newAccountName) {
+            alert('Harap isi No. Akun dan Nama Akun.');
+            return;
+        }
+
+        if (accounts.some(a => a.id === newAccountCode)) {
+            alert(`No. Akun #${newAccountCode} sudah terdaftar. Harap gunakan kode akun lain.`);
+            return;
+        }
+
+        const newAccount: Account = {
+            id: newAccountCode,
+            name: newAccountName,
+            type: newAccountType,
+            balance: 0,
+            isCashAccount: isCashAcc,
+            cashAccountType: isCashAcc ? cashType : undefined,
+        };
+
+        dispatch({
+            type: 'finance/addCashAccount',
+            payload: {
+                name: newAccountName,
+                initialBalance: 0,
+                sourceAccountId: '',
+                cashAccountType: isCashAcc ? cashType : 'Tunai'
+            }
+        });
+
+        setIsAddModalOpen(false);
+        setNewAccountCode('');
+        setNewAccountName('');
+    };
+
+    const getTypeTheme = (type: string) => {
+        switch (type) {
+            case AccountType.Asset:
+                return {
+                    badge: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+                    headerBg: 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50',
+                    iconColor: 'text-emerald-600',
+                    label: 'Aset (Aktiva)',
+                    codePrefix: '1xxx'
+                };
+            case AccountType.Liability:
+                return {
+                    badge: 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+                    headerBg: 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/50',
+                    iconColor: 'text-amber-600',
+                    label: 'Liabilitas (Kewajiban)',
+                    codePrefix: '2xxx'
+                };
+            case AccountType.Equity:
+                return {
+                    badge: 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+                    headerBg: 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-100 dark:border-blue-900/50',
+                    iconColor: 'text-blue-600',
+                    label: 'Ekuitas (Modal)',
+                    codePrefix: '3xxx'
+                };
+            case AccountType.Revenue:
+                return {
+                    badge: 'bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+                    headerBg: 'bg-purple-50/70 dark:bg-purple-950/30 border-purple-100 dark:border-purple-900/50',
+                    iconColor: 'text-purple-600',
+                    label: 'Pendapatan (Revenue)',
+                    codePrefix: '4xxx'
+                };
+            case AccountType.Expense:
+                return {
+                    badge: 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800',
+                    headerBg: 'bg-rose-50/70 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900/50',
+                    iconColor: 'text-rose-600',
+                    label: 'Beban Pokok & Operasional',
+                    codePrefix: '5xxx'
+                };
+            default:
+                return {
+                    badge: 'bg-slate-100 text-slate-800 border-slate-200',
+                    headerBg: 'bg-slate-50 border-slate-100',
+                    iconColor: 'text-slate-600',
+                    label: type,
+                    codePrefix: 'COA'
+                };
+        }
+    };
+
     return (
-        <div className="p-8 h-full flex flex-col">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Bagan Akun</h1>
-            <div className="flex-grow bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-y-auto">
-                {Object.entries(groupedAccounts).map(([type, accs]: [string, Account[]]) => (
-                    <div key={type} className="mb-6">
-                        <h2 className="text-xl font-semibold p-4 bg-gray-50 dark:bg-gray-700/50 sticky top-0">{type}</h2>
-                        <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                             <thead className="text-xs text-gray-700 uppercase">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3">No. Akun</th>
-                                    <th scope="col" className="px-6 py-3">Nama Akun</th>
-                                    <th scope="col" className="px-6 py-3 text-right">Saldo</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {accs.map(account => (
-                                    <tr key={account.id} className="border-b dark:border-gray-700">
-                                        <td className="px-6 py-4">{account.id}</td>
-                                        <td className="px-6 py-4 font-medium">{account.name}</td>
-                                        <td className="px-6 py-4 text-right font-mono">Rp{account.balance.toLocaleString('id-ID')}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-4 overflow-hidden">
+            {/* Top Header Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center shadow-xs shrink-0 font-bold">
+                        <Building2 className="w-5 h-5" />
                     </div>
-                ))}
+                    <div>
+                        <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                            Bagan Akun (Chart of Accounts)
+                        </h1>
+                        <p className="text-xs text-slate-500 dark:text-zinc-400">
+                            Struktur klasifikasi dan saldo buku besar seluruh akun akuntansi
+                        </p>
+                    </div>
+                </div>
+
+                {/* KPI Pill Summaries */}
+                <div className="flex flex-wrap items-center gap-2 text-xs shrink-0">
+                    <div className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 font-medium">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">Aset:</span>{" "}
+                        <span className="font-bold font-mono">Rp{(categoryTotals[AccountType.Asset]?.totalBalance || 0).toLocaleString('id-ID')}</span>
+                    </div>
+
+                    <div className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200/60 dark:border-amber-800/60 text-amber-700 dark:text-amber-300 font-medium">
+                        <span className="text-[10px] uppercase font-bold">Liabilitas:</span>{" "}
+                        <span className="font-bold font-mono">Rp{Math.abs(categoryTotals[AccountType.Liability]?.totalBalance || 0).toLocaleString('id-ID')}</span>
+                    </div>
+
+                    <div className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200/60 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 font-medium">
+                        <span className="text-[10px] uppercase font-bold">Ekuitas:</span>{" "}
+                        <span className="font-bold font-mono">Rp{Math.abs(categoryTotals[AccountType.Equity]?.totalBalance || 0).toLocaleString('id-ID')}</span>
+                    </div>
+
+                    <Button 
+                        onClick={() => setIsAddModalOpen(true)} 
+                        className="gap-1.5 text-xs py-1.5 px-3.5 shadow-xs bg-blue-600 hover:bg-blue-700"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Tambah Akun
+                    </Button>
+                </div>
             </div>
+
+            {/* Filter & Search Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 bg-white dark:bg-zinc-900 p-3 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs">
+                {/* Search Input */}
+                <div className="relative w-full sm:w-80">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Input
+                        type="text"
+                        placeholder="Cari no. akun (1010...) atau nama akun..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="pl-9 text-xs"
+                    />
+                </div>
+
+                {/* Category Type Filter Buttons */}
+                <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                    {[
+                        { id: 'ALL', label: 'Semua Akun' },
+                        { id: AccountType.Asset, label: 'Aset (1xxx)' },
+                        { id: AccountType.Liability, label: 'Liabilitas (2xxx)' },
+                        { id: AccountType.Equity, label: 'Ekuitas (3xxx)' },
+                        { id: AccountType.Revenue, label: 'Pendapatan (4xxx)' },
+                        { id: AccountType.Expense, label: 'Beban (5xxx)' },
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setSelectedType(tab.id)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                selectedType === tab.id
+                                    ? 'bg-blue-600 text-white shadow-2xs'
+                                    : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Content Grouping List */}
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
+                {Object.keys(groupedFilteredAccounts).length === 0 ? (
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 p-12 text-center text-slate-400">
+                        <Building2 className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                        <p className="font-semibold text-sm">Tidak ada akun yang sesuai dengan pencarian.</p>
+                        <p className="text-xs mt-1">Coba periksa kata kunci atau reset filter tipe akun.</p>
+                    </div>
+                ) : (
+                    Object.entries(groupedFilteredAccounts).map(([type, accs]) => {
+                        const theme = getTypeTheme(type);
+                        const subtotal = accs.reduce((sum, a) => sum + (a.balance || 0), 0);
+
+                        return (
+                            <div key={type} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
+                                {/* Category Header */}
+                                <div className={`px-5 py-3.5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${theme.headerBg}`}>
+                                    <div className="flex items-center gap-2.5">
+                                        <span className="font-mono text-xs font-black px-2 py-0.5 rounded-lg bg-white dark:bg-zinc-800 shadow-2xs text-slate-700 dark:text-zinc-200">
+                                            {theme.codePrefix}
+                                        </span>
+                                        <h3 className="font-extrabold text-slate-900 dark:text-white text-sm">
+                                            {theme.label}
+                                        </h3>
+                                        <span className="text-xs text-slate-500 dark:text-zinc-400 font-medium">
+                                            ({accs.length} Akun)
+                                        </span>
+                                    </div>
+
+                                    <div className="text-right flex items-center gap-2 self-end sm:self-center">
+                                        <span className="text-[11px] text-slate-500 dark:text-zinc-400 uppercase font-semibold">Subtotal:</span>
+                                        <span className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+                                            Rp{Math.abs(subtotal).toLocaleString('id-ID')}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Table of Accounts */}
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-xs text-left">
+                                        <thead className="bg-slate-50/70 dark:bg-zinc-800/40 text-slate-500 dark:text-zinc-400 uppercase font-bold border-b border-slate-100 dark:border-zinc-800">
+                                            <tr>
+                                                <th className="py-2.5 px-4 w-28">No. Akun</th>
+                                                <th className="py-2.5 px-4">Nama Akun</th>
+                                                <th className="py-2.5 px-4">Kategori Akun</th>
+                                                <th className="py-2.5 px-4 text-center">Tipe Kas</th>
+                                                <th className="py-2.5 px-4 text-right">Saldo Saat Ini</th>
+                                                <th className="py-2.5 px-4 text-right">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
+                                            {accs.map(account => (
+                                                <tr 
+                                                    key={account.id} 
+                                                    className="hover:bg-slate-50/80 dark:hover:bg-zinc-800/50 transition-colors"
+                                                >
+                                                    {/* Kode Akun */}
+                                                    <td className="py-3 px-4 font-mono font-bold text-slate-600 dark:text-zinc-400">
+                                                        #{account.id}
+                                                    </td>
+
+                                                    {/* Nama Akun */}
+                                                    <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="w-6 h-6 rounded-md bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-xs shrink-0">
+                                                                {account.isCashAccount ? (account.cashAccountType === 'Brankas' ? '🔐' : '🪙') : '📁'}
+                                                            </span>
+                                                            <span>{account.name}</span>
+                                                        </div>
+                                                    </td>
+
+                                                    {/* Kategori */}
+                                                    <td className="py-3 px-4">
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border ${theme.badge}`}>
+                                                            {account.type}
+                                                        </span>
+                                                    </td>
+
+                                                    {/* Tipe Kas */}
+                                                    <td className="py-3 px-4 text-center">
+                                                        {account.isCashAccount ? (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                                                {account.cashAccountType || 'Tunai'}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-slate-400 text-[11px]">-</span>
+                                                        )}
+                                                    </td>
+
+                                                    {/* Saldo Saat Ini */}
+                                                    <td className="py-3 px-4 text-right font-mono font-bold text-sm text-slate-900 dark:text-white">
+                                                        {account.balance < 0 ? '-' : ''}Rp{Math.abs(account.balance || 0).toLocaleString('id-ID')}
+                                                    </td>
+
+                                                    {/* Aksi */}
+                                                    <td className="py-3 px-4 text-right">
+                                                        {account.isCashAccount ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    dispatch({ type: 'finance/setSelectedAccountId', payload: account.id });
+                                                                    dispatch({ type: 'ui/setPage', payload: Page.AccountStatement });
+                                                                }}
+                                                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 border border-blue-200 dark:border-blue-800 transition-all cursor-pointer shadow-2xs"
+                                                            >
+                                                                <FileText className="w-3.5 h-3.5" />
+                                                                Mutasi
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-slate-400 text-[11px]">-</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+
+            {/* Modal Tambah Akun Baru */}
+            <Modal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                title="Tambah Akun Baru (Chart of Accounts)"
+                maxWidth="max-w-md"
+                footer={
+                    <div className="flex justify-end gap-2 w-full">
+                        <Button variant="secondary" type="button" onClick={() => setIsAddModalOpen(false)}>Batal</Button>
+                        <Button type="submit" form="add-coa-form" className="bg-blue-600 hover:bg-blue-700">Simpan Akun</Button>
+                    </div>
+                }
+            >
+                <form id="add-coa-form" onSubmit={handleAddAccount} className="space-y-3 text-xs">
+                    <div>
+                        <Label htmlFor="coa_type">Kategori / Tipe Akun</Label>
+                        <Select 
+                            id="coa_type" 
+                            value={newAccountType} 
+                            onChange={e => setNewAccountType(e.target.value as AccountType)} 
+                            required 
+                            className="w-full mt-1"
+                        >
+                            <option value={AccountType.Asset}>Aset (Aktiva - Kode 1xxx)</option>
+                            <option value={AccountType.Liability}>Liabilitas (Kewajiban/Utang - Kode 2xxx)</option>
+                            <option value={AccountType.Equity}>Ekuitas (Modal - Kode 3xxx)</option>
+                            <option value={AccountType.Revenue}>Pendapatan (Revenue - Kode 4xxx)</option>
+                            <option value={AccountType.Expense}>Beban (Expense - Kode 5xxx)</option>
+                        </Select>
+                    </div>
+
+                    <div>
+                        <Label htmlFor="coa_code">Nomor / Kode Akun (COA)</Label>
+                        <Input
+                            id="coa_code"
+                            type="text"
+                            placeholder="Contoh: 1030, 5080, dll"
+                            value={newAccountCode}
+                            onChange={e => setNewAccountCode(e.target.value)}
+                            required
+                            className="mt-1 font-mono font-bold"
+                        />
+                    </div>
+
+                    <div>
+                        <Label htmlFor="coa_name">Nama Akun</Label>
+                        <Input
+                            id="coa_name"
+                            type="text"
+                            placeholder="Contoh: Kas Kecil, Biaya Kebersihan, dll"
+                            value={newAccountName}
+                            onChange={e => setNewAccountName(e.target.value)}
+                            required
+                            className="mt-1"
+                        />
+                    </div>
+
+                    {newAccountType === AccountType.Asset && (
+                        <div className="p-3 bg-slate-50 dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 space-y-2">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={isCashAcc}
+                                    onChange={e => setIsCashAcc(e.target.checked)}
+                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="font-bold text-slate-800 dark:text-zinc-200 text-xs">Jadikan Akun Kas / Dompet Pembayaran</span>
+                            </label>
+
+                            {isCashAcc && (
+                                <div>
+                                    <Label htmlFor="coa_cashType">Tipe Dompet Kas</Label>
+                                    <Select
+                                        id="coa_cashType"
+                                        value={cashType}
+                                        onChange={e => setCashType(e.target.value as any)}
+                                        className="w-full mt-1"
+                                    >
+                                        <option value="Tunai">Tunai / Kasir</option>
+                                        <option value="Brankas">Brankas</option>
+                                        <option value="Rekening">Rekening Bank</option>
+                                    </Select>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </form>
+            </Modal>
         </div>
     );
 };
