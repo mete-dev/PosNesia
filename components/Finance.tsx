@@ -2,7 +2,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
     CreditCard, Clock, Plus, Search, Edit2, Trash2, CheckCircle2, 
     ShieldCheck, DollarSign, Wallet, Building2, Calendar, ArrowRightLeft,
-    ArrowDownLeft, ArrowUpRight, FileText, Eye, Printer
+    ArrowDownLeft, ArrowUpRight, FileText, Eye, Printer, Layers,
+    TrendingUp, TrendingDown, Landmark, Sparkles, LayoutGrid, List,
+    Copy, Check, ChevronRight, FolderTree, ArrowDownRight, Tag
 } from 'lucide-react';
 import { Account, AccountType, JournalEntry, JournalEntryLine, PaymentMethod, PaymentTerm, PosSessionSummary, Page } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
@@ -1785,261 +1787,220 @@ export const ChartOfAccountsPage: React.FC = () => {
         setNewAccountName('');
     };
 
-    const getTypeTheme = (type: string) => {
+    const handleTypeChange = (type: AccountType) => {
+        setNewAccountType(type);
+        const prefixMap: Record<AccountType, string> = {
+            [AccountType.Asset]: '1',
+            [AccountType.Liability]: '2',
+            [AccountType.Equity]: '3',
+            [AccountType.Revenue]: '4',
+            [AccountType.Expense]: '5',
+        };
+        const prefix = prefixMap[type] || '1';
+        const sameTypeAccounts = accounts.filter(a => a.id.startsWith(prefix)).map(a => parseInt(a.id, 10)).filter(n => !isNaN(n));
+        const maxCode = sameTypeAccounts.length > 0 ? Math.max(...sameTypeAccounts) : parseInt(`${prefix}000`, 10);
+        setNewAccountCode((maxCode + 10).toString());
+    };
+
+    const getCategoryMeta = (type: string) => {
         switch (type) {
             case AccountType.Asset:
-                return {
-                    badge: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
-                    headerBg: 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/50',
-                    iconColor: 'text-emerald-600',
-                    label: 'Aset (Aktiva)',
-                    codePrefix: '1xxx'
-                };
+                return { label: 'Aset (Aktiva)', prefix: '1000', normal: 'Debit' };
             case AccountType.Liability:
-                return {
-                    badge: 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800',
-                    headerBg: 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/50',
-                    iconColor: 'text-amber-600',
-                    label: 'Liabilitas (Kewajiban)',
-                    codePrefix: '2xxx'
-                };
+                return { label: 'Liabilitas (Kewajiban)', prefix: '2000', normal: 'Kredit' };
             case AccountType.Equity:
-                return {
-                    badge: 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800',
-                    headerBg: 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-100 dark:border-blue-900/50',
-                    iconColor: 'text-blue-600',
-                    label: 'Ekuitas (Modal)',
-                    codePrefix: '3xxx'
-                };
+                return { label: 'Ekuitas (Modal)', prefix: '3000', normal: 'Kredit' };
             case AccountType.Revenue:
-                return {
-                    badge: 'bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-800',
-                    headerBg: 'bg-purple-50/70 dark:bg-purple-950/30 border-purple-100 dark:border-purple-900/50',
-                    iconColor: 'text-purple-600',
-                    label: 'Pendapatan (Revenue)',
-                    codePrefix: '4xxx'
-                };
+                return { label: 'Pendapatan (Revenue)', prefix: '4000', normal: 'Kredit' };
             case AccountType.Expense:
-                return {
-                    badge: 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800',
-                    headerBg: 'bg-rose-50/70 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900/50',
-                    iconColor: 'text-rose-600',
-                    label: 'Beban Pokok & Operasional',
-                    codePrefix: '5xxx'
-                };
+                return { label: 'Beban & HPP (Expense)', prefix: '5000', normal: 'Debit' };
             default:
-                return {
-                    badge: 'bg-slate-100 text-slate-800 border-slate-200',
-                    headerBg: 'bg-slate-50 border-slate-100',
-                    iconColor: 'text-slate-600',
-                    label: type,
-                    codePrefix: 'COA'
-                };
+                return { label: type, prefix: '0000', normal: '-' };
         }
     };
 
     return (
-        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-4 overflow-hidden">
-            {/* Top Header Bar */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center shadow-xs shrink-0 font-bold">
-                        <Building2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
-                            Bagan Akun (Chart of Accounts)
-                        </h1>
-                        <p className="text-xs text-slate-500 dark:text-zinc-400">
-                            Struktur klasifikasi dan saldo buku besar seluruh akun akuntansi
-                        </p>
+        <div className="w-full h-full flex flex-col p-1 sm:p-1.5 space-y-2 overflow-hidden">
+            {/* 1-Line Seamless Top Header Bar */}
+            <div className="flex flex-wrap lg:flex-nowrap items-center justify-between gap-2 shrink-0 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs">
+                {/* Left Section: Title + Filter Tabs */}
+                <div className="flex items-center gap-2.5 shrink-0">
+                    <h1 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight shrink-0">
+                        Bagan Akun
+                    </h1>
+
+                    <div className="h-3.5 w-px bg-slate-200 dark:bg-zinc-700 shrink-0"></div>
+
+                    {/* Compact Filter Tabs */}
+                    <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-zinc-800/80 p-0.5 rounded-lg shrink-0">
+                        {[
+                            { id: 'ALL', label: 'Semua' },
+                            { id: AccountType.Asset, label: 'Aset' },
+                            { id: AccountType.Liability, label: 'Liabilitas' },
+                            { id: AccountType.Equity, label: 'Ekuitas' },
+                            { id: AccountType.Revenue, label: 'Pendapatan' },
+                            { id: AccountType.Expense, label: 'Beban' },
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                type="button"
+                                onClick={() => setSelectedType(tab.id)}
+                                className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                                    selectedType === tab.id
+                                        ? 'bg-white dark:bg-zinc-900 text-slate-900 dark:text-white shadow-2xs font-bold'
+                                        : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
-                {/* KPI Pill Summaries */}
-                <div className="flex flex-wrap items-center gap-2 text-xs shrink-0">
-                    <div className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 font-medium">
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">Aset:</span>{" "}
-                        <span className="font-bold font-mono">Rp{(categoryTotals[AccountType.Asset]?.totalBalance || 0).toLocaleString('id-ID')}</span>
+                {/* Right Section: Inline Stats, Search & Actions in a single horizontal row */}
+                <div className="flex items-center gap-2 justify-end shrink-0 ml-auto">
+                    {/* Inline Stats Mini Badges */}
+                    <div className="hidden 2xl:flex items-center gap-2 text-[11px] text-slate-500 dark:text-zinc-400 shrink-0">
+                        <span>Aset: <strong className="font-mono text-slate-800 dark:text-zinc-200">Rp{(categoryTotals[AccountType.Asset]?.totalBalance || 0).toLocaleString('id-ID')}</strong></span>
+                        <span className="text-slate-300 dark:text-zinc-700">•</span>
+                        <span>Liabilitas: <strong className="font-mono text-slate-800 dark:text-zinc-200">Rp{Math.abs(categoryTotals[AccountType.Liability]?.totalBalance || 0).toLocaleString('id-ID')}</strong></span>
+                        <span className="text-slate-300 dark:text-zinc-700">•</span>
+                        <span>Ekuitas: <strong className="font-mono text-slate-800 dark:text-zinc-200">Rp{Math.abs(categoryTotals[AccountType.Equity]?.totalBalance || 0).toLocaleString('id-ID')}</strong></span>
                     </div>
 
-                    <div className="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200/60 dark:border-amber-800/60 text-amber-700 dark:text-amber-300 font-medium">
-                        <span className="text-[10px] uppercase font-bold">Liabilitas:</span>{" "}
-                        <span className="font-bold font-mono">Rp{Math.abs(categoryTotals[AccountType.Liability]?.totalBalance || 0).toLocaleString('id-ID')}</span>
+                    {/* Compact Search Input */}
+                    <div className="relative w-36 sm:w-44">
+                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <Input
+                            type="text"
+                            placeholder="Cari akun..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="pl-7 pr-2 text-xs bg-slate-50 dark:bg-zinc-800/60 border-slate-200 dark:border-zinc-700 rounded-lg py-0.5 h-7"
+                        />
                     </div>
 
-                    <div className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200/60 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 font-medium">
-                        <span className="text-[10px] uppercase font-bold">Ekuitas:</span>{" "}
-                        <span className="font-bold font-mono">Rp{Math.abs(categoryTotals[AccountType.Equity]?.totalBalance || 0).toLocaleString('id-ID')}</span>
-                    </div>
-
-                    <Button 
-                        onClick={() => setIsAddModalOpen(true)} 
-                        className="gap-1.5 text-xs py-1.5 px-3.5 shadow-xs bg-blue-600 hover:bg-blue-700"
+                    {/* Action Buttons */}
+                    <button
+                        type="button"
+                        onClick={() => window.print()}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer h-7 shrink-0"
                     >
-                        <Plus className="w-4 h-4" />
-                        Tambah Akun
+                        <Printer className="w-3 h-3 text-slate-500" />
+                        Cetak
+                    </button>
+
+                    <Button
+                        onClick={() => {
+                            handleTypeChange(AccountType.Asset);
+                            setIsAddModalOpen(true);
+                        }}
+                        className="gap-1 text-xs py-1 px-2.5 bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold rounded-lg shadow-xs h-7 shrink-0"
+                    >
+                        <Plus className="w-3.5 h-3.5" />
+                        Tambah
                     </Button>
                 </div>
             </div>
 
-            {/* Filter & Search Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 bg-white dark:bg-zinc-900 p-3 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs">
-                {/* Search Input */}
-                <div className="relative w-full sm:w-80">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <Input
-                        type="text"
-                        placeholder="Cari no. akun (1010...) atau nama akun..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="pl-9 text-xs"
-                    />
-                </div>
-
-                {/* Category Type Filter Buttons */}
-                <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                    {[
-                        { id: 'ALL', label: 'Semua Akun' },
-                        { id: AccountType.Asset, label: 'Aset (1xxx)' },
-                        { id: AccountType.Liability, label: 'Liabilitas (2xxx)' },
-                        { id: AccountType.Equity, label: 'Ekuitas (3xxx)' },
-                        { id: AccountType.Revenue, label: 'Pendapatan (4xxx)' },
-                        { id: AccountType.Expense, label: 'Beban (5xxx)' },
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            type="button"
-                            onClick={() => setSelectedType(tab.id)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                                selectedType === tab.id
-                                    ? 'bg-blue-600 text-white shadow-2xs'
-                                    : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
-                            }`}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Content Grouping List */}
-            <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
+            {/* Main Content Table List */}
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-0.5">
                 {Object.keys(groupedFilteredAccounts).length === 0 ? (
-                    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 p-12 text-center text-slate-400">
-                        <Building2 className="w-10 h-10 mx-auto mb-2 opacity-40" />
-                        <p className="font-semibold text-sm">Tidak ada akun yang sesuai dengan pencarian.</p>
-                        <p className="text-xs mt-1">Coba periksa kata kunci atau reset filter tipe akun.</p>
+                    <div className="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 p-8 text-center text-slate-400">
+                        <p className="text-xs">Tidak ada akun yang sesuai dengan kriteria pencarian.</p>
                     </div>
                 ) : (
                     Object.entries(groupedFilteredAccounts).map(([type, accs]) => {
-                        const theme = getTypeTheme(type);
+                        const meta = getCategoryMeta(type);
                         const subtotal = accs.reduce((sum, a) => sum + (a.balance || 0), 0);
 
                         return (
-                            <div key={type} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden">
-                                {/* Category Header */}
-                                <div className={`px-5 py-3.5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${theme.headerBg}`}>
-                                    <div className="flex items-center gap-2.5">
-                                        <span className="font-mono text-xs font-black px-2 py-0.5 rounded-lg bg-white dark:bg-zinc-800 shadow-2xs text-slate-700 dark:text-zinc-200">
-                                            {theme.codePrefix}
+                            <div 
+                                key={type} 
+                                className="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden"
+                            >
+                                {/* Category Header Strip */}
+                                <div className="px-4 py-2 bg-slate-50/70 dark:bg-zinc-800/50 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-mono text-[11px] text-slate-400 font-semibold">
+                                            {meta.prefix}
                                         </span>
-                                        <h3 className="font-extrabold text-slate-900 dark:text-white text-sm">
-                                            {theme.label}
-                                        </h3>
-                                        <span className="text-xs text-slate-500 dark:text-zinc-400 font-medium">
+                                        <h2 className="text-xs font-bold text-slate-800 dark:text-zinc-200">
+                                            {meta.label}
+                                        </h2>
+                                        <span className="text-[10px] text-slate-400 font-medium">
                                             ({accs.length} Akun)
                                         </span>
                                     </div>
 
-                                    <div className="text-right flex items-center gap-2 self-end sm:self-center">
-                                        <span className="text-[11px] text-slate-500 dark:text-zinc-400 uppercase font-semibold">Subtotal:</span>
-                                        <span className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+                                    <div className="text-right">
+                                        <span className="text-[10px] text-slate-400 mr-1.5 uppercase font-medium">Subtotal:</span>
+                                        <span className="font-mono font-bold text-xs text-slate-800 dark:text-zinc-200">
                                             Rp{Math.abs(subtotal).toLocaleString('id-ID')}
                                         </span>
                                     </div>
                                 </div>
 
-                                {/* Table of Accounts */}
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-xs text-left">
-                                        <thead className="bg-slate-50/70 dark:bg-zinc-800/40 text-slate-500 dark:text-zinc-400 uppercase font-bold border-b border-slate-100 dark:border-zinc-800">
-                                            <tr>
-                                                <th className="py-2.5 px-4 w-28">No. Akun</th>
-                                                <th className="py-2.5 px-4">Nama Akun</th>
-                                                <th className="py-2.5 px-4">Kategori Akun</th>
-                                                <th className="py-2.5 px-4 text-center">Tipe Kas</th>
-                                                <th className="py-2.5 px-4 text-right">Saldo Saat Ini</th>
-                                                <th className="py-2.5 px-4 text-right">Aksi</th>
+                                {/* Table Rows */}
+                                <table className="w-full text-xs text-left">
+                                    <thead>
+                                        <tr className="text-slate-400 border-b border-slate-100 dark:border-zinc-800 text-[11px]">
+                                            <th className="py-2 px-4 w-28 font-medium">No. Akun</th>
+                                            <th className="py-2 px-4 font-medium">Nama Akun</th>
+                                            <th className="py-2 px-4 text-center w-28 font-medium">Saldo Normal</th>
+                                            <th className="py-2 px-4 text-right font-medium">Saldo Saat Ini</th>
+                                            <th className="py-2 px-4 text-right w-20 font-medium">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
+                                        {accs.map(account => (
+                                            <tr 
+                                                key={account.id} 
+                                                className="hover:bg-slate-50/70 dark:hover:bg-zinc-800/40 transition-colors"
+                                            >
+                                                <td className="py-2 px-4 font-mono text-slate-500 dark:text-zinc-400 font-medium">
+                                                    {account.id}
+                                                </td>
+
+                                                <td className="py-2 px-4 text-slate-800 dark:text-zinc-200 font-medium">
+                                                    <div className="flex items-center gap-2">
+                                                        <span>{account.name}</span>
+                                                        {account.isCashAccount && (
+                                                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 border border-slate-200/60 dark:border-zinc-700/60">
+                                                                {account.cashAccountType || 'Kas'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+
+                                                <td className="py-2 px-4 text-center text-slate-400 font-mono text-[11px]">
+                                                    {meta.normal}
+                                                </td>
+
+                                                <td className="py-2 px-4 text-right font-mono font-semibold text-slate-900 dark:text-white">
+                                                    {account.balance < 0 ? '-' : ''}Rp{Math.abs(account.balance || 0).toLocaleString('id-ID')}
+                                                </td>
+
+                                                <td className="py-2 px-4 text-right">
+                                                    {account.isCashAccount ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                dispatch({ type: 'finance/setSelectedAccountId', payload: account.id });
+                                                                dispatch({ type: 'ui/setPage', payload: Page.AccountStatement });
+                                                            }}
+                                                            className="text-[11px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline cursor-pointer"
+                                                        >
+                                                            Mutasi
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-slate-300 dark:text-zinc-600">-</span>
+                                                    )}
+                                                </td>
                                             </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
-                                            {accs.map(account => (
-                                                <tr 
-                                                    key={account.id} 
-                                                    className="hover:bg-slate-50/80 dark:hover:bg-zinc-800/50 transition-colors"
-                                                >
-                                                    {/* Kode Akun */}
-                                                    <td className="py-3 px-4 font-mono font-bold text-slate-600 dark:text-zinc-400">
-                                                        #{account.id}
-                                                    </td>
-
-                                                    {/* Nama Akun */}
-                                                    <td className="py-3 px-4 font-semibold text-slate-900 dark:text-white">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="w-6 h-6 rounded-md bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-xs shrink-0">
-                                                                {account.isCashAccount ? (account.cashAccountType === 'Brankas' ? '🔐' : '🪙') : '📁'}
-                                                            </span>
-                                                            <span>{account.name}</span>
-                                                        </div>
-                                                    </td>
-
-                                                    {/* Kategori */}
-                                                    <td className="py-3 px-4">
-                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border ${theme.badge}`}>
-                                                            {account.type}
-                                                        </span>
-                                                    </td>
-
-                                                    {/* Tipe Kas */}
-                                                    <td className="py-3 px-4 text-center">
-                                                        {account.isCashAccount ? (
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                                                                {account.cashAccountType || 'Tunai'}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-slate-400 text-[11px]">-</span>
-                                                        )}
-                                                    </td>
-
-                                                    {/* Saldo Saat Ini */}
-                                                    <td className="py-3 px-4 text-right font-mono font-bold text-sm text-slate-900 dark:text-white">
-                                                        {account.balance < 0 ? '-' : ''}Rp{Math.abs(account.balance || 0).toLocaleString('id-ID')}
-                                                    </td>
-
-                                                    {/* Aksi */}
-                                                    <td className="py-3 px-4 text-right">
-                                                        {account.isCashAccount ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    dispatch({ type: 'finance/setSelectedAccountId', payload: account.id });
-                                                                    dispatch({ type: 'ui/setPage', payload: Page.AccountStatement });
-                                                                }}
-                                                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 border border-blue-200 dark:border-blue-800 transition-all cursor-pointer shadow-2xs"
-                                                            >
-                                                                <FileText className="w-3.5 h-3.5" />
-                                                                Mutasi
-                                                            </button>
-                                                        ) : (
-                                                            <span className="text-slate-400 text-[11px]">-</span>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         );
                     })
@@ -2050,74 +2011,78 @@ export const ChartOfAccountsPage: React.FC = () => {
             <Modal
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
-                title="Tambah Akun Baru (Chart of Accounts)"
+                title="Tambah Akun Baru"
                 maxWidth="max-w-md"
                 footer={
                     <div className="flex justify-end gap-2 w-full">
                         <Button variant="secondary" type="button" onClick={() => setIsAddModalOpen(false)}>Batal</Button>
-                        <Button type="submit" form="add-coa-form" className="bg-blue-600 hover:bg-blue-700">Simpan Akun</Button>
+                        <Button type="submit" form="add-coa-form" className="bg-slate-900 dark:bg-blue-600 text-white font-medium">Simpan Akun</Button>
                     </div>
                 }
             >
-                <form id="add-coa-form" onSubmit={handleAddAccount} className="space-y-3 text-xs">
+                <form id="add-coa-form" onSubmit={handleAddAccount} className="space-y-3.5 text-xs">
                     <div>
-                        <Label htmlFor="coa_type">Kategori / Tipe Akun</Label>
+                        <Label htmlFor="coa_type">Klasifikasi Akun</Label>
                         <Select 
                             id="coa_type" 
                             value={newAccountType} 
-                            onChange={e => setNewAccountType(e.target.value as AccountType)} 
+                            onChange={e => handleTypeChange(e.target.value as AccountType)} 
                             required 
                             className="w-full mt-1"
                         >
-                            <option value={AccountType.Asset}>Aset (Aktiva - Kode 1xxx)</option>
-                            <option value={AccountType.Liability}>Liabilitas (Kewajiban/Utang - Kode 2xxx)</option>
-                            <option value={AccountType.Equity}>Ekuitas (Modal - Kode 3xxx)</option>
-                            <option value={AccountType.Revenue}>Pendapatan (Revenue - Kode 4xxx)</option>
-                            <option value={AccountType.Expense}>Beban (Expense - Kode 5xxx)</option>
+                            <option value={AccountType.Asset}>Aset (Aktiva - 1000)</option>
+                            <option value={AccountType.Liability}>Liabilitas (Kewajiban - 2000)</option>
+                            <option value={AccountType.Equity}>Ekuitas (Modal - 3000)</option>
+                            <option value={AccountType.Revenue}>Pendapatan (4000)</option>
+                            <option value={AccountType.Expense}>Beban & HPP (5000)</option>
                         </Select>
                     </div>
 
-                    <div>
-                        <Label htmlFor="coa_code">Nomor / Kode Akun (COA)</Label>
-                        <Input
-                            id="coa_code"
-                            type="text"
-                            placeholder="Contoh: 1030, 5080, dll"
-                            value={newAccountCode}
-                            onChange={e => setNewAccountCode(e.target.value)}
-                            required
-                            className="mt-1 font-mono font-bold"
-                        />
-                    </div>
+                    <div className="grid grid-cols-3 gap-2.5">
+                        <div className="col-span-1">
+                            <Label htmlFor="coa_code">No. Akun</Label>
+                            <Input
+                                id="coa_code"
+                                type="text"
+                                placeholder="1030"
+                                value={newAccountCode}
+                                onChange={e => setNewAccountCode(e.target.value)}
+                                required
+                                className="mt-1 font-mono font-semibold"
+                            />
+                        </div>
 
-                    <div>
-                        <Label htmlFor="coa_name">Nama Akun</Label>
-                        <Input
-                            id="coa_name"
-                            type="text"
-                            placeholder="Contoh: Kas Kecil, Biaya Kebersihan, dll"
-                            value={newAccountName}
-                            onChange={e => setNewAccountName(e.target.value)}
-                            required
-                            className="mt-1"
-                        />
+                        <div className="col-span-2">
+                            <Label htmlFor="coa_name">Nama Akun</Label>
+                            <Input
+                                id="coa_name"
+                                type="text"
+                                placeholder="Contoh: Kas Kecil"
+                                value={newAccountName}
+                                onChange={e => setNewAccountName(e.target.value)}
+                                required
+                                className="mt-1"
+                            />
+                        </div>
                     </div>
 
                     {newAccountType === AccountType.Asset && (
-                        <div className="p-3 bg-slate-50 dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700 space-y-2">
+                        <div className="p-3 bg-slate-50 dark:bg-zinc-800/60 rounded-xl border border-slate-200/80 dark:border-zinc-700/60 space-y-2">
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
                                     type="checkbox"
                                     checked={isCashAcc}
                                     onChange={e => setIsCashAcc(e.target.checked)}
-                                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                    className="rounded border-slate-300 text-slate-900 focus:ring-slate-900"
                                 />
-                                <span className="font-bold text-slate-800 dark:text-zinc-200 text-xs">Jadikan Akun Kas / Dompet Pembayaran</span>
+                                <span className="font-semibold text-slate-800 dark:text-zinc-200 text-xs">
+                                    Jadikan Akun Kas / Dompet Pembayaran
+                                </span>
                             </label>
 
                             {isCashAcc && (
-                                <div>
-                                    <Label htmlFor="coa_cashType">Tipe Dompet Kas</Label>
+                                <div className="pt-1.5 pl-5">
+                                    <Label htmlFor="coa_cashType">Tipe Dompet</Label>
                                     <Select
                                         id="coa_cashType"
                                         value={cashType}
@@ -2200,7 +2165,7 @@ export const PaymentMethodsPage: React.FC = () => {
         setEditingMethod(null);
         setName('Tunai - Kasir');
         setType('cash');
-        setLinkedAccountId('');
+        setLinkedAccountId(accounts.find(a => a.isCashAccount)?.id || '');
         setAdminFeeType('percentage');
         setAdminFeeValue('0');
         setQrisImageUrl('');
@@ -2274,162 +2239,205 @@ export const PaymentMethodsPage: React.FC = () => {
     // Metrics
     const totalCount = paymentMethods.length;
     const cashCount = paymentMethods.filter(pm => pm.type === 'cash').length;
-    const digitalCount = paymentMethods.filter(pm => pm.type === 'ewallet' || pm.type === 'bank_transfer' || pm.type === 'qris' || pm.type === 'edc' || pm.type === 'bank').length;
-    const otherCount = paymentMethods.filter(pm => pm.type === 'other' || pm.type === 'accounts_receivable').length;
+    const digitalCount = paymentMethods.filter(pm => ['ewallet', 'bank_transfer', 'qris', 'edc', 'bank'].includes(pm.type)).length;
 
-    const getTypeBadge = (pmType: PaymentMethod['type']) => {
+    const getMethodIcon = (pmType: PaymentMethod['type']) => {
         switch (pmType) {
-            case 'cash': return <Badge variant="success">Tunai</Badge>;
-            case 'ewallet': return <Badge variant="info">E-Wallet</Badge>;
-            case 'bank_transfer': return <Badge variant="info">Transfer Bank</Badge>;
-            case 'qris': return <Badge variant="success">QRIS</Badge>;
-            case 'edc': return <Badge variant="warning">EDC</Badge>;
-            case 'bank': return <Badge variant="info">Bank / Digital</Badge>;
-            default: return <Badge variant="neutral">Lainnya</Badge>;
+            case 'cash': return '💵';
+            case 'ewallet': return '📱';
+            case 'bank_transfer': return '🏛️';
+            case 'qris': return '⚡';
+            case 'edc': return '💳';
+            case 'bank': return '🏦';
+            default: return '🧾';
         }
     };
 
-    const formatAdminFee = (pm: PaymentMethod) => {
-        if (pm.type === 'cash' || !pm.adminFeeValue) return <span className="text-slate-400">Gratis (Rp0)</span>;
-        if (pm.adminFeeType === 'fixed') {
-            return <span className="font-bold text-amber-600 dark:text-amber-400">Rp{pm.adminFeeValue.toLocaleString('id-ID')} / transaksi</span>;
+    const getTypeLabel = (pmType: PaymentMethod['type']) => {
+        switch (pmType) {
+            case 'cash': return 'Tunai (Cash)';
+            case 'ewallet': return 'E-Wallet';
+            case 'bank_transfer': return 'Transfer Bank';
+            case 'qris': return 'QRIS';
+            case 'edc': return 'Mesin EDC';
+            case 'bank': return 'Digital / Bank';
+            default: return 'Lainnya';
         }
-        return <span className="font-bold text-indigo-600 dark:text-indigo-400">{pm.adminFeeValue}% / transaksi</span>;
     };
 
     return (
-        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-3 overflow-hidden">
-            {/* Header Bar - Row 1 */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0">
-                <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
-                        <CreditCard className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <h1 className="text-lg font-black text-slate-900 dark:text-white leading-tight">
-                            Pengaturan Metode Pembayaran
-                        </h1>
-                        <p className="text-xs text-slate-500 dark:text-zinc-400">
-                            Kelola opsi penerimaan kasir (Tunai, E-Wallet, Transfer, QRIS, EDC) dan biaya admin transaksi.
-                        </p>
+        <div className="w-full h-full flex flex-col p-1 sm:p-1.5 space-y-2 overflow-hidden">
+            {/* 1-Line Seamless Top Header Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 shrink-0 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs">
+                {/* Left: Title + Filter Tabs */}
+                <div className="flex items-center gap-2.5 shrink-0">
+                    <h1 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight shrink-0">
+                        Metode Pembayaran
+                    </h1>
+
+                    <div className="h-3.5 w-px bg-slate-200 dark:bg-zinc-700 shrink-0"></div>
+
+                    {/* Filter Tabs */}
+                    <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-zinc-800/80 p-0.5 rounded-lg shrink-0 overflow-x-auto">
+                        {[
+                            { id: 'All', label: 'Semua' },
+                            { id: 'cash', label: 'Tunai' },
+                            { id: 'ewallet', label: 'E-Wallet' },
+                            { id: 'bank_transfer', label: 'Transfer' },
+                            { id: 'qris', label: 'QRIS' },
+                            { id: 'edc', label: 'EDC' },
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                type="button"
+                                onClick={() => setTypeFilter(tab.id)}
+                                className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                                    typeFilter === tab.id
+                                        ? 'bg-white dark:bg-zinc-900 text-slate-900 dark:text-white shadow-2xs font-bold'
+                                        : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-end sm:self-center">
-                    {/* Compact Stat Badges */}
-                    <div className="hidden md:flex items-center gap-1.5 text-xs">
-                        <div className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-medium">
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">Total:</span>
-                            <span className="font-bold font-mono">{totalCount}</span>
-                        </div>
-                        <div className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-medium">
-                            <span className="text-[10px] uppercase font-bold">Tunai:</span>
-                            <span className="font-bold font-mono">{cashCount}</span>
-                        </div>
-                        <div className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-medium">
-                            <span className="text-[10px] uppercase font-bold">Digital / QRIS / EDC:</span>
-                            <span className="font-bold font-mono">{digitalCount}</span>
-                        </div>
-                        <div className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-medium">
-                            <span className="text-[10px] uppercase font-bold">Lainnya:</span>
-                            <span className="font-bold font-mono">{otherCount}</span>
-                        </div>
+                {/* Right: Inline Summary, Search & Actions */}
+                <div className="flex items-center gap-2 justify-end shrink-0 ml-auto">
+                    {/* Inline Stats */}
+                    <div className="hidden lg:flex items-center gap-2 text-[11px] text-slate-500 dark:text-zinc-400 shrink-0">
+                        <span>Total: <strong className="font-mono text-slate-800 dark:text-zinc-200">{totalCount}</strong></span>
+                        <span className="text-slate-300 dark:text-zinc-700">•</span>
+                        <span>Tunai: <strong className="font-mono text-slate-800 dark:text-zinc-200">{cashCount}</strong></span>
+                        <span className="text-slate-300 dark:text-zinc-700">•</span>
+                        <span>Digital: <strong className="font-mono text-slate-800 dark:text-zinc-200">{digitalCount}</strong></span>
                     </div>
 
-                    <Button onClick={openCreateModal} className="gap-1.5 text-xs py-2 shadow-xs shrink-0 whitespace-nowrap">
-                        <Plus className="w-4 h-4" /> Tambah Metode Bayar
+                    {/* Search Input */}
+                    <div className="relative w-32 sm:w-44">
+                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <Input
+                            type="text"
+                            placeholder="Cari metode..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="pl-7 pr-2 text-xs bg-slate-50 dark:bg-zinc-800/60 border-slate-200 dark:border-zinc-700 rounded-lg py-0.5 h-7"
+                        />
+                    </div>
+
+                    <Button
+                        onClick={openCreateModal}
+                        className="gap-1 text-xs py-1 px-3 bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold rounded-lg shadow-xs h-7 shrink-0 whitespace-nowrap"
+                    >
+                        <Plus className="w-3.5 h-3.5" />
+                        Tambah Metode
                     </Button>
-                </div>
-            </div>
-
-            {/* Filter & Search Controls Bar - Row 2 */}
-            <div className="bg-white dark:bg-zinc-900 p-2.5 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 shrink-0">
-                <div className="flex-1 min-w-[200px]">
-                    <Input
-                        type="text"
-                        placeholder="Cari Nama / ID Metode Pembayaran..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="text-xs py-1.5"
-                    />
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <Select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="w-48 text-xs py-1.5">
-                        <option value="All">Semua Tipe Metode</option>
-                        <option value="cash">Tunai (Cash)</option>
-                        <option value="ewallet">E-Wallet</option>
-                        <option value="bank_transfer">Transfer Bank</option>
-                        <option value="qris">QRIS</option>
-                        <option value="edc">EDC</option>
-                        <option value="other">Lainnya</option>
-                    </Select>
                 </div>
             </div>
 
             {/* Table Container */}
             <div className="flex-1 min-h-0 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-zinc-800 shadow-2xs overflow-hidden flex flex-col">
-                <div className="overflow-x-auto flex-1">
-                    <Table>
-                        <Thead>
-                            <Tr>
-                                <Th>ID</Th>
-                                <Th>Nama Metode Pembayaran</Th>
-                                <Th>Tipe Kategori</Th>
-                                <Th>Biaya Admin (per Transaksi)</Th>
-                                <Th>Dompet / Rekening</Th>
-                                <Th className="text-right">Aksi</Th>
-                            </Tr>
-                        </Thead>
-                        <Tbody>
+                <div className="overflow-y-auto flex-1">
+                    <table className="w-full text-xs text-left">
+                        <thead className="bg-slate-50/70 dark:bg-zinc-800/50 text-slate-400 border-b border-slate-100 dark:border-zinc-800 text-[11px] font-medium sticky top-0 z-10">
+                            <tr>
+                                <th className="py-2 px-4 w-28 font-medium">ID</th>
+                                <th className="py-2 px-4 font-medium">Metode Pembayaran</th>
+                                <th className="py-2 px-4 font-medium">Kategori Tipe</th>
+                                <th className="py-2 px-4 font-medium">Biaya Admin</th>
+                                <th className="py-2 px-4 font-medium">Akun Kas / Rekening Tujuan</th>
+                                <th className="py-2 px-4 text-right w-24 font-medium">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60">
                             {filteredMethods.length === 0 ? (
-                                <Tr>
-                                    <Td colSpan={6} className="text-center py-12 text-slate-400">
-                                        Tidak ada metode pembayaran yang ditemukan.
-                                    </Td>
-                                </Tr>
+                                <tr>
+                                    <td colSpan={6} className="text-center py-12 text-slate-400 text-xs">
+                                        Tidak ada metode pembayaran yang sesuai.
+                                    </td>
+                                </tr>
                             ) : (
                                 filteredMethods.map(pm => {
                                     const linkedAcc = accounts.find(a => a.id === pm.linkedAccountId);
                                     return (
-                                        <Tr key={pm.id}>
-                                            <Td className="font-mono text-xs text-slate-500 font-bold">{pm.id}</Td>
-                                            <Td className="font-extrabold text-slate-900 dark:text-white text-sm">
-                                                {pm.name}
-                                            </Td>
-                                            <Td>{getTypeBadge(pm.type)}</Td>
-                                            <Td className="font-mono text-xs">
-                                                {formatAdminFee(pm)}
-                                            </Td>
-                                            <Td className="font-mono text-xs text-slate-600 dark:text-slate-400">
-                                                {linkedAcc ? `${linkedAcc.name} (${linkedAcc.code})` : '- (Belum Dihubungkan)'}
-                                            </Td>
-                                            <Td className="text-right">
-                                                <div className="flex items-center justify-end gap-1.5">
+                                        <tr 
+                                            key={pm.id}
+                                            className="hover:bg-slate-50/70 dark:hover:bg-zinc-800/40 transition-colors"
+                                        >
+                                            <td className="py-2.5 px-4 font-mono text-slate-400 text-[11px]">
+                                                {pm.id}
+                                            </td>
+
+                                            <td className="py-2.5 px-4 font-medium text-slate-900 dark:text-white">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm">{getMethodIcon(pm.type)}</span>
+                                                    <span className="font-semibold">{pm.name}</span>
+                                                    {pm.type === 'qris' && pm.qrisImageUrl && (
+                                                        <span className="text-[10px] text-blue-600 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.2 rounded border border-blue-200 dark:border-blue-800">
+                                                            QRIS Statis
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            <td className="py-2.5 px-4">
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200/60 dark:border-zinc-700/60">
+                                                    {getTypeLabel(pm.type)}
+                                                </span>
+                                            </td>
+
+                                            <td className="py-2.5 px-4 font-mono text-xs">
+                                                {pm.type === 'cash' || !pm.adminFeeValue ? (
+                                                    <span className="text-slate-400">Gratis (Rp0)</span>
+                                                ) : pm.adminFeeType === 'fixed' ? (
+                                                    <span className="font-bold text-amber-600 dark:text-amber-400">
+                                                        Rp{pm.adminFeeValue.toLocaleString('id-ID')} / trx
+                                                    </span>
+                                                ) : (
+                                                    <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                                                        {pm.adminFeeValue}% / trx
+                                                    </span>
+                                                )}
+                                            </td>
+
+                                            <td className="py-2.5 px-4 font-mono text-xs text-slate-600 dark:text-zinc-300">
+                                                {linkedAcc ? (
+                                                    <span className="flex items-center gap-1.5">
+                                                        <span className="font-medium text-slate-800 dark:text-zinc-200">{linkedAcc.name}</span>
+                                                        <span className="text-slate-400 text-[11px]">({linkedAcc.id})</span>
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-300 dark:text-zinc-600">- (Belum Dihubungkan)</span>
+                                                )}
+                                            </td>
+
+                                            <td className="py-2.5 px-4 text-right">
+                                                <div className="flex items-center justify-end gap-1">
                                                     <button
                                                         type="button"
                                                         onClick={() => openEditModal(pm)}
-                                                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer"
+                                                        className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer"
                                                         title="Edit Metode"
                                                     >
-                                                        <Edit2 className="w-4 h-4" />
+                                                        <Edit2 className="w-3.5 h-3.5" />
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => handleDelete(pm.id, pm.name)}
-                                                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                                                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
                                                         title="Hapus Metode"
                                                     >
-                                                        <Trash2 className="w-4 h-4" />
+                                                        <Trash2 className="w-3.5 h-3.5" />
                                                     </button>
                                                 </div>
-                                            </Td>
-                                        </Tr>
+                                            </td>
+                                        </tr>
                                     );
                                 })
                             )}
-                        </Tbody>
-                    </Table>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -2437,41 +2445,43 @@ export const PaymentMethodsPage: React.FC = () => {
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title={editingMethod ? "Edit Metode Pembayaran" : "Tambah Metode Pembayaran Baru"}
+                title={editingMethod ? "Edit Metode Pembayaran" : "Tambah Metode Pembayaran"}
+                maxWidth="max-w-md"
                 footer={
-                    <div className="flex gap-2 justify-end">
+                    <div className="flex gap-2 justify-end w-full">
                         <Button type="button" onClick={() => setIsModalOpen(false)} variant="secondary">Batal</Button>
-                        <Button onClick={handleSubmit}>Simpan</Button>
+                        <Button onClick={handleSubmit} className="bg-slate-900 dark:bg-blue-600 text-white font-medium">Simpan</Button>
                     </div>
                 }
             >
-                <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+                <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
                     <div>
                         <Label>Nama Metode Pembayaran*</Label>
                         <Input
                             type="text"
-                            placeholder="Contoh: BCA Transfer, ShopeePay, QRIS Statis, EDC Mandiri..."
+                            placeholder="Contoh: BCA Transfer, ShopeePay, QRIS BCA, EDC Mandiri..."
                             value={name}
                             onChange={e => setName(e.target.value)}
                             required
+                            className="mt-1"
                         />
                     </div>
 
                     <div>
-                        <Label>Tipe Metode Pembayaran*</Label>
-                        <Select value={type} onChange={e => setType(e.target.value as any)} required>
-                            <option value="cash">Tunai (Cash)</option>
-                            <option value="ewallet">E-Wallet (GoPay, OVO, Dana, ShopeePay, dll)</option>
-                            <option value="bank_transfer">Transfer Bank (BCA, Mandiri, BRI, BNI, dll)</option>
-                            <option value="qris">QRIS (Statis / Dinamis)</option>
-                            <option value="edc">EDC (Kartu Debit / Kredit)</option>
-                            <option value="other">Lainnya</option>
+                        <Label>Kategori Tipe Pembayaran*</Label>
+                        <Select value={type} onChange={e => setType(e.target.value as any)} required className="mt-1">
+                            <option value="cash">💵 Tunai (Cash / Kasir)</option>
+                            <option value="ewallet">📱 E-Wallet (GoPay, OVO, DANA, ShopeePay)</option>
+                            <option value="bank_transfer">🏛️ Transfer Bank (BCA, Mandiri, BRI, BNI)</option>
+                            <option value="qris">⚡ QRIS (Statis / Dinamis)</option>
+                            <option value="edc">💳 Mesin EDC (Kartu Debit / Kredit)</option>
+                            <option value="other">🧾 Lainnya</option>
                         </Select>
                     </div>
 
                     {type === 'qris' && (
-                        <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200/60 dark:border-blue-900/50 space-y-2">
-                            <Label className="font-bold text-blue-900 dark:text-blue-300">Gambar QR Code / QRIS Statis</Label>
+                        <div className="p-3 bg-blue-50/70 dark:bg-blue-950/30 rounded-xl border border-blue-200/60 dark:border-blue-900/50 space-y-2">
+                            <Label className="font-semibold text-blue-900 dark:text-blue-300">Gambar QR Code / QRIS</Label>
                             <input 
                                 type="file" 
                                 accept="image/*" 
@@ -2485,60 +2495,57 @@ export const PaymentMethodsPage: React.FC = () => {
                                         reader.readAsDataURL(file);
                                     }
                                 }}
-                                className="block w-full text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+                                className="block w-full text-xs text-slate-500 file:mr-3 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
                             />
                             {qrisImageUrl && (
                                 <div className="flex items-center gap-3 pt-1">
-                                    <img src={qrisImageUrl} alt="Preview QRIS" className="w-16 h-16 object-contain rounded-lg border bg-white p-1 shadow-2xs" />
-                                    <span className="text-[11px] text-emerald-600 font-bold">✓ Gambar QRIS Terpasang</span>
+                                    <img src={qrisImageUrl} alt="Preview QRIS" className="w-14 h-14 object-contain rounded-lg border bg-white p-1 shadow-2xs" />
+                                    <span className="text-[11px] text-emerald-600 font-medium">✓ Gambar QRIS terpasang</span>
                                 </div>
                             )}
                         </div>
                     )}
 
                     {type !== 'cash' && (
-                        <div className="p-3 bg-slate-50 dark:bg-zinc-800/60 rounded-xl border border-slate-200 dark:border-zinc-700 space-y-3">
-                            <span className="font-bold text-slate-800 dark:text-zinc-200 block text-xs">
-                                Form Biaya Admin Transaksi
+                        <div className="p-3 bg-slate-50 dark:bg-zinc-800/60 rounded-xl border border-slate-200/80 dark:border-zinc-700/60 space-y-2.5">
+                            <span className="font-semibold text-slate-800 dark:text-zinc-200 block text-xs">
+                                Pengaturan Biaya Admin (MDR)
                             </span>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-2.5">
                                 <div>
-                                    <Label>Tipe Biaya Admin</Label>
+                                    <Label>Tipe Biaya</Label>
                                     <Select
                                         value={adminFeeType}
                                         onChange={e => setAdminFeeType(e.target.value as any)}
+                                        className="mt-1"
                                     >
                                         <option value="percentage">Persentase (%)</option>
                                         <option value="fixed">Nominal Tetap (Rp)</option>
                                     </Select>
                                 </div>
                                 <div>
-                                    <Label>Nilai Biaya Admin</Label>
+                                    <Label>Nilai Biaya</Label>
                                     <Input
                                         type="number"
                                         step={adminFeeType === 'percentage' ? "0.01" : "1"}
                                         min="0"
-                                        placeholder={adminFeeType === 'percentage' ? "Contoh: 0.7" : "Contoh: 2500"}
+                                        placeholder={adminFeeType === 'percentage' ? "0.7" : "2500"}
                                         value={adminFeeValue}
                                         onChange={e => setAdminFeeValue(e.target.value)}
+                                        className="mt-1 font-mono font-semibold"
                                     />
                                 </div>
                             </div>
-                            <p className="text-[11px] text-slate-500">
-                                {adminFeeType === 'percentage' 
-                                    ? `Setiap transaksi dengan metode ini akan dikenakan biaya admin sebesar ${adminFeeValue || 0}%.`
-                                    : `Setiap transaksi dengan metode ini akan dikenakan biaya admin tetap Rp${(parseFloat(adminFeeValue) || 0).toLocaleString('id-ID')}.`}
-                            </p>
                         </div>
                     )}
 
                     <div>
-                        <Label>Pilih Dompet / Rekening Kategori*</Label>
-                        <Select value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} required>
-                            <option value="">-- Pilih Dompet / Rekening Kas/Bank Terdaftar --</option>
+                        <Label>Hubungkan ke Akun Kas / Rekening Buku Besar*</Label>
+                        <Select value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} required className="mt-1">
+                            <option value="">-- Pilih Akun Kas Terdaftar --</option>
                             {accounts.filter(a => a.isCashAccount).map(acc => (
                                 <option key={acc.id} value={acc.id}>
-                                    {acc.name} ({acc.code}) - Saldo: Rp{acc.balance.toLocaleString('id-ID')}
+                                    {acc.name} ({acc.id}) - Saldo: Rp{Math.abs(acc.balance || 0).toLocaleString('id-ID')}
                                 </option>
                             ))}
                         </Select>

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Theme, CompanyInfo, ReportLayoutSettings, AccentColor, PaperSize, ThemeConfig, GradientTheme, SingleColorTheme } from '../types';
 import { useAppContext } from '../hooks/useAppContext';
 import { gradientThemes } from '../utils/colors';
-import { Database, Download, Upload, ShieldCheck, RefreshCw, AlertTriangle, Printer, Save, Info, Shield, FileText } from 'lucide-react';
+import { Database, Download, Upload, ShieldCheck, RefreshCw, AlertTriangle, Printer, Save, Info, Shield, FileText, Layers, Store, Building2, Wrench, Briefcase, CheckCircle2, Sliders, DollarSign, Package, EyeOff, Tag, Receipt, Percent, Sparkles, ArrowRight } from 'lucide-react';
 
 // --- Shared Components ---
 const Label: React.FC<{ htmlFor?: string, children: React.ReactNode, className?: string }> = ({ htmlFor, children, className }) => (
@@ -1486,6 +1486,472 @@ export const BackupRestorePage: React.FC = () => {
                         Seluruh data bisnis Anda disimpan secara rahasia di perangkat lokal tanpa dikirim ke server pihak ketiga mana pun. Cadangkan file JSON secara berkala untuk menjaga keamanan data bisnis Anda.
                     </div>
                 </div>
+            </div>
+        </div>
+    );
+};
+
+// --- 5. Business Flexibility & Operating Mode Settings Page ---
+export const BusinessFlexibilitySettingsPage: React.FC = () => {
+    const { state, dispatch } = useAppContext();
+    const settings = state.businessSettings || {
+        operatingMode: 'standard',
+        trackHppAndProfit: true,
+        trackInventoryStock: true,
+        hideHppFromCashier: true,
+        allowCashierCustomPrice: false,
+        allowCustomerCredit: true,
+        taxScheme: 'none',
+    };
+
+    const handleUpdate = (updates: Partial<typeof settings>) => {
+        dispatch({
+            type: 'settings/updateBusinessSettings',
+            payload: updates
+        });
+    };
+
+    const applyPreset = (mode: typeof settings.operatingMode) => {
+        switch (mode) {
+            case 'simple':
+                handleUpdate({
+                    operatingMode: 'simple',
+                    trackHppAndProfit: false,
+                    trackInventoryStock: true,
+                    hideHppFromCashier: true,
+                    allowCashierCustomPrice: false,
+                    allowCustomerCredit: true,
+                    taxScheme: 'none',
+                });
+                break;
+            case 'standard':
+                handleUpdate({
+                    operatingMode: 'standard',
+                    trackHppAndProfit: true,
+                    trackInventoryStock: true,
+                    hideHppFromCashier: true,
+                    allowCashierCustomPrice: false,
+                    allowCustomerCredit: true,
+                    taxScheme: 'none',
+                });
+                break;
+            case 'service':
+                handleUpdate({
+                    operatingMode: 'service',
+                    trackHppAndProfit: false,
+                    trackInventoryStock: false,
+                    hideHppFromCashier: true,
+                    allowCashierCustomPrice: true,
+                    allowCustomerCredit: true,
+                    taxScheme: 'none',
+                });
+                break;
+            case 'advanced':
+                handleUpdate({
+                    operatingMode: 'advanced',
+                    trackHppAndProfit: true,
+                    trackInventoryStock: true,
+                    hideHppFromCashier: true,
+                    allowCashierCustomPrice: true,
+                    allowCustomerCredit: true,
+                    taxScheme: 'exclusive',
+                });
+                break;
+        }
+    };
+
+    const modeLabels: Record<string, { label: string; icon: any; color: string }> = {
+        simple: { label: 'Toko Sederhana', icon: Store, color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-900/60' },
+        standard: { label: 'Retail Standar (HPP)', icon: Building2, color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-900/60' },
+        service: { label: 'Jasa & Servis', icon: Wrench, color: 'text-sky-600 bg-sky-50 dark:bg-sky-950/50 border-sky-200 dark:border-sky-900/60' },
+        advanced: { label: 'Finansial Lengkap', icon: Briefcase, color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-900/60' },
+    };
+
+    const activeModeInfo = modeLabels[settings.operatingMode] || modeLabels.standard;
+    const ActiveIcon = activeModeInfo.icon;
+
+    return (
+        <div className="w-full h-full flex flex-col p-4 md:p-6 space-y-6 overflow-y-auto bg-slate-50/50 dark:bg-zinc-950">
+            {/* Header Hero Banner */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950 p-6 md:p-8 text-white shadow-xl border border-slate-800 dark:border-zinc-800">
+                <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-2 max-w-2xl">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold backdrop-blur-md">
+                            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                            <span>Kustomisasi Alur Sistem POS</span>
+                        </div>
+                        <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
+                            Mode &amp; Fleksibilitas Bisnis
+                        </h1>
+                        <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
+                            Sesuaikan kompleksitas pencatatan modal, manajemen stok, dan laporan finansial agar selaras dengan skema operasional usaha Anda.
+                        </p>
+                    </div>
+
+                    <div className="shrink-0">
+                        <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border backdrop-blur-md shadow-lg ${activeModeInfo.color}`}>
+                            <div className="w-10 h-10 rounded-xl bg-white/80 dark:bg-zinc-900/80 flex items-center justify-center shadow-xs">
+                                <ActiveIcon className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-75 block">Mode Aktif</span>
+                                <span className="text-sm font-black">{activeModeInfo.label}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="space-y-6">
+
+                {/* SECTION 1: 1-Klik Preset Cards */}
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                            <Layers className="w-4 h-4" />
+                        </div>
+                        <div>
+                            <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                                Pilih Skema Cepat (1-Klik Preset)
+                            </h2>
+                            <p className="text-xs text-slate-500 dark:text-zinc-400">
+                                Pilih model usaha di bawah ini untuk mengonfigurasi fitur sistem secara otomatis
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Preset 1: Toko Sederhana */}
+                        <div
+                            onClick={() => applyPreset('simple')}
+                            className={`group relative p-5 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 shadow-xs hover:shadow-md ${
+                                settings.operatingMode === 'simple'
+                                    ? 'bg-white dark:bg-zinc-900 border-amber-500 ring-2 ring-amber-500/20'
+                                    : 'bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700'
+                            }`}
+                        >
+                            <div className="flex items-start justify-between">
+                                <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                                    <Store className="w-6 h-6" />
+                                </div>
+                                {settings.operatingMode === 'simple' && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2.5 py-1 rounded-full border border-amber-200 dark:border-amber-800">
+                                        <CheckCircle2 className="w-3 h-3" /> Aktif
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Toko Sederhana</h3>
+                                <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+                                    Hanya catat harga jual &amp; omset. Kolom HPP modal di-bypass untuk fleksibilitas maksimal.
+                                </p>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] font-semibold text-slate-400">
+                                <span>Warung, Kios, Toko Kecil</span>
+                                <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                        </div>
+
+                        {/* Preset 2: Retail Standar */}
+                        <div
+                            onClick={() => applyPreset('standard')}
+                            className={`group relative p-5 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 shadow-xs hover:shadow-md ${
+                                settings.operatingMode === 'standard'
+                                    ? 'bg-white dark:bg-zinc-900 border-emerald-500 ring-2 ring-emerald-500/20'
+                                    : 'bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700'
+                            }`}
+                        >
+                            <div className="flex items-start justify-between">
+                                <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                                    <Building2 className="w-6 h-6" />
+                                </div>
+                                {settings.operatingMode === 'standard' && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
+                                        <CheckCircle2 className="w-3 h-3" /> Aktif
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Retail Standar (HPP)</h3>
+                                <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+                                    Pencatatan lengkap harga jual + HPP modal. Menghitung laba kotor, marjin profit, &amp; stok.
+                                </p>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] font-semibold text-slate-400">
+                                <span>Minimarket, Butik, Toko</span>
+                                <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                        </div>
+
+                        {/* Preset 3: Jasa & Servis */}
+                        <div
+                            onClick={() => applyPreset('service')}
+                            className={`group relative p-5 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 shadow-xs hover:shadow-md ${
+                                settings.operatingMode === 'service'
+                                    ? 'bg-white dark:bg-zinc-900 border-sky-500 ring-2 ring-sky-500/20'
+                                    : 'bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700'
+                            }`}
+                        >
+                            <div className="flex items-start justify-between">
+                                <div className="w-12 h-12 rounded-2xl bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                                    <Wrench className="w-6 h-6" />
+                                </div>
+                                {settings.operatingMode === 'service' && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 px-2.5 py-1 rounded-full border border-sky-200 dark:border-sky-800">
+                                        <CheckCircle2 className="w-3 h-3" /> Aktif
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Jasa &amp; Servis</h3>
+                                <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+                                    Tanpa batas stok fisik. Kasir bebas bertransaksi dan fleksibel mengubah harga/nego.
+                                </p>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] font-semibold text-slate-400">
+                                <span>Barbershop, Bengkel, Laundry</span>
+                                <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                        </div>
+
+                        {/* Preset 4: Finansial Lengkap */}
+                        <div
+                            onClick={() => applyPreset('advanced')}
+                            className={`group relative p-5 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 shadow-xs hover:shadow-md ${
+                                settings.operatingMode === 'advanced'
+                                    ? 'bg-white dark:bg-zinc-900 border-indigo-500 ring-2 ring-indigo-500/20'
+                                    : 'bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700'
+                            }`}
+                        >
+                            <div className="flex items-start justify-between">
+                                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
+                                    <Briefcase className="w-6 h-6" />
+                                </div>
+                                {settings.operatingMode === 'advanced' && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
+                                        <CheckCircle2 className="w-3 h-3" /> Aktif
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Finansial Lengkap</h3>
+                                <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+                                    HPP + Beban Operasional + Pajak PPN/PB1 + Laba Bersih &amp; Laporan Akuntansi.
+                                </p>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] font-semibold text-slate-400">
+                                <span>Distributor, Resto, PT/CV</span>
+                                <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* SECTION 2: Granular Feature Controls */}
+                <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs overflow-hidden">
+                    <div className="p-6 border-b border-slate-100 dark:border-zinc-800/80 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 flex items-center justify-center font-bold">
+                            <Sliders className="w-4 h-4" />
+                        </div>
+                        <div>
+                            <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                                Pengaturan Kustom &amp; Fleksibilitas Detail
+                            </h2>
+                            <p className="text-xs text-slate-500 dark:text-zinc-400">
+                                Aktifkan atau nonaktifkan modul fitur secara spesifik sesuai alur kerja kasir &amp; tim Anda
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="p-6 space-y-6 divide-y divide-slate-100 dark:divide-zinc-800/60">
+
+                        {/* Control 1: Track HPP & Profit */}
+                        <div className="pt-6 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                                    <DollarSign className="w-5 h-5" />
+                                </div>
+                                <div className="space-y-1 max-w-xl">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                                            Pencatatan Modal (HPP) &amp; Margin Laba
+                                        </h3>
+                                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${settings.trackHppAndProfit ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400'}`}>
+                                            {settings.trackHppAndProfit ? 'Aktif' : 'Omset Murni'}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+                                        Jika dinonaktifkan, kolom Modal (HPP) disembunyikan dan sistem murni menyajikan <strong>Laporan Penjualan (Omset)</strong> tanpa memaksakan kalkulasi margin profit.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.trackHppAndProfit}
+                                    onChange={e => handleUpdate({ trackHppAndProfit: e.target.checked })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-12 h-6 bg-slate-200 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                            </label>
+                        </div>
+
+                        {/* Control 2: Track Inventory Stock */}
+                        <div className="pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                                    <Package className="w-5 h-5" />
+                                </div>
+                                <div className="space-y-1 max-w-xl">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                                            Kontrol &amp; Pembatasan Stok Fisik
+                                        </h3>
+                                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${settings.trackInventoryStock ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400' : 'bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400'}`}>
+                                            {settings.trackInventoryStock ? 'Stok Terikat' : 'Tanpa Batas Stok'}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+                                        Jika dinonaktifkan, kasir dapat menjual barang tanpa peringatan stok habis (cocok untuk bisnis jasa, laundry, salon, bimbel, atau menu pesanan).
+                                    </p>
+                                </div>
+                            </div>
+
+                            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.trackInventoryStock}
+                                    onChange={e => handleUpdate({ trackInventoryStock: e.target.checked })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-12 h-6 bg-slate-200 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+
+                        {/* Control 3: Hide HPP from Cashier */}
+                        <div className="pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                                    <EyeOff className="w-5 h-5" />
+                                </div>
+                                <div className="space-y-1 max-w-xl">
+                                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                                        Proteksi Privasi HPP / Modal dari Staf Kasir
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+                                        Staf kasir hanya dapat melihat harga jual resmi ke pelanggan. Data modal dan keuntungan bersih hanya dapat diakses oleh akun Owner &amp; Manajer.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.hideHppFromCashier}
+                                    onChange={e => handleUpdate({ hideHppFromCashier: e.target.checked })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-12 h-6 bg-slate-200 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                            </label>
+                        </div>
+
+                        {/* Control 4: Allow Cashier Custom Price */}
+                        <div className="pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
+                                    <Tag className="w-5 h-5" />
+                                </div>
+                                <div className="space-y-1 max-w-xl">
+                                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                                        Izinkan Kasir Nego / Edit Harga Manual di POS
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+                                        Memberikan fleksibilitas bagi kasir untuk langsung mengubah nominal harga satuan produk pada layar kasir jika ada negosiasi atau penyesuaian khusus.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.allowCashierCustomPrice}
+                                    onChange={e => handleUpdate({ allowCashierCustomPrice: e.target.checked })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-12 h-6 bg-slate-200 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+
+                        {/* Control 5: Allow Customer Credit */}
+                        <div className="pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 mt-0.5">
+                                    <Receipt className="w-5 h-5" />
+                                </div>
+                                <div className="space-y-1 max-w-xl">
+                                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                                        Izinkan Pembayaran Tempo / Kasbon Pelanggan
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+                                        Menyediakan opsi pembayaran piutang/tempo pada kasir POS yang terhubung otomatis ke buku piutang pelanggan.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.allowCustomerCredit}
+                                    onChange={e => handleUpdate({ allowCustomerCredit: e.target.checked })}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-12 h-6 bg-slate-200 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                            </label>
+                        </div>
+
+                        {/* Control 6: Tax Scheme */}
+                        <div className="pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
+                                    <Percent className="w-5 h-5" />
+                                </div>
+                                <div className="space-y-1 max-w-xl">
+                                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                                        Skema Perhitungan Pajak Penjualan (PPN/PB1)
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+                                        Tentukan aturan apakah transaksi toko bebas pajak, inklusif (sudah termasuk pajak), atau eksklusif (pajak ditambahkan di struk).
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="w-full sm:w-56 shrink-0">
+                                <Select
+                                    value={settings.taxScheme}
+                                    onChange={e => handleUpdate({ taxScheme: e.target.value as any })}
+                                    className="w-full text-xs font-semibold py-2 px-3 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-2xs focus:ring-2 focus:ring-indigo-500 outline-none"
+                                >
+                                    <option value="none">Tanpa Pajak (0%)</option>
+                                    <option value="inclusive">Pajak Inklusif (Sudah Termasuk)</option>
+                                    <option value="exclusive">Pajak Eksklusif (Ditambahkan di Struk)</option>
+                                </Select>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
             </div>
         </div>
     );

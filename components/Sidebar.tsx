@@ -41,7 +41,7 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
         if ([Page.ProductList, Page.InventoryAdjustment, Page.GoodsReceipt, Page.ReturnManagement, Page.ProductCategories].includes(currentPage)) return 'Inventaris';
         if ([Page.ChartOfAccounts, Page.CashAccountList, Page.CashTransaction, Page.CashTransfer, Page.VendorBillList, Page.CustomerBillList, Page.Capital, Page.PaymentMethods, Page.PaymentTerms].includes(currentPage)) return 'Keuangan';
         if ([Page.SalesReport, Page.PurchaseReport, Page.GoodsReport, Page.FinancialInventoryReport, Page.CashierDepositReport, Page.IncomeStatementReport, Page.FinancialPositionReport].includes(currentPage)) return 'Laporan';
-        if ([Page.CompanyInformationSettings, Page.BackupRestore, Page.ReportSizesSettings, Page.About].includes(currentPage)) return 'Pengaturan';
+        if ([Page.CompanyInformationSettings, Page.BusinessFlexibilitySettings, Page.BackupRestore, Page.ReportSizesSettings, Page.About].includes(currentPage)) return 'Pengaturan';
         return 'Penjualan';
     });
 
@@ -125,9 +125,10 @@ export const Sidebar: React.FC<{ currentPage: Page; setPage: (page: Page) => voi
         {
             icon: <Settings className="w-4 h-4" />,
             label: 'Pengaturan',
-            pages: [Page.CompanyInformationSettings, Page.BackupRestore, Page.ReportSizesSettings, Page.About],
+            pages: [Page.CompanyInformationSettings, Page.BusinessFlexibilitySettings, Page.BackupRestore, Page.ReportSizesSettings, Page.About],
             subItems: [
                 { label: 'Informasi Perusahaan', page: Page.CompanyInformationSettings },
+                { label: 'Mode & Fleksibilitas', page: Page.BusinessFlexibilitySettings },
                 { label: 'Database', page: Page.BackupRestore },
                 { label: 'Printer', page: Page.ReportSizesSettings },
                 { label: 'Tentang', page: Page.About },

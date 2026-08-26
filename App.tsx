@@ -5,7 +5,7 @@ import { Dashboard } from './Dashboard';
 import { ProductListPage, SetPricingPage } from './components/Products';
 import { Customers } from './components/Customers';
 import { Sales } from './components/Sales';
-import { CompanyInformationSettingsPage, DisplaySettingsPage, ReportSizesSettingsPage, BackupRestorePage, AboutPage } from './components/Settings';
+import { CompanyInformationSettingsPage, BusinessFlexibilitySettingsPage, DisplaySettingsPage, ReportSizesSettingsPage, BackupRestorePage, AboutPage } from './components/Settings';
 import { Page, Theme } from './types';
 import { Vendors } from './components/Vendors';
 import { Purchases } from './components/Purchases';
@@ -139,6 +139,7 @@ export const App: React.FC = () => {
             case Page.SaleDetailsPage: return <Sales />;
             case Page.OrderFulfillment: return <OrderFulfillmentPage />;
             case Page.CompanyInformationSettings: return <CompanyInformationSettingsPage />;
+            case Page.BusinessFlexibilitySettings: return <BusinessFlexibilitySettingsPage />;
             case Page.BackupRestore: return <BackupRestorePage />;
             case Page.DisplaySettings: return <DisplaySettingsPage />;
             case Page.ReportSizesSettings: return <ReportSizesSettingsPage />;
@@ -299,7 +300,7 @@ export const App: React.FC = () => {
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-hidden min-w-0 relative">
-                <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 pb-20 md:pb-6">
+                <main className="flex-1 overflow-y-auto p-2 sm:p-2.5 md:p-3 pb-16 md:pb-3">
                     {state.mobileMenuCategory ? (
                         <MobileMenuPage 
                             category={state.mobileMenuCategory} 

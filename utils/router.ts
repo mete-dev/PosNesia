@@ -63,6 +63,8 @@ export const PATH_TO_PAGE_MAP: Record<string, Page> = {
     // Pengaturan (/pos/pengaturan/...)
     'pengaturan': Page.CompanyInformationSettings,
     'pengaturan/informasi-perusahaan': Page.CompanyInformationSettings,
+    'pengaturan/mode-bisnis': Page.BusinessFlexibilitySettings,
+    'pengaturan/preferensi-bisnis': Page.BusinessFlexibilitySettings,
     'pengaturan/database': Page.BackupRestore,
     'pengaturan/printer': Page.ReportSizesSettings,
     'pengaturan/ukuran-report': Page.ReportSizesSettings,
@@ -155,6 +157,7 @@ export const PAGE_TO_PATH_MAP: Record<Page, string> = {
     [Page.FinancialPositionReport]: 'laporan/posisi-keuangan',
 
     [Page.CompanyInformationSettings]: 'pengaturan/informasi-perusahaan',
+    [Page.BusinessFlexibilitySettings]: 'pengaturan/mode-bisnis',
     [Page.BackupRestore]: 'pengaturan/database',
     [Page.ReportSizesSettings]: 'pengaturan/printer',
     [Page.DisplaySettings]: 'pengaturan/tampilan',

@@ -205,26 +205,37 @@ export const ProductModal: React.FC<{
                     </div>
 
                     {/* Satuan Dasar & Pricing & Stock */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                            <Label>Satuan Utama</Label>
-                            <Select value={formData.unit || 'Pcs'} onChange={e => setFormData({...formData, unit: e.target.value})}>
-                                {baseUnits.map(u => <option key={u} value={u}>{u}</option>)}
-                            </Select>
-                        </div>
-                        <div>
-                            <Label>Harga Jual ({formData.unit || 'Pcs'})*</Label>
-                            <Input type="number" placeholder="Harga Jual (Rp)*" value={formData.price || ''} onChange={e => setFormData({...formData, price: Number(e.target.value)})} required/>
-                        </div>
-                        <div>
-                            <Label>Harga Modal / HPP*</Label>
-                            <Input type="number" placeholder="Harga Modal (Rp)*" value={formData.cost || ''} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} required/>
-                        </div>
-                        <div>
-                            <Label>Stok Awal Produk</Label>
-                            <Input type="number" placeholder="Stok Produk (cth: 100)" value={formData.initialStock ?? ''} onChange={e => setFormData({...formData, initialStock: Number(e.target.value)})}/>
-                        </div>
-                    </div>
+                    {(() => {
+                        const trackHpp = state.businessSettings?.trackHppAndProfit ?? true;
+                        const trackStock = state.businessSettings?.trackInventoryStock ?? true;
+                        const colsClass = trackHpp && trackStock ? 'md:grid-cols-4' : (trackHpp || trackStock) ? 'md:grid-cols-3' : 'md:grid-cols-2';
+                        return (
+                            <div className={`grid grid-cols-1 ${colsClass} gap-4`}>
+                                <div>
+                                    <Label>Satuan Utama</Label>
+                                    <Select value={formData.unit || 'Pcs'} onChange={e => setFormData({...formData, unit: e.target.value})}>
+                                        {baseUnits.map(u => <option key={u} value={u}>{u}</option>)}
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label>Harga Jual ({formData.unit || 'Pcs'})*</Label>
+                                    <Input type="number" placeholder="Harga Jual (Rp)*" value={formData.price || ''} onChange={e => setFormData({...formData, price: Number(e.target.value)})} required/>
+                                </div>
+                                {trackHpp && (
+                                    <div>
+                                        <Label>Harga Modal / HPP*</Label>
+                                        <Input type="number" placeholder="Harga Modal (Rp)*" value={formData.cost || ''} onChange={e => setFormData({...formData, cost: Number(e.target.value)})} required/>
+                                    </div>
+                                )}
+                                {trackStock && (
+                                    <div>
+                                        <Label>Stok Awal Produk</Label>
+                                        <Input type="number" placeholder="Stok Produk (cth: 100)" value={formData.initialStock ?? ''} onChange={e => setFormData({...formData, initialStock: Number(e.target.value)})}/>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
 
                     {/* Dynamic Multi-Tier Packaging Prices (Harga Packaging Bertingkat) */}
                     <div className="p-4 bg-slate-50/80 dark:bg-zinc-800/60 rounded-xl border border-slate-200/80 dark:border-zinc-700/60 space-y-3">
@@ -1033,11 +1044,17 @@ export const ProductListPage: React.FC = () => {
                                         </span>
                                     </Td>
                                     <Td className="text-center py-1 px-2">
-                                        <span className={`font-black font-mono text-[11px] px-1.5 py-0.2 rounded inline-block ${
-                                            stock > 5 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : stock > 0 ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40' : 'bg-red-50 text-red-600 dark:bg-red-950/40'
-                                        }`}>
-                                            {stock}
-                                        </span>
+                                        {(state.businessSettings?.trackInventoryStock ?? true) ? (
+                                            <span className={`font-black font-mono text-[11px] px-1.5 py-0.2 rounded inline-block ${
+                                                stock > 5 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : stock > 0 ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40' : 'bg-red-50 text-red-600 dark:bg-red-950/40'
+                                            }`}>
+                                                {stock}
+                                            </span>
+                                        ) : (
+                                            <span className="font-medium text-[10px] text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded">
+                                                ∞ Jasa
+                                            </span>
+                                        )}
                                     </Td>
                                     <Td className="py-1 px-2">
                                         <Badge variant={product.status === 'active' ? 'success' : 'neutral'} className="text-[9px] px-1.5 py-0">{product.status || 'active'}</Badge>

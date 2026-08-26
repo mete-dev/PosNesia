@@ -176,6 +176,7 @@ export enum Page {
   FinancialInventoryReport = 'FinancialInventoryReport', // New
   // --- Settings Pages ---
   CompanyInformationSettings = 'CompanyInformationSettings',
+  BusinessFlexibilitySettings = 'BusinessFlexibilitySettings',
   BackupRestore = 'BackupRestore',
   DisplaySettings = 'DisplaySettings',
   ReportSizesSettings = 'ReportSizesSettings',
@@ -583,8 +584,8 @@ export interface AppState {
     companyEvents: CompanyEvent[];
     depositWithdrawalTokens: DepositWithdrawalToken[];
     depositTransactions: DepositTransaction[];
-    lastWithdrawalToken: DepositWithdrawalToken | null;
     lastWithdrawalReceipt: { customerName: string; amount: number } | null;
+    businessSettings: BusinessFlexibilitySettings;
     rentalOrders: RentalOrder[];
     mobileMenuCategory: string | null;
     selectedPurchaseOrderId?: string;
@@ -592,4 +593,14 @@ export interface AppState {
     selectedVendorId?: string;
     selectedCustomerId?: string;
     selectedAccountId?: string;
+}
+
+export interface BusinessFlexibilitySettings {
+    operatingMode: 'simple' | 'standard' | 'advanced' | 'service';
+    trackHppAndProfit: boolean; // Jika false: HPP disembunyikan, laporan murni omset penjualan tanpa kalkulasi modal/laba rugi
+    trackInventoryStock: boolean; // Jika false: stok tidak dibatasi / mode jasa
+    hideHppFromCashier: boolean; // Jika true: staf kasir tidak melihat modal/HPP
+    allowCashierCustomPrice: boolean; // Jika true: kasir boleh ubah harga manual / diskon saat transaksi
+    allowCustomerCredit: boolean; // Jika true: izinkan kasbon / piutang pelanggan
+    taxScheme: 'none' | 'inclusive' | 'exclusive'; // Skema perhitungan pajak
 }

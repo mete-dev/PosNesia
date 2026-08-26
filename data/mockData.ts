@@ -300,3 +300,12 @@ export const initialRoomOrders: RoomOrder[] = [];
 export const initialRentalOrders: RentalOrder[] = [];
 export const initialDepositTransactions: DepositTransaction[] = [];
 export const initialDepositWithdrawalTokens: DepositWithdrawalToken[] = [];
+export const initialBusinessSettings: BusinessFlexibilitySettings = {
+    operatingMode: 'standard',
+    trackHppAndProfit: true,
+    trackInventoryStock: true,
+    hideHppFromCashier: true,
+    allowCashierCustomPrice: false,
+    allowCustomerCredit: true,
+    taxScheme: 'none',
+};

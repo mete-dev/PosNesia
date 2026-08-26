@@ -1795,6 +1795,18 @@ export const IncomeStatementReport: React.FC = () => {
                 </div>
             </div>
 
+            {/* Mode Sederhana Notice */}
+            {state.businessSettings?.trackHppAndProfit === false && (
+                <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl p-3 flex items-center justify-between text-xs text-amber-900 dark:text-amber-200 shrink-0">
+                    <div className="flex items-center gap-2">
+                        <span className="text-base">🏬</span>
+                        <div>
+                            <span className="font-bold">Mode Bisnis Sederhana Aktif:</span> Perhitungan modal produk (HPP) dinonaktifkan. Laporan dioptimalkan untuk Total Omset Penjualan &amp; Arus Kas Masuk.
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Content Area */}
             {reportData && (
                 <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">

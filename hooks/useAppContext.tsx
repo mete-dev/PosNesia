@@ -32,7 +32,8 @@ import {
     initialCustomAssessments, initialCustomAssessmentGrades,
     initialProductTypeLocations,
     initialBranchTypes,
-    initialWarehouseTypes
+    initialWarehouseTypes,
+    initialBusinessSettings
 } from '../data/mockData';
 import * as salesService from '../services/salesService';
 import * as inventoryService from '../services/inventoryService';
@@ -184,6 +185,7 @@ const initialState: AppState = {
     depositTransactions: initialDepositTransactions,
     lastWithdrawalToken: null,
     lastWithdrawalReceipt: null,
+    businessSettings: initialBusinessSettings,
     rentalOrders: initialRentalOrders,
     mobileMenuCategory: null,
 };
@@ -197,6 +199,7 @@ type ProductTypeLocationData = {
 
 // --- ACTION TYPES ---
 type Action =
+  | { type: 'settings/updateBusinessSettings'; payload: Partial<BusinessFlexibilitySettings> }
   // Auth actions
   | { type: 'auth/login'; payload: { user: Staff } }
   | { type: 'auth/logout' }
@@ -601,6 +604,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     paymentMethods,
                     roles: mergedRoles,
                     companyInfo,
+                    businessSettings: { ...defaultState.businessSettings, ...(parsed.businessSettings || {}) },
                     inventoryLevels: unifiedInventoryLevels,
                     stockMovements: unifiedStockMovements,
                     websiteSettings: { ...defaultState.websiteSettings, ...(parsed.websiteSettings || {}) }
@@ -841,6 +845,7 @@ const appReducer = (state: AppState, action: Action): AppState => {
         }
         case 'areas/updateVillage': return { ...state, villages: state.villages.map(v => v.id === action.payload.id ? action.payload : v) };
         // --- SETTINGS ---
+        case 'settings/updateBusinessSettings': return { ...state, businessSettings: { ...state.businessSettings, ...action.payload } };
         case 'settings/updateEcommerce': return { ...state, ecommerceSettings: action.payload };
         case 'settings/updateReportLayouts': return { ...state, reportLayoutSettings: action.payload };
         case 'settings/updateTaxRates': return { ...state, taxRates: action.payload };
